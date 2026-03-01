@@ -504,7 +504,7 @@ setInterval(() => {
 
 /* ========== Start ========== */
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 server.listen(PORT, () => {
   console.log(`\n  Checkers server running on http://localhost:${PORT}\n`);
 });
