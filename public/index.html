@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Checkers Online</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9923;</text></svg>">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+       crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== TITLE SCREEN ===== -->
+  <div id="titleScreen" class="screen active">
+    <div class="title-bg">
+      <canvas id="titleCanvas"></canvas>
+    </div>
+    <div class="title-content">
+      <h1 class="game-title">Boardom</h1>
+      <p class="game-subtitle">ONLINE</p>
+      <button class="btn btn-glow pulse-anim" id="btnStart">PLAY</button>
+      <p class="version-tag">v1.0 &mdash; Real-time Multiplayer</p>
+    </div>
+  </div>
+
+  <!-- ===== AUTH SCREEN ===== -->
+  <div id="authScreen" class="screen">
+    <div class="card glass">
+      <div class="auth-tabs">
+        <button class="tab-btn active" data-tab="login">Login</button>
+        <button class="tab-btn" data-tab="signup">Sign Up</button>
+      </div>
+      <form id="loginForm" class="auth-form">
+        <input type="text" id="loginUser" placeholder="Username" autocomplete="username" maxlength="20" required>
+        <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password" required>
+        <button type="submit" class="btn btn-primary">Login</button>
+        <p class="auth-error" id="loginError"></p>
+      </form>
+      <form id="signupForm" class="auth-form hidden">
+        <input type="text" id="signupUser" placeholder="Username" autocomplete="username" maxlength="20" required>
+        <input type="password" id="signupPass" placeholder="Password (4+ chars)" autocomplete="new-password" minlength="4" required>
+        <button type="submit" class="btn btn-primary">Create Account</button>
+        <p class="auth-error" id="signupError"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== MAIN LOBBY ===== -->
+  <div id="lobbyScreen" class="screen">
+    <div class="lobby-layout">
+      <!-- Left: Profile + Modes -->
+      <div class="lobby-main">
+        <div class="profile-card glass">
+          <div class="profile-avatar" id="profileAvatar">?</div>
+          <div class="profile-info">
+            <h2 id="profileName">Player</h2>
+            <div class="profile-stats">
+              <div class="stat"><span class="stat-val" id="profileRating">1200</span><span class="stat-lbl">Rating</span></div>
+              <div class="stat"><span class="stat-val" id="profileWins">0</span><span class="stat-lbl">Wins</span></div>
+              <div class="stat"><span class="stat-val" id="profileLosses">0</span><span class="stat-lbl">Losses</span></div>
+            </div>
+          </div>
+          <div class="profile-btn-row">
+            <button class="btn btn-small btn-ghost" id="btnShop">Shop</button>
+            <button class="btn btn-small btn-ghost" id="btnLogout">Logout</button>
+          </div>
+        </div>
+
+        <div class="server-stats glass" id="serverStats">
+          <span><i class="dot green"></i> <span id="statOnline">0</span> Online</span>
+          <span><span id="statGames">0</span> Games</span>
+        </div>
+
+        <div class="lobby-currency glass" id="lobbyCurrency">
+          <span class="currency coins-display"><span id="lobbyCoins">0</span> <small>coins</small></span>
+          <span class="currency gems-display"><span id="lobbyGems">0</span> <small>gems</small></span>
+        </div>
+
+        <!-- Netflix-style Game Selector -->
+        <div class="game-selector" id="gameSelector">
+          <div class="game-card-row" id="gameCardRow">
+            <div class="game-card glass" id="cardCheckers" data-game="checkers">
+              <div class="game-card-icon">&#9823;</div>
+              <div class="game-card-info">
+                <h3 class="game-card-title">Checkers</h3>
+                <p class="game-card-desc">Classic strategy board game</p>
+              </div>
+              <div class="game-card-badge">5 modes</div>
+            </div>
+            <div class="game-card glass" id="cardTrouble" data-game="trouble">
+              <div class="game-card-icon">&#127922;</div>
+              <div class="game-card-info">
+                <h3 class="game-card-title">Trouble</h3>
+                <p class="game-card-desc">Roll &amp; race to the finish!</p>
+              </div>
+              <div class="game-card-badge">3 modes</div>
+            </div>
+            <div class="game-card glass" id="cardScrabble" data-game="scrabble">
+              <div class="game-card-icon">&#128289;</div>
+              <div class="game-card-info">
+                <h3 class="game-card-title">Scrabble</h3>
+                <p class="game-card-desc">Build words &amp; score big!</p>
+              </div>
+              <div class="game-card-badge">3 modes</div>
+            </div>
+          </div>
+
+          <div class="game-detail" id="gameDetail">
+            <div class="game-detail-header">
+              <button class="btn btn-small btn-ghost game-detail-back" id="btnGameDetailBack">&larr; All Games</button>
+              <div class="game-detail-hero" id="gameDetailHero">
+                <span class="game-detail-hero-icon" id="gameDetailIcon"></span>
+                <div>
+                  <h3 class="game-detail-hero-title" id="gameDetailTitle"></h3>
+                  <p class="game-detail-hero-desc" id="gameDetailDesc"></p>
+                </div>
+              </div>
+            </div>
+            <div class="mode-card-row" id="modeCardRow"></div>
+          </div>
+        </div>
+
+        <!-- Ad: Lobby banner -->
+        <div class="ad-container ad-lobby-banner" id="adLobbyBanner">
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="1234567890"
+               data-ad-format="horizontal"
+               data-full-width-responsive="true"></ins>
+        </div>
+
+        <div class="support-link">
+          <a href="https://ko-fi.com/YOUR_KOFI" target="_blank" rel="noopener" class="btn btn-small btn-ghost btn-support">&#9749; Support the Dev</a>
+        </div>
+      </div>
+
+      <!-- Right: Global Chat -->
+      <div class="lobby-chat glass">
+        <div class="chat-header">Global Chat</div>
+        <div class="chat-messages" id="lobbyChatMessages"></div>
+        <form class="chat-input-row" id="lobbyChatForm">
+          <input type="text" id="lobbyChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
+          <button type="submit" class="btn btn-small btn-primary">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== QUEUE / SEARCHING ===== -->
+  <div id="queueScreen" class="screen">
+    <div class="card glass center-card">
+      <h2 id="queueTitle">Finding Opponent</h2>
+      <div class="spinner-ring"></div>
+      <p class="queue-text" id="queueText">Searching for a match...</p>
+      <!-- Ad: Queue banner -->
+      <div class="ad-container ad-queue" id="adQueue">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="1122334455"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+      </div>
+      <button class="btn btn-ghost" id="btnCancelQueue">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ===== PRIVATE LOBBY HOST ===== -->
+  <div id="lobbyHostScreen" class="screen">
+    <div class="card glass center-card">
+      <h2>Private Game</h2>
+      <p class="muted">Share this code with your friend:</p>
+      <div class="invite-code" id="inviteCode">------</div>
+      <p class="copy-hint" id="copyHint">Click to copy</p>
+      <div class="spinner-ring small"></div>
+      <p class="muted">Waiting for opponent...</p>
+      <button class="btn btn-ghost" id="btnCancelLobby">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ===== PRIVATE LOBBY JOIN ===== -->
+  <div id="lobbyJoinScreen" class="screen">
+    <div class="card glass center-card">
+      <h2>Join Private Game</h2>
+      <input type="text" id="joinCodeInput" class="code-input" placeholder="ENTER CODE" maxlength="6" autocomplete="off">
+      <p class="auth-error" id="joinError"></p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnJoinCode">Join</button>
+        <button class="btn btn-ghost" id="btnJoinBack">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SHOP SCREEN ===== -->
+  <div id="shopScreen" class="screen">
+    <div class="shop-layout">
+      <div class="shop-header glass">
+        <button class="btn btn-small btn-ghost" id="btnShopBack">&larr; Back</button>
+        <h2>Shop</h2>
+        <div class="currency-display">
+          <span class="currency coins-display"><span id="shopCoins">0</span> <small>coins</small></span>
+          <span class="currency gems-display"><span id="shopGems">0</span> <small>gems</small></span>
+        </div>
+      </div>
+      <div class="shop-tabs">
+        <button class="shop-tab active" data-shop-tab="boards">Boards</button>
+        <button class="shop-tab" data-shop-tab="pieces">Pieces</button>
+        <button class="shop-tab" data-shop-tab="badges">Badges</button>
+        <button class="shop-tab" data-shop-tab="themes">Themes</button>
+        <button class="shop-tab" data-shop-tab="premium">Premium</button>
+      </div>
+      <div class="shop-items" id="shopItemsGrid"></div>
+      <div class="shop-footer">
+        <a href="https://ko-fi.com/YOUR_KOFI" target="_blank" rel="noopener" class="btn btn-small btn-gem-buy">Get Gems &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GAME SCREEN ===== -->
+  <div id="gameScreen" class="screen">
+    <div class="game-layout">
+      <!-- Game area -->
+      <div class="game-area">
+        <div class="game-hud">
+          <div class="hud-player opponent-hud glass">
+            <div class="hud-piece" id="oppPiece"></div>
+            <span class="hud-name" id="oppName">Opponent</span>
+            <span class="hud-rating" id="oppRating"></span>
+            <span class="hud-count" id="oppCount">12</span>
+          </div>
+          <div class="turn-badge" id="turnBadge">YOUR TURN</div>
+          <div class="hud-player my-hud glass">
+            <div class="hud-piece" id="myPiece"></div>
+            <span class="hud-name" id="myName">You</span>
+            <span class="hud-rating" id="myRating"></span>
+            <span class="hud-count" id="myCount">12</span>
+          </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnResign">Resign</button>
+        </div>
+      </div>
+
+      <!-- In-game chat -->
+      <div class="game-chat glass" id="gameChatPanel">
+        <div class="chat-header">Game Chat</div>
+        <div class="chat-messages" id="gameChatMessages"></div>
+        <form class="chat-input-row" id="gameChatForm">
+          <input type="text" id="gameChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
+          <button type="submit" class="btn btn-small btn-primary">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TROUBLE GAME SCREEN ===== -->
+  <div id="troubleGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="trouble-hud" id="troubleHud"></div>
+        <canvas id="troubleCanvas"></canvas>
+        <div class="game-controls">
+          <button class="btn btn-primary trouble-dice-btn" id="btnTroubleRoll">Roll Dice</button>
+          <button class="btn btn-small btn-ghost" id="btnTroubleResign">Leave</button>
+        </div>
+      </div>
+      <div class="game-chat glass" id="troubleChatPanel">
+        <div class="chat-header">Game Chat</div>
+        <div class="chat-messages" id="troubleChatMessages"></div>
+        <form class="chat-input-row" id="troubleChatForm">
+          <input type="text" id="troubleChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
+          <button type="submit" class="btn btn-small btn-primary">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TROUBLE LOCAL PLAYER SELECT ===== -->
+  <div id="troubleLocalOverlay" class="overlay hidden">
+    <div class="card glass center-card">
+      <h2>Local Trouble</h2>
+      <p class="muted">How many players?</p>
+      <div class="btn-row">
+        <button class="btn btn-primary trouble-local-count" data-count="2">2</button>
+        <button class="btn btn-primary trouble-local-count" data-count="3">3</button>
+        <button class="btn btn-primary trouble-local-count" data-count="4">4</button>
+      </div>
+      <button class="btn btn-ghost" id="btnTroubleLocalBack" style="margin-top:1rem">Back</button>
+    </div>
+  </div>
+
+  <!-- ===== SCRABBLE GAME SCREEN ===== -->
+  <div id="scrabbleGameScreen" class="screen">
+    <div class="scrabble-layout">
+      <div class="scrabble-board-col">
+        <div class="scrabble-hud" id="scrabbleHud"></div>
+        <canvas id="scrabbleCanvas"></canvas>
+      </div>
+      <div class="scrabble-side-col">
+        <div class="scrabble-rack-section glass">
+          <div class="scrabble-rack-label">Your Tiles</div>
+          <div class="scrabble-rack" id="scrabbleRack"></div>
+          <div class="scrabble-controls">
+            <button class="btn btn-primary scrabble-submit-btn" id="btnScrabbleSubmit" disabled>Submit Word</button>
+            <div class="scrabble-controls-row">
+              <button class="btn btn-small btn-ghost" id="btnScrabbleRecall">Recall</button>
+              <button class="btn btn-small btn-ghost" id="btnScrabbleExchange">Exchange</button>
+              <button class="btn btn-small btn-ghost" id="btnScrabblePass">Pass</button>
+            </div>
+          </div>
+          <div class="scrabble-error" id="scrabbleError"></div>
+        </div>
+        <div class="game-chat glass" id="scrabbleChatPanel">
+          <div class="chat-header">Game Chat</div>
+          <div class="chat-messages" id="scrabbleChatMessages"></div>
+          <form class="chat-input-row" id="scrabbleChatForm">
+            <input type="text" id="scrabbleChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
+            <button type="submit" class="btn btn-small btn-primary">Send</button>
+          </form>
+        </div>
+        <button class="btn btn-small btn-ghost scrabble-leave-btn" id="btnScrabbleResign">Leave Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCRABBLE LOCAL PLAYER SELECT ===== -->
+  <div id="scrabbleLocalOverlay" class="overlay hidden">
+    <div class="card glass center-card">
+      <h2>Local Scrabble</h2>
+      <p class="muted">How many players?</p>
+      <div class="btn-row scrabble-local-counts">
+        <button class="btn btn-primary scrabble-local-count" data-count="2">2</button>
+        <button class="btn btn-primary scrabble-local-count" data-count="3">3</button>
+        <button class="btn btn-primary scrabble-local-count" data-count="4">4</button>
+        <button class="btn btn-primary scrabble-local-count" data-count="5">5</button>
+        <button class="btn btn-primary scrabble-local-count" data-count="6">6</button>
+        <button class="btn btn-primary scrabble-local-count" data-count="7">7</button>
+        <button class="btn btn-primary scrabble-local-count" data-count="8">8</button>
+      </div>
+      <button class="btn btn-ghost" id="btnScrabbleLocalBack" style="margin-top:1rem">Back</button>
+    </div>
+  </div>
+
+  <!-- ===== SCRABBLE BLANK TILE PICKER ===== -->
+  <div id="scrabbleBlankOverlay" class="overlay hidden">
+    <div class="card glass center-card">
+      <h2>Choose Letter</h2>
+      <p class="muted">What letter should this blank represent?</p>
+      <div class="scrabble-letter-grid" id="scrabbleLetterGrid"></div>
+      <button class="btn btn-ghost" id="btnScrabbleBlankCancel" style="margin-top:1rem">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ===== GAME OVER OVERLAY ===== -->
+  <div id="gameOverOverlay" class="overlay hidden">
+    <div class="card glass center-card gameover-card">
+      <h2 id="gameOverTitle">Game Over</h2>
+      <p id="gameOverReason" class="muted"></p>
+      <div id="gameOverRating" class="rating-change"></div>
+      <div id="gameOverCoins" class="coin-reward"></div>
+      <!-- Ad: Game over -->
+      <div class="ad-container ad-gameover" id="adGameOver">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="0987654321"
+             data-ad-format="rectangle"></ins>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnPlayAgain">Play Again</button>
+        <button class="btn btn-ghost" id="btnBackToLobby">Lobby</button>
+      </div>
+    </div>
+    <canvas id="confettiCanvas"></canvas>
+  </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/client.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+[
+  {
+    "username": "Dark",
+    "passwordHash": "$2a$10$.pUM6svScH.qyTT.fF5B8uH8.YZ/ILBGssjlGfbGczFTdVbRLeU5O",
+    "rating": 1216,
+    "wins": 10,
+    "losses": 3,
+    "created": 1772359638220,
+    "coins": 61,
+    "trials": {
+      "_piecesTokens": 5
+    }
+  },
+  {
+    "username": "Lyris",
+    "passwordHash": "$2a$10$DcwFVQ62X92DVhIijNR5AuIEOJLmKjQN4n2WSPksBof9j7cv/KvT.",
+    "rating": 1184,
+    "wins": 1,
+    "losses": 2,
+    "created": 1772359782056,
+    "coins": 6
+  }
+]
