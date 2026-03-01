@@ -78,6 +78,14 @@
           <span class="currency gems-display"><span id="lobbyGems">0</span> <small>gems</small></span>
         </div>
 
+        <div class="rejoin-manual glass" id="rejoinManual">
+          <div class="rejoin-row">
+            <input type="text" id="rejoinCodeInput" class="code-input" placeholder="MATCH CODE" maxlength="6" autocomplete="off">
+            <button class="btn btn-small btn-primary" id="btnRejoinCode">Rejoin</button>
+          </div>
+          <p class="auth-error" id="rejoinError"></p>
+        </div>
+
         <!-- Netflix-style Game Selector -->
         <div class="game-selector" id="gameSelector">
           <div class="game-card-row" id="gameCardRow">
@@ -241,6 +249,11 @@
         </div>
         <canvas id="gameCanvas"></canvas>
         <div class="game-controls">
+          <div class="match-code-display">
+            <span class="match-code-label">Code:</span>
+            <span class="match-code-value" id="matchCodeValue">------</span>
+            <button class="btn-copy-code" id="btnCopyMatchCode" title="Copy code">&#x1F4CB;</button>
+          </div>
           <button class="btn btn-small btn-ghost" id="btnResign">Resign</button>
         </div>
       </div>
@@ -264,6 +277,11 @@
         <div class="trouble-hud" id="troubleHud"></div>
         <canvas id="troubleCanvas"></canvas>
         <div class="game-controls">
+          <div class="match-code-display">
+            <span class="match-code-label">Code:</span>
+            <span class="match-code-value" id="troubleMatchCodeValue">------</span>
+            <button class="btn-copy-code" id="btnCopyTroubleCode" title="Copy code">&#x1F4CB;</button>
+          </div>
           <button class="btn btn-primary trouble-dice-btn" id="btnTroubleRoll">Roll Dice</button>
           <button class="btn btn-small btn-ghost" id="btnTroubleResign">Leave</button>
         </div>
@@ -322,6 +340,11 @@
             <button type="submit" class="btn btn-small btn-primary">Send</button>
           </form>
         </div>
+        <div class="match-code-display">
+          <span class="match-code-label">Code:</span>
+          <span class="match-code-value" id="scrabbleMatchCodeValue">------</span>
+          <button class="btn-copy-code" id="btnCopyScrabbleCode" title="Copy code">&#x1F4CB;</button>
+        </div>
         <button class="btn btn-small btn-ghost scrabble-leave-btn" id="btnScrabbleResign">Leave Game</button>
       </div>
     </div>
@@ -376,6 +399,28 @@
       </div>
     </div>
     <canvas id="confettiCanvas"></canvas>
+  </div>
+
+  <!-- ===== GAME PAUSED OVERLAY ===== -->
+  <div id="gamePausedOverlay" class="overlay hidden">
+    <div class="card glass center-card paused-card">
+      <h2>Game Paused</h2>
+      <p class="muted" id="pauseReason">Opponent disconnected</p>
+      <div class="pause-countdown">
+        <span class="countdown-number" id="countdownNumber">120</span>
+      </div>
+      <p class="muted">Waiting for reconnection...</p>
+      <p class="muted pause-match-code">Match Code: <strong id="pauseMatchCode">------</strong></p>
+    </div>
+  </div>
+
+  <!-- ===== RECONNECTING OVERLAY ===== -->
+  <div id="reconnectingOverlay" class="overlay hidden">
+    <div class="card glass center-card">
+      <h2>Reconnecting...</h2>
+      <div class="spinner-ring"></div>
+      <p class="muted">Attempting to rejoin your game</p>
+    </div>
   </div>
 
 </div>

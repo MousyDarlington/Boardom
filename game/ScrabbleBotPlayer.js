@@ -31,7 +31,7 @@ class ScrabbleBotPlayer {
   }
 
   _onEvent(event, data) {
-    if (this.destroyed) return;
+    if (this.destroyed || this._paused) return;
 
     if (event === 'scrabble:start') {
       this.gameId = data.gameId;

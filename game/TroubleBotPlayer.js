@@ -28,7 +28,7 @@ class TroubleBotPlayer {
   }
 
   _onEvent(event, data) {
-    if (this.destroyed) return;
+    if (this.destroyed || this._paused) return;
 
     if (event === 'trouble:start') {
       this.gameId = data.gameId;

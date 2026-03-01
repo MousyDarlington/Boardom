@@ -10,6 +10,7 @@ const ScrabbleBotPlayer = require('./ScrabbleBotPlayer');
 
 const QUEUE_TIMEOUT_MS = 90 * 1000;   // 90 seconds before bot match
 const BOT_MATCH_DELAY_MS = 1500;      // brief UI notice before game starts
+const RECONNECT_TIMEOUT_MS = 120 * 1000; // 120 seconds to rejoin after disconnect
 
 class Matchmaker {
   constructor(io, userStore) {
@@ -27,6 +28,9 @@ class Matchmaker {
     this.scrabbleQueue = [];          // socket refs for Scrabble
     this.scrabbleBots = new Map();    // gameId -> ScrabbleBotPlayer[]
     this.scrabbleDictionary = null;   // Set of valid words
+    this.matchCodes = new Map();      // matchCode -> gameId
+    this.usernameToGame = new Map();  // username -> gameId
+    this.pausedGames = new Map();     // gameId -> { pausedAt, timers, disconnectedPlayers }
   }
 
   /* ---------- helpers ---------- */
@@ -40,8 +44,18 @@ class Matchmaker {
 
   _uniqueCode() {
     let code;
-    do { code = this._genCode(); } while (this.lobbies.has(code));
+    do { code = this._genCode(); } while (this.lobbies.has(code) || this.matchCodes.has(code));
     return code;
+  }
+
+  _hasActiveGame(socket) {
+    if (!socket.username) return false;
+    const gameId = this.usernameToGame.get(socket.username);
+    if (!gameId) return false;
+    const gd = this.games.get(gameId);
+    if (!gd) { this.usernameToGame.delete(socket.username); return false; }
+    socket.emit('game:activeGameExists', { matchCode: gd.matchCode });
+    return true;
   }
 
   _removeFromQueues(socket) {
@@ -101,6 +115,7 @@ class Matchmaker {
 
   /** Instant bot match from the lobby menu (casual, no queue). */
   playBot(socket) {
+    if (this._hasActiveGame(socket)) return;
     this._removeFromQueues(socket);
     this._matchWithBot(socket, 'casual', 'Botty McBotFace');
   }
@@ -108,6 +123,7 @@ class Matchmaker {
   /* ---------- Casual queue ---------- */
 
   joinCasual(socket) {
+    if (this._hasActiveGame(socket)) return;
     this._removeFromQueues(socket);
     this.casualQueue.push(socket);
     socket.emit('queue:update', { type: 'casual', position: this.casualQueue.length });
@@ -123,6 +139,7 @@ class Matchmaker {
   /* ---------- Ranked queue ---------- */
 
   joinRanked(socket) {
+    if (this._hasActiveGame(socket)) return;
     this._removeFromQueues(socket);
     this.rankedQueue.push(socket);
     socket.emit('queue:update', { type: 'ranked', position: this.rankedQueue.length });
@@ -158,6 +175,7 @@ class Matchmaker {
   /* ---------- Private lobby ---------- */
 
   createLobby(socket) {
+    if (this._hasActiveGame(socket)) return;
     // Remove any existing lobby by this host
     for (const [code, lobby] of this.lobbies) {
       if (lobby.host.id === socket.id) {
@@ -209,8 +227,10 @@ class Matchmaker {
     const black = flip ? sock2 : sock1;
 
     const gameId = `g_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const matchCode = this._uniqueCode();
     const gameData = {
       id: gameId,
+      matchCode,
       game,
       type,
       red,
@@ -222,8 +242,11 @@ class Matchmaker {
     };
 
     this.games.set(gameId, gameData);
+    this.matchCodes.set(matchCode, gameId);
     this.playerToGame.set(red.id, gameId);
     this.playerToGame.set(black.id, gameId);
+    if (red.username) this.usernameToGame.set(red.username, gameId);
+    if (black.username) this.usernameToGame.set(black.username, gameId);
     red.join(gameId);
     black.join(gameId);
 
@@ -239,6 +262,7 @@ class Matchmaker {
 
     red.emit('game:start', {
       gameId,
+      matchCode,
       color: CheckersGame.RED,
       ...state,
       opponent: { username: gameData.blackUsername, rating: blackUser?.rating || 1200 },
@@ -248,6 +272,7 @@ class Matchmaker {
     });
     black.emit('game:start', {
       gameId,
+      matchCode,
       color: CheckersGame.BLACK,
       ...state,
       opponent: { username: gameData.redUsername, rating: redUser?.rating || 1200 },
@@ -341,6 +366,10 @@ class Matchmaker {
     gd.black.leave(gameId);
     this.playerToGame.delete(gd.red.id);
     this.playerToGame.delete(gd.black.id);
+    if (gd.matchCode) this.matchCodes.delete(gd.matchCode);
+    if (gd.redUsername) this.usernameToGame.delete(gd.redUsername);
+    if (gd.blackUsername) this.usernameToGame.delete(gd.blackUsername);
+    this._clearPauseState(gameId);
     this.games.delete(gameId);
   }
 
@@ -365,6 +394,16 @@ class Matchmaker {
       }
     }
     if (changed) this.userStore.updateUser(username, { trials: user.trials });
+  }
+
+  /* ---------- Pause state cleanup ---------- */
+
+  _clearPauseState(gameId) {
+    const pause = this.pausedGames.get(gameId);
+    if (pause) {
+      for (const tid of pause.timers.values()) clearTimeout(tid);
+      this.pausedGames.delete(gameId);
+    }
   }
 
   /* ---------- In-game actions ---------- */
@@ -441,6 +480,7 @@ class Matchmaker {
   handleDisconnect(socket) {
     this._removeFromQueues(socket);
     this.troubleQueue = this.troubleQueue.filter(s => s.id !== socket.id);
+    this.scrabbleQueue = this.scrabbleQueue.filter(s => s.id !== socket.id);
 
     // Clean up lobbies
     for (const [code, lobby] of this.lobbies) {
@@ -450,24 +490,319 @@ class Matchmaker {
       }
     }
 
-    // Handle active game (Checkers, Trouble, or Scrabble)
+    // Handle active game — pause instead of end
     const gd = this.getGameForSocket(socket.id);
-    if (gd) {
-      if (gd.scrabbleGame) {
-        this._scrabblePlayerDisconnect(gd, socket);
-      } else if (gd.troubleGame) {
-        this._troublePlayerDisconnect(gd, socket);
-      } else {
-        const color = this.getPlayerColor(gd, socket.id);
-        const winner = color === CheckersGame.RED ? CheckersGame.BLACK : CheckersGame.RED;
-        this._endGame(gd.id, winner, 'Opponent disconnected');
+    if (!gd) return;
+
+    const username = socket.username;
+    if (!username) {
+      // Anonymous player can't rejoin — end immediately (original behavior)
+      this._forceEndOnDisconnect(gd, socket);
+      return;
+    }
+
+    this._pauseGameForPlayer(gd, username, socket);
+  }
+
+  _forceEndOnDisconnect(gd, socket) {
+    if (gd.scrabbleGame) {
+      this._scrabblePlayerDisconnect(gd, socket);
+    } else if (gd.troubleGame) {
+      this._troublePlayerDisconnect(gd, socket);
+    } else {
+      const color = this.getPlayerColor(gd, socket.id);
+      const winner = color === CheckersGame.RED ? CheckersGame.BLACK : CheckersGame.RED;
+      this._endGame(gd.id, winner, 'Opponent disconnected');
+    }
+  }
+
+  _pauseGameForPlayer(gd, username, socket) {
+    const gameId = gd.id;
+
+    // Initialize pause state if not already paused
+    if (!this.pausedGames.has(gameId)) {
+      this.pausedGames.set(gameId, {
+        pausedAt: Date.now(),
+        timers: new Map(),
+        disconnectedPlayers: new Set()
+      });
+    }
+
+    const pause = this.pausedGames.get(gameId);
+    pause.disconnectedPlayers.add(username);
+
+    // Start reconnect timer
+    const timerId = setTimeout(() => this._onReconnectTimeout(gameId, username), RECONNECT_TIMEOUT_MS);
+    pause.timers.set(username, timerId);
+
+    // Pause bots
+    this._pauseBots(gd);
+
+    // Notify remaining connected players
+    this._notifyPause(gd, username);
+
+    // Remove socket from playerToGame (but keep usernameToGame for rejoin lookup)
+    this.playerToGame.delete(socket.id);
+  }
+
+  _notifyPause(gd, disconnectedUsername) {
+    const pause = this.pausedGames.get(gd.id);
+    const timeRemaining = RECONNECT_TIMEOUT_MS / 1000;
+
+    if (gd.scrabbleGame) {
+      for (const p of gd.players) {
+        if (!pause.disconnectedPlayers.has(p.username) && !p.socket.id.startsWith('bot_')) {
+          p.socket.emit('scrabble:paused', { disconnectedPlayer: disconnectedUsername, timeRemaining, matchCode: gd.matchCode });
+        }
+      }
+    } else if (gd.troubleGame) {
+      for (const p of gd.players) {
+        if (!pause.disconnectedPlayers.has(p.username) && !p.socket.id.startsWith('bot_')) {
+          p.socket.emit('trouble:paused', { disconnectedPlayer: disconnectedUsername, timeRemaining, matchCode: gd.matchCode });
+        }
+      }
+    } else {
+      // Checkers — notify the other player
+      const otherSocket = gd.redUsername === disconnectedUsername ? gd.black : gd.red;
+      if (!otherSocket.id.startsWith('bot_')) {
+        otherSocket.emit('game:paused', { disconnectedPlayer: disconnectedUsername, timeRemaining, matchCode: gd.matchCode });
       }
     }
+  }
+
+  _pauseBots(gd) {
+    const bot = this.bots.get(gd.id);
+    if (bot) {
+      if (bot.moveTimer) { clearTimeout(bot.moveTimer); bot.moveTimer = null; }
+      bot._paused = true;
+    }
+    const tBots = this.troubleBots.get(gd.id);
+    if (tBots) {
+      for (const b of tBots) {
+        if (b._timer) { clearTimeout(b._timer); b._timer = null; }
+        b._paused = true;
+      }
+    }
+    const sBots = this.scrabbleBots.get(gd.id);
+    if (sBots) {
+      for (const b of sBots) {
+        if (b._timer) { clearTimeout(b._timer); b._timer = null; }
+        b._paused = true;
+      }
+    }
+  }
+
+  _resumeBots(gd) {
+    const bot = this.bots.get(gd.id);
+    if (bot && bot._paused) {
+      bot._paused = false;
+      if (gd.game && gd.game.currentTurn === bot.color) bot._scheduleMove();
+    }
+    const tBots = this.troubleBots.get(gd.id);
+    if (tBots) {
+      for (const b of tBots) {
+        if (b._paused) {
+          b._paused = false;
+          if (gd.troubleGame && gd.troubleGame.currentTurn === b.playerIndex && gd.troubleGame.phase === 'roll') {
+            b._scheduleRoll();
+          }
+        }
+      }
+    }
+    const sBots = this.scrabbleBots.get(gd.id);
+    if (sBots) {
+      for (const b of sBots) {
+        if (b._paused) {
+          b._paused = false;
+          if (gd.scrabbleGame && gd.scrabbleGame.currentTurn === b.playerIndex) {
+            b._scheduleTurn();
+          }
+        }
+      }
+    }
+  }
+
+  _onReconnectTimeout(gameId, username) {
+    const gd = this.games.get(gameId);
+    if (!gd) return;
+
+    const pause = this.pausedGames.get(gameId);
+    if (pause) {
+      pause.timers.delete(username);
+      pause.disconnectedPlayers.delete(username);
+    }
+
+    // End the game — original forfeit behavior
+    if (gd.scrabbleGame) {
+      const playerIdx = gd.players.findIndex(p => p.username === username);
+      let bestPlayer = 0, bestScore = -Infinity;
+      for (let i = 0; i < gd.players.length; i++) {
+        if (i === playerIdx) continue;
+        if (gd.scrabbleGame.scores[i] > bestScore) { bestScore = gd.scrabbleGame.scores[i]; bestPlayer = i; }
+      }
+      this._endScrabbleGame(gameId, bestPlayer);
+    } else if (gd.troubleGame) {
+      const playerIdx = gd.players.findIndex(p => p.username === username);
+      let bestPlayer = 0, bestFinished = -1;
+      for (let i = 0; i < gd.players.length; i++) {
+        if (i === playerIdx) continue;
+        if (gd.troubleGame.finished[i] > bestFinished) { bestFinished = gd.troubleGame.finished[i]; bestPlayer = i; }
+      }
+      this._endTroubleGame(gameId, bestPlayer);
+    } else {
+      const winner = gd.redUsername === username ? CheckersGame.BLACK : CheckersGame.RED;
+      this._endGame(gameId, winner, 'Opponent disconnected (timeout)');
+    }
+  }
+
+  /* ---------- Rejoin ---------- */
+
+  attemptRejoin(socket, matchCode) {
+    const username = socket.username;
+    if (!username) return false;
+
+    let gameId = null;
+    if (matchCode) {
+      gameId = this.matchCodes.get(matchCode.toUpperCase().trim());
+    } else {
+      gameId = this.usernameToGame.get(username);
+    }
+
+    if (!gameId) return false;
+
+    const gd = this.games.get(gameId);
+    if (!gd) {
+      // Stale reference
+      if (!matchCode) this.usernameToGame.delete(username);
+      return false;
+    }
+
+    const pause = this.pausedGames.get(gameId);
+
+    if (gd.scrabbleGame || gd.troubleGame) {
+      const playerIdx = gd.players.findIndex(p => p.username === username);
+      if (playerIdx === -1) return false;
+      return this._rejoinMultiplayer(gd, socket, username, playerIdx, pause);
+    } else {
+      if (gd.redUsername !== username && gd.blackUsername !== username) return false;
+      return this._rejoinCheckers(gd, socket, username, pause);
+    }
+  }
+
+  _rejoinCheckers(gd, socket, username, pause) {
+    const isRed = gd.redUsername === username;
+    const oldSocket = isRed ? gd.red : gd.black;
+
+    // Swap socket ref
+    if (isRed) gd.red = socket;
+    else gd.black = socket;
+
+    this.playerToGame.delete(oldSocket.id);
+    this.playerToGame.set(socket.id, gd.id);
+    socket.join(gd.id);
+
+    // Cancel reconnect timer and resume if all players back
+    if (pause) {
+      const tid = pause.timers.get(username);
+      if (tid) { clearTimeout(tid); pause.timers.delete(username); }
+      pause.disconnectedPlayers.delete(username);
+
+      if (pause.disconnectedPlayers.size === 0) {
+        this.pausedGames.delete(gd.id);
+        this._resumeBots(gd);
+        const otherSocket = isRed ? gd.black : gd.red;
+        if (!otherSocket.id.startsWith('bot_')) {
+          otherSocket.emit('game:resumed', { reconnectedPlayer: username });
+        }
+      }
+    }
+
+    // Re-emit full game state
+    const state = gd.game.getState();
+    const redUser = this.userStore.getUser(gd.redUsername);
+    const blackUser = this.userStore.getUser(gd.blackUsername);
+    const cosmeticsOf = (u) => ({
+      board: u?.equippedBoard || 'default',
+      pieces: u?.equippedPieces || 'default',
+      badge: u?.equippedBadge || null
+    });
+
+    socket.emit('game:rejoined', {
+      gameId: gd.id,
+      matchCode: gd.matchCode,
+      color: isRed ? CheckersGame.RED : CheckersGame.BLACK,
+      ...state,
+      opponent: {
+        username: isRed ? gd.blackUsername : gd.redUsername,
+        rating: (isRed ? blackUser : redUser)?.rating || 1200
+      },
+      me: { username, rating: (isRed ? redUser : blackUser)?.rating || 1200 },
+      type: gd.type,
+      cosmetics: {
+        me: cosmeticsOf(isRed ? redUser : blackUser),
+        opponent: cosmeticsOf(isRed ? blackUser : redUser)
+      },
+      chatLog: gd.chatLog || []
+    });
+
+    return true;
+  }
+
+  _rejoinMultiplayer(gd, socket, username, playerIdx, pause) {
+    const oldSocket = gd.players[playerIdx].socket;
+    gd.players[playerIdx].socket = socket;
+
+    this.playerToGame.delete(oldSocket.id);
+    this.playerToGame.set(socket.id, gd.id);
+    socket.join(gd.id);
+
+    if (pause) {
+      const tid = pause.timers.get(username);
+      if (tid) { clearTimeout(tid); pause.timers.delete(username); }
+      pause.disconnectedPlayers.delete(username);
+
+      if (pause.disconnectedPlayers.size === 0) {
+        this.pausedGames.delete(gd.id);
+        this._resumeBots(gd);
+        const eventPrefix = gd.scrabbleGame ? 'scrabble' : 'trouble';
+        for (const p of gd.players) {
+          if (p.username !== username && !p.socket.id.startsWith('bot_')) {
+            p.socket.emit(`${eventPrefix}:resumed`, { reconnectedPlayer: username });
+          }
+        }
+      }
+    }
+
+    const cosmeticsArr = gd.players.map(p => {
+      const u = this.userStore.getUser(p.username);
+      return { board: u?.equippedBoard || 'default', pieces: u?.equippedPieces || 'default', badge: u?.equippedBadge || null };
+    });
+
+    if (gd.scrabbleGame) {
+      const state = gd.scrabbleGame.getStateForPlayer(playerIdx);
+      socket.emit('scrabble:rejoined', {
+        gameId: gd.id, matchCode: gd.matchCode, playerIndex: playerIdx,
+        playerCount: gd.scrabbleGame.playerCount,
+        players: gd.players.map(p => ({ username: p.username, rating: this.userStore.getUser(p.username)?.rating || 1200 })),
+        type: gd.type, cosmetics: cosmeticsArr, chatLog: gd.chatLog || [], ...state
+      });
+    } else if (gd.troubleGame) {
+      const state = gd.troubleGame.getState();
+      socket.emit('trouble:rejoined', {
+        gameId: gd.id, matchCode: gd.matchCode, playerIndex: playerIdx,
+        playerCount: gd.troubleGame.playerCount,
+        players: gd.players.map(p => ({ username: p.username, rating: this.userStore.getUser(p.username)?.rating || 1200 })),
+        type: gd.type, cosmetics: cosmeticsArr, chatLog: gd.chatLog || [], ...state
+      });
+    }
+
+    return true;
   }
 
   /* ========== TROUBLE GAME ========== */
 
   joinTroubleQueue(socket) {
+    if (this._hasActiveGame(socket)) return;
     this._removeFromQueues(socket);
     this.troubleQueue = this.troubleQueue.filter(s => s.id !== socket.id);
     this.troubleQueue.push(socket);
@@ -496,6 +831,7 @@ class Matchmaker {
   }
 
   playTroubleBot(socket) {
+    if (this._hasActiveGame(socket)) return;
     this._removeFromQueues(socket);
     this.troubleQueue = this.troubleQueue.filter(s => s.id !== socket.id);
     this._startTroubleGame([socket], 'casual');
@@ -504,6 +840,7 @@ class Matchmaker {
   _startTroubleGame(humanSockets, type) {
     const playerCount = 4; // Always 4 players, fill with bots
     const gameId = `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const matchCode = this._uniqueCode();
     const game = new TroubleGame(playerCount);
 
     // Fill empty slots with bots
@@ -524,6 +861,7 @@ class Matchmaker {
 
     const gameData = {
       id: gameId,
+      matchCode,
       troubleGame: game,
       type,
       players,
@@ -532,11 +870,13 @@ class Matchmaker {
     };
 
     this.games.set(gameId, gameData);
+    this.matchCodes.set(matchCode, gameId);
     if (botInstances.length > 0) this.troubleBots.set(gameId, botInstances);
 
     for (let i = 0; i < players.length; i++) {
       const s = players[i].socket;
       this.playerToGame.set(s.id, gameId);
+      if (s.username && !s.id.startsWith('bot_')) this.usernameToGame.set(s.username, gameId);
       s.join(gameId);
     }
 
@@ -555,6 +895,7 @@ class Matchmaker {
     for (let i = 0; i < players.length; i++) {
       players[i].socket.emit('trouble:start', {
         gameId,
+        matchCode,
         playerIndex: i,
         playerCount,
         players: players.map((p, idx) => ({
@@ -684,10 +1025,13 @@ class Matchmaker {
     }
 
     // Clean up game
+    if (gd.matchCode) this.matchCodes.delete(gd.matchCode);
     for (const p of gd.players) {
+      if (p.username) this.usernameToGame.delete(p.username);
       p.socket.leave(gameId);
       this.playerToGame.delete(p.socket.id);
     }
+    this._clearPauseState(gameId);
     this.games.delete(gameId);
   }
 
@@ -712,6 +1056,7 @@ class Matchmaker {
   }
 
   joinScrabbleQueue(socket) {
+    if (this._hasActiveGame(socket)) return;
     this._removeFromQueues(socket);
     this.troubleQueue = this.troubleQueue.filter(s => s.id !== socket.id);
     this.scrabbleQueue.push(socket);
@@ -737,6 +1082,7 @@ class Matchmaker {
   }
 
   playScrabbleBot(socket) {
+    if (this._hasActiveGame(socket)) return;
     this._removeFromQueues(socket);
     this.troubleQueue = this.troubleQueue.filter(s => s.id !== socket.id);
     this._startScrabbleGame([socket], 'casual');
@@ -745,6 +1091,7 @@ class Matchmaker {
   _startScrabbleGame(humanSockets, type) {
     const playerCount = Math.max(2, humanSockets.length);
     const gameId = `s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const matchCode = this._uniqueCode();
     const game = new ScrabbleGame(playerCount, this.scrabbleDictionary);
 
     const allSockets = [...humanSockets];
@@ -779,6 +1126,7 @@ class Matchmaker {
 
     const gameData = {
       id: gameId,
+      matchCode,
       scrabbleGame: game,
       type,
       players,
@@ -787,11 +1135,13 @@ class Matchmaker {
     };
 
     this.games.set(gameId, gameData);
+    this.matchCodes.set(matchCode, gameId);
     if (botInstances.length > 0) this.scrabbleBots.set(gameId, botInstances);
 
     for (let i = 0; i < players.length; i++) {
       const s = players[i].socket;
       this.playerToGame.set(s.id, gameId);
+      if (s.username && !s.id.startsWith('bot_')) this.usernameToGame.set(s.username, gameId);
       s.join(gameId);
     }
 
@@ -808,6 +1158,7 @@ class Matchmaker {
       const state = game.getStateForPlayer(i);
       players[i].socket.emit('scrabble:start', {
         gameId,
+        matchCode,
         playerIndex: i,
         playerCount: game.playerCount,
         players: players.map(p => ({
@@ -974,10 +1325,13 @@ class Matchmaker {
       this.scrabbleBots.delete(gameId);
     }
 
+    if (gd.matchCode) this.matchCodes.delete(gd.matchCode);
     for (const p of gd.players) {
+      if (p.username) this.usernameToGame.delete(p.username);
       p.socket.leave(gameId);
       this.playerToGame.delete(p.socket.id);
     }
+    this._clearPauseState(gameId);
     this.games.delete(gameId);
   }
 

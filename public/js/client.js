@@ -125,6 +125,9 @@
   let localGame = null;  // CheckersGame instance for local mode
   let opponentInfo = { username: 'Opponent', rating: 1200 };
   let gameType = null;
+  let currentMatchCode = null;
+  let isPaused = false;
+  let pauseOverlayInterval = null;
 
   // Animation state
   let animations = [];
@@ -1242,6 +1245,31 @@
 
     socket.on('disconnect', () => {
       console.log('Socket disconnected');
+      // Show reconnecting overlay if in a game
+      if (currentScreen === 'game' || currentScreen === 'trouble' || currentScreen === 'scrabble') {
+        $('reconnectingOverlay')?.classList.remove('hidden');
+      }
+    });
+
+    // Pause/resume/rejoin events
+    socket.on('game:paused', onGamePaused);
+    socket.on('game:resumed', onGameResumed);
+    socket.on('game:rejoined', onGameRejoined);
+    socket.on('trouble:paused', onGamePaused);
+    socket.on('trouble:resumed', onGameResumed);
+    socket.on('trouble:rejoined', onTroubleRejoined);
+    socket.on('scrabble:paused', onGamePaused);
+    socket.on('scrabble:resumed', onGameResumed);
+    socket.on('scrabble:rejoined', onScrabbleRejoined);
+
+    socket.on('game:activeGameExists', (data) => {
+      // Auto-rejoin the active game
+      socket.emit('game:rejoin', data.matchCode);
+    });
+
+    socket.on('game:rejoinError', (data) => {
+      const el = $('rejoinError');
+      if (el) el.textContent = data.message;
     });
   }
 
@@ -1256,6 +1284,66 @@
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  /* ---- Pause / Resume / Rejoin handlers ---- */
+
+  function onGamePaused(data) {
+    isPaused = true;
+    const overlay = $('gamePausedOverlay');
+    if (!overlay) return;
+    $('pauseReason').textContent = `${data.disconnectedPlayer} disconnected`;
+    $('pauseMatchCode').textContent = data.matchCode || currentMatchCode || '------';
+    overlay.classList.remove('hidden');
+
+    let timeLeft = data.timeRemaining || 120;
+    $('countdownNumber').textContent = timeLeft;
+    if (pauseOverlayInterval) clearInterval(pauseOverlayInterval);
+    pauseOverlayInterval = setInterval(() => {
+      timeLeft--;
+      $('countdownNumber').textContent = Math.max(0, timeLeft);
+      if (timeLeft <= 0) { clearInterval(pauseOverlayInterval); pauseOverlayInterval = null; }
+    }, 1000);
+  }
+
+  function onGameResumed(data) {
+    isPaused = false;
+    $('gamePausedOverlay')?.classList.add('hidden');
+    if (pauseOverlayInterval) { clearInterval(pauseOverlayInterval); pauseOverlayInterval = null; }
+  }
+
+  function onGameRejoined(data) {
+    $('reconnectingOverlay')?.classList.add('hidden');
+    onGameStart(data);
+    // Restore chat log
+    const chatEl = $('gameChatMessages');
+    if (chatEl && data.chatLog) {
+      chatEl.innerHTML = '';
+      data.chatLog.forEach(m => appendChatMsg(chatEl, m));
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+  }
+
+  function onTroubleRejoined(data) {
+    $('reconnectingOverlay')?.classList.add('hidden');
+    onTroubleStart(data);
+    const chatEl = $('troubleChatMessages');
+    if (chatEl && data.chatLog) {
+      chatEl.innerHTML = '';
+      data.chatLog.forEach(m => appendChatMsg(chatEl, m));
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+  }
+
+  function onScrabbleRejoined(data) {
+    $('reconnectingOverlay')?.classList.add('hidden');
+    onScrabbleStart(data);
+    const chatEl = $('scrabbleChatMessages');
+    if (chatEl && data.chatLog) {
+      chatEl.innerHTML = '';
+      data.chatLog.forEach(m => appendChatMsg(chatEl, m));
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
   }
 
   /* ================================================
@@ -1276,6 +1364,8 @@
     opponentInfo = data.opponent || { username: 'Opponent', rating: 1200 };
     gameType = data.type;
     gameMode = data.type; // 'casual', 'ranked', 'private'
+    currentMatchCode = data.matchCode || null;
+    isPaused = false;
 
     // Apply cosmetics from server
     if (data.cosmetics?.me) {
@@ -1297,7 +1387,14 @@
     // Show chat panel for online modes
     $('gameChatPanel').classList.remove('hidden');
 
+    // Match code display
+    const codeEl = $('matchCodeValue');
+    if (codeEl) codeEl.textContent = currentMatchCode || '------';
+
     showScreen('game');
+    // Hide overlays in case of rejoin
+    $('gamePausedOverlay')?.classList.add('hidden');
+    $('reconnectingOverlay')?.classList.add('hidden');
   }
 
   async function onGameUpdate(data) {
@@ -1444,7 +1541,7 @@
      INPUT HANDLING
      ================================================ */
   function handleCanvasClick(e) {
-    if (animatingPiece) return; // Don't allow clicks during animation
+    if (animatingPiece || isPaused) return; // Don't allow clicks during animation or pause
 
     const rect = $canvas.getBoundingClientRect();
     const scaleX = $canvas.width / rect.width;
@@ -2524,7 +2621,7 @@
      TROUBLE — CLICK HANDLING
      ================================================ */
   function handleTroubleClick(e) {
-    if (!troubleState) return;
+    if (!troubleState || isPaused) return;
 
     const rect = troubleCanvas.getBoundingClientRect();
     const scaleX = troubleCanvas.width / rect.width;
@@ -2634,6 +2731,8 @@
       phase: data.phase,
       players: data.players
     };
+    currentMatchCode = data.matchCode || null;
+    isPaused = false;
 
     // Apply cosmetics
     if (data.cosmetics?.[troublePlayerIndex]) {
@@ -2646,9 +2745,15 @@
     const chatPanel = $('troubleChatPanel');
     if (chatPanel) chatPanel.classList.remove('hidden');
 
+    // Match code display
+    const tCodeEl = $('troubleMatchCodeValue');
+    if (tCodeEl) tCodeEl.textContent = currentMatchCode || '------';
+
     updateTroubleHUD();
     $('btnTroubleRoll').disabled = (data.currentTurn !== troublePlayerIndex);
     showScreen('trouble');
+    $('gamePausedOverlay')?.classList.add('hidden');
+    $('reconnectingOverlay')?.classList.add('hidden');
     playTone(523, 0.15, 'sine', 0.08);
   }
 
@@ -2987,7 +3092,7 @@
 
     // In-game controls
     $('btnTroubleRoll').addEventListener('click', () => {
-      if (!troubleState || troubleState.phase !== 'roll') return;
+      if (!troubleState || troubleState.phase !== 'roll' || isPaused) return;
       const myTurn = troubleIsLocal ? true : (troubleState.currentTurn === troublePlayerIndex);
       if (!myTurn) return;
       troubleDoRoll();
@@ -3336,7 +3441,7 @@
      SCRABBLE -- INTERACTION
      ================================================ */
   function handleScrabbleClick(e) {
-    if (!scrabbleState) return;
+    if (!scrabbleState || isPaused) return;
     const isMyTurn = scrabbleIsLocal || scrabbleState.currentTurn === scrabblePlayerIndex;
     if (!isMyTurn) return;
 
@@ -3452,13 +3557,21 @@
       players: data.players,
       firstMove: data.firstMove
     };
+    currentMatchCode = data.matchCode || null;
+    isPaused = false;
 
     const chatEl = $('scrabbleChatMessages');
     if (chatEl) chatEl.innerHTML = '';
 
+    // Match code display
+    const sCodeEl = $('scrabbleMatchCodeValue');
+    if (sCodeEl) sCodeEl.textContent = currentMatchCode || '------';
+
     updateScrabbleHUD();
     updateScrabbleRack();
     showScreen('scrabble');
+    $('gamePausedOverlay')?.classList.add('hidden');
+    $('reconnectingOverlay')?.classList.add('hidden');
     playTone(523, 0.15, 'sine', 0.08);
   }
 
@@ -4038,6 +4151,26 @@
       const input = $('scrabbleChatInput');
       const text = input.value.trim();
       if (text && socket) { socket.emit('chat:game', text); input.value = ''; }
+    });
+
+    // Match code copy buttons
+    const copyHandler = (btnId) => {
+      const btn = $(btnId);
+      if (btn) btn.addEventListener('click', () => {
+        if (currentMatchCode) navigator.clipboard?.writeText(currentMatchCode);
+      });
+    };
+    copyHandler('btnCopyMatchCode');
+    copyHandler('btnCopyTroubleCode');
+    copyHandler('btnCopyScrabbleCode');
+
+    // Manual rejoin from lobby
+    $('btnRejoinCode')?.addEventListener('click', () => {
+      const code = $('rejoinCodeInput')?.value?.trim();
+      if (code && socket) {
+        $('rejoinError').textContent = '';
+        socket.emit('game:rejoin', code);
+      }
     });
   }
 

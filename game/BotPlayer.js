@@ -57,7 +57,7 @@ class BotPlayer {
   /* ====== Event handling (called via mock socket.emit) ====== */
 
   _onEvent(event, data) {
-    if (!this.active) return;
+    if (!this.active || this._paused) return;
     switch (event) {
       case 'game:start':
         this.color = data.color;

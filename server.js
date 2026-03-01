@@ -355,6 +355,12 @@ io.on('connection', (socket) => {
 
   console.log(`Connected: ${socket.id} (${socket.username || 'anonymous'})`);
 
+  // Attempt auto-rejoin if user has an active game
+  if (socket.username) {
+    const rejoined = matchmaker.attemptRejoin(socket);
+    if (rejoined) console.log(`Auto-rejoined: ${socket.username}`);
+  }
+
   // Send lobby chat history on connect
   socket.emit('chat:lobbyHistory', lobbyChatHistory);
 
@@ -397,6 +403,13 @@ io.on('connection', (socket) => {
 
   socket.on('lobby:leave', () => {
     matchmaker.leaveLobby(socket);
+  });
+
+  /* ---- Rejoin ---- */
+  socket.on('game:rejoin', (matchCode) => {
+    if (!socket.username) return socket.emit('auth:required');
+    const success = matchmaker.attemptRejoin(socket, matchCode);
+    if (!success) socket.emit('game:rejoinError', { message: 'Game not found or you are not a participant' });
   });
 
   /* ---- Game actions ---- */
