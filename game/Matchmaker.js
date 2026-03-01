@@ -679,6 +679,9 @@ class Matchmaker {
 
     const pause = this.pausedGames.get(gameId);
 
+    // Only allow rejoin if the game is actually paused and this player is disconnected
+    if (!pause || !pause.disconnectedPlayers.has(username)) return false;
+
     if (gd.scrabbleGame || gd.troubleGame) {
       const playerIdx = gd.players.findIndex(p => p.username === username);
       if (playerIdx === -1) return false;
