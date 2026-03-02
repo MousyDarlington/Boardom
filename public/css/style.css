@@ -1772,3 +1772,49 @@ input:focus {
   text-align: center;
   font-weight: bold;
 }
+
+/* ---- Trouble Lobby ---- */
+.trouble-lobby-player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  width: 100%;
+}
+.trouble-lobby-player {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255,255,255,0.05);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+.trouble-lobby-player.empty {
+  font-weight: 400;
+  opacity: 0.6;
+}
+.trouble-lobby-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---- Guest Join Screen ---- */
+.guest-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: 0.75rem 0;
+  width: 100%;
+}
+.guest-divider::before,
+.guest-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--glass-border);
+}
