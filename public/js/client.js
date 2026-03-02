@@ -1045,11 +1045,17 @@
     // Reset game selector when returning to lobby
     if (name === 'lobby') {
       deselectGame();
+      switchChatChannel('lobby');
     }
 
     if (name === 'lobby' && user) {
       $('lobbyCoins').textContent = user.coins || 0;
       $('lobbyGems').textContent = user.gems || 0;
+    }
+
+    // Chat FAB visibility — show on game/lobby screens, hide elsewhere
+    if (!CHAT_SCREENS.has(name)) {
+      hideChatFab();
     }
 
     // Refresh ads on screen transitions
@@ -1235,31 +1241,31 @@
       console.warn('Game error:', data.message);
     });
 
-    // Chat
+    // Chat — all routed to global popout modal
     s.on('chat:lobbyHistory', (messages) => {
-      const el = $('lobbyChatMessages');
-      el.innerHTML = '';
-      messages.forEach(m => appendChatMsg(el, m));
-      el.scrollTop = el.scrollHeight;
+      // Store for when user opens lobby chat
+      const el = $('chatModalMessages');
+      if (el && chatChannel === 'lobby') {
+        el.innerHTML = '';
+        messages.forEach(m => appendChatMsg(el, m));
+        el.scrollTop = el.scrollHeight;
+      }
     });
 
     s.on('chat:lobby', (msg) => {
-      const el = $('lobbyChatMessages');
-      appendChatMsg(el, msg);
-      el.scrollTop = el.scrollHeight;
-      if (currentScreen !== 'lobby') sfxChat();
+      if (chatChannel === 'lobby') {
+        appendToChat(msg);
+      } else {
+        incrementChatBadge();
+      }
     });
 
     s.on('chat:game', (msg) => {
-      const el = currentScreen === 'scrabble' ? $('scrabbleChatMessages')
-               : currentScreen === 'trouble' ? $('troubleChatMessages')
-               : currentScreen === 'cah' ? $('cahChatMessages')
-               : $('gameChatMessages');
-      if (el) {
-        appendChatMsg(el, msg);
-        el.scrollTop = el.scrollHeight;
+      if (chatChannel === 'game') {
+        appendToChat(msg);
+      } else {
+        incrementChatBadge();
       }
-      sfxChat();
     });
 
     // Trouble events
@@ -1442,6 +1448,104 @@
     return div.innerHTML;
   }
 
+  /* ---- Global Chat Popout Modal ---- */
+  let chatChannel = null;  // 'lobby' | 'game' | null
+  let chatOpen = false;
+  let chatUnread = 0;
+
+  // Screens that should show the chat FAB
+  const CHAT_SCREENS = new Set(['lobby', 'game', 'trouble', 'scrabble', 'cah']);
+
+  function bindChatModal() {
+    $('chatFab').addEventListener('click', toggleChat);
+    $('btnChatClose').addEventListener('click', () => setChatOpen(false));
+    $('chatModalForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = $('chatModalInput');
+      const text = input.value.trim();
+      if (text && socket) {
+        const event = chatChannel === 'lobby' ? 'chat:lobby' : 'chat:game';
+        socket.emit(event, text);
+        input.value = '';
+      }
+    });
+  }
+
+  function toggleChat() {
+    setChatOpen(!chatOpen);
+  }
+
+  function setChatOpen(open) {
+    chatOpen = open;
+    $('chatModal').classList.toggle('hidden', !open);
+    if (open) {
+      chatUnread = 0;
+      updateChatBadge();
+      const msgs = $('chatModalMessages');
+      if (msgs) msgs.scrollTop = msgs.scrollHeight;
+      $('chatModalInput')?.focus();
+    }
+  }
+
+  function switchChatChannel(channel) {
+    chatChannel = channel;
+    chatUnread = 0;
+    updateChatBadge();
+    const el = $('chatModalMessages');
+    if (el) el.innerHTML = '';
+    const title = $('chatModalTitle');
+    if (title) title.textContent = channel === 'lobby' ? 'Global Chat' : 'Game Chat';
+    showChatFab();
+  }
+
+  function showChatFab() {
+    $('chatFab')?.classList.remove('hidden');
+  }
+
+  function hideChatFab() {
+    $('chatFab')?.classList.add('hidden');
+    setChatOpen(false);
+    chatChannel = null;
+  }
+
+  function appendToChat(msg) {
+    const el = $('chatModalMessages');
+    if (el) {
+      appendChatMsg(el, msg);
+      el.scrollTop = el.scrollHeight;
+    }
+    if (!chatOpen) {
+      incrementChatBadge();
+    }
+    sfxChat();
+  }
+
+  function incrementChatBadge() {
+    chatUnread++;
+    updateChatBadge();
+  }
+
+  function updateChatBadge() {
+    const badge = $('chatFabBadge');
+    if (!badge) return;
+    if (chatUnread > 0) {
+      badge.textContent = chatUnread > 99 ? '99+' : chatUnread;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+
+  function restoreChatLog(chatLog) {
+    if (!chatLog) return;
+    const el = $('chatModalMessages');
+    if (el) {
+      el.innerHTML = '';
+      chatLog.forEach(m => appendChatMsg(el, m));
+      el.scrollTop = el.scrollHeight;
+    }
+  }
+
   /* ---- Pause / Resume / Rejoin handlers ---- */
 
   function onGamePaused(data) {
@@ -1471,35 +1575,19 @@
   function onGameRejoined(data) {
     $('reconnectingOverlay')?.classList.add('hidden');
     onGameStart(data);
-    // Restore chat log
-    const chatEl = $('gameChatMessages');
-    if (chatEl && data.chatLog) {
-      chatEl.innerHTML = '';
-      data.chatLog.forEach(m => appendChatMsg(chatEl, m));
-      chatEl.scrollTop = chatEl.scrollHeight;
-    }
+    restoreChatLog(data.chatLog);
   }
 
   function onTroubleRejoined(data) {
     $('reconnectingOverlay')?.classList.add('hidden');
     onTroubleStart(data);
-    const chatEl = $('troubleChatMessages');
-    if (chatEl && data.chatLog) {
-      chatEl.innerHTML = '';
-      data.chatLog.forEach(m => appendChatMsg(chatEl, m));
-      chatEl.scrollTop = chatEl.scrollHeight;
-    }
+    restoreChatLog(data.chatLog);
   }
 
   function onScrabbleRejoined(data) {
     $('reconnectingOverlay')?.classList.add('hidden');
     onScrabbleStart(data);
-    const chatEl = $('scrabbleChatMessages');
-    if (chatEl && data.chatLog) {
-      chatEl.innerHTML = '';
-      data.chatLog.forEach(m => appendChatMsg(chatEl, m));
-      chatEl.scrollTop = chatEl.scrollHeight;
-    }
+    restoreChatLog(data.chatLog);
   }
 
   /* ================================================
@@ -1538,10 +1626,8 @@
     $('oppRating').textContent = opponentInfo.rating ? `(${opponentInfo.rating})` : '';
     updateGameHUD();
 
-    // Clear game chat
-    $('gameChatMessages').innerHTML = '';
-    // Show chat panel for online modes
-    $('gameChatPanel').classList.remove('hidden');
+    // Switch to game chat channel
+    switchChatChannel('game');
 
     // Match code display
     const codeEl = $('matchCodeValue');
@@ -1796,8 +1882,8 @@
     $('myRating').textContent = '';
     $('oppRating').textContent = '';
 
-    // Hide game chat in local mode
-    $('gameChatPanel').classList.add('hidden');
+    // No chat in local mode — hide FAB
+    hideChatFab();
 
     updateGameHUD();
     showScreen('game');
@@ -3075,11 +3161,8 @@
       activeCosmetics = { ...activeCosmetics, ...data.cosmetics[troublePlayerIndex] };
     }
 
-    // Clear game chat
-    const chatEl = $('troubleChatMessages');
-    if (chatEl) chatEl.innerHTML = '';
-    const chatPanel = $('troubleChatPanel');
-    if (chatPanel) chatPanel.classList.remove('hidden');
+    // Switch to game chat channel
+    switchChatChannel('game');
 
     // Match code display
     const tCodeEl = $('troubleMatchCodeValue');
@@ -3438,9 +3521,8 @@
       players: Array.from({ length: playerCount }, (_, i) => ({ username: TROUBLE_COLOR_NAMES[i] }))
     };
 
-    // Hide chat in local mode
-    const chatPanel = $('troubleChatPanel');
-    if (chatPanel) chatPanel.classList.add('hidden');
+    // No chat in local mode — hide FAB
+    hideChatFab();
 
     $('btnTroubleRoll').disabled = false;
     updateTroubleHUD();
@@ -3556,16 +3638,6 @@
       }
     });
 
-    // Trouble chat
-    $('troubleChatForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = $('troubleChatInput');
-      const text = input.value.trim();
-      if (text && socket) {
-        socket.emit('chat:game', text);
-        input.value = '';
-      }
-    });
   }
 
   /* ================================================
@@ -4004,8 +4076,8 @@
     currentMatchCode = data.matchCode || null;
     isPaused = false;
 
-    const chatEl = $('scrabbleChatMessages');
-    if (chatEl) chatEl.innerHTML = '';
+    // Switch to game chat channel
+    switchChatChannel('game');
 
     // Match code display
     const sCodeEl = $('scrabbleMatchCodeValue');
@@ -4523,6 +4595,7 @@
       firstMove: true
     };
 
+    hideChatFab();
     updateScrabbleHUD();
     updateScrabbleRack();
     showScreen('scrabble');
@@ -4587,14 +4660,6 @@
     // Blank cancel
     $('btnScrabbleBlankCancel').addEventListener('click', () => {
       $('scrabbleBlankOverlay').classList.add('hidden');
-    });
-
-    // Chat
-    $('scrabbleChatForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = $('scrabbleChatInput');
-      const text = input.value.trim();
-      if (text && socket) { socket.emit('chat:game', text); input.value = ''; }
     });
 
     // Match code copy buttons
@@ -4737,27 +4802,8 @@
       showScreen('lobby');
     });
 
-    // Lobby chat
-    $('lobbyChatForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = $('lobbyChatInput');
-      const text = input.value.trim();
-      if (text && socket) {
-        socket.emit('chat:lobby', text);
-        input.value = '';
-      }
-    });
-
-    // Game chat
-    $('gameChatForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = $('gameChatInput');
-      const text = input.value.trim();
-      if (text && socket) {
-        socket.emit('chat:game', text);
-        input.value = '';
-      }
-    });
+    // Global chat modal
+    bindChatModal();
 
     // Canvas click
     document.addEventListener('DOMContentLoaded', () => {
@@ -4829,14 +4875,6 @@
         socket.emit('cah:resign');
         showScreen('lobby');
       }
-    });
-
-    // CAH chat
-    $('cahChatForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = $('cahChatInput');
-      const text = input.value.trim();
-      if (text && socket) { socket.emit('chat:game', text); input.value = ''; }
     });
 
     // Shop
@@ -4988,6 +5026,7 @@
     gameType = 'cah';
     currentMatchCode = data.matchCode;
     $('cahMatchCodeValue').textContent = data.matchCode || '------';
+    switchChatChannel('game');
     showScreen('cah');
     renderCAHGame();
   }
