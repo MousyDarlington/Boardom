@@ -2990,10 +2990,17 @@
     troublePlayerIndex = data.playerIndex;
     troubleIsLocal = false;
     troubleLocalGame = null;
-    troubleValidMoves = [];
     troubleParticles = [];
     troubleDiceAnim = null;
     troubleSelectedToken = -1;
+
+    // Restore valid moves if rejoining mid-move phase, otherwise reset
+    if (data.validMoves && data.validMoves.length > 0 && data.phase === 'move'
+        && data.currentTurn === data.playerIndex) {
+      troubleValidMoves = data.validMoves;
+    } else {
+      troubleValidMoves = [];
+    }
 
     troubleState = {
       gameId: data.gameId,
@@ -3026,7 +3033,8 @@
     if (tCodeEl) tCodeEl.textContent = currentMatchCode || '------';
 
     updateTroubleHUD();
-    $('btnTroubleRoll').disabled = (data.currentTurn !== troublePlayerIndex);
+    // Disable roll button if not our turn OR if we're in move phase (already rolled)
+    $('btnTroubleRoll').disabled = (data.currentTurn !== data.playerIndex) || data.phase === 'move';
     showScreen('trouble');
     $('gamePausedOverlay')?.classList.add('hidden');
     $('reconnectingOverlay')?.classList.add('hidden');
