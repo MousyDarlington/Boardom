@@ -825,6 +825,7 @@ input:focus {
 }
 
 @media (max-width: 480px) {
+  .game-card-row { grid-template-columns: 1fr; }
   .game-card { padding: 0.75rem; }
   .game-card-icon { font-size: 2rem; }
   .game-card-title { font-size: 1rem; }
