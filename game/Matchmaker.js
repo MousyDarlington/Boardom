@@ -21,12 +21,10 @@ class Matchmaker {
     this.games = new Map();           // gameId -> GameData
     this.playerToGame = new Map();    // socketId -> gameId
     this.queueTimers = new Map();     // socketId -> timeoutId
-    this.bots = new Map();            // gameId -> BotPlayer
+    this.workers = new Map();         // gameId -> Worker thread
     this.troubleQueue = [];           // socket refs for Trouble
-    this.troubleBots = new Map();     // gameId -> TroubleBotPlayer[]
     this.scrabbleQueue = [];          // socket refs for Scrabble
-    this.scrabbleBots = new Map();    // gameId -> ScrabbleBotPlayer[]
-    this.scrabbleDictionary = null;   // Set of valid words
+    this.scrabbleDictionaryPath = null; // path to dictionary file for workers
     this.matchCodes = new Map();      // matchCode -> gameId
     this.usernameToGame = new Map();  // username -> gameId
     this.pausedGames = new Map();     // gameId -> { pausedAt, timers, disconnectedPlayers }
