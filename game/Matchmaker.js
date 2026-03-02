@@ -217,6 +217,113 @@ class Matchmaker {
     }
   }
 
+  /* ---------- Trouble Private Lobby ---------- */
+
+  createTroubleLobby(socket) {
+    if (this._hasActiveGame(socket)) return;
+    // Remove any existing trouble lobby by this host
+    for (const [code, lobby] of this.troubleLobbies) {
+      if (lobby.host.id === socket.id) {
+        for (const p of lobby.players) {
+          if (p.socket.id !== socket.id) {
+            p.socket.emit('troubleLobby:disbanded', { message: 'Host cancelled the lobby' });
+          }
+        }
+        this.troubleLobbies.delete(code);
+        break;
+      }
+    }
+    const code = this._uniqueCode();
+    const username = socket.username || socket.guestName || 'Host';
+    const lobbyData = {
+      host: socket,
+      hostUsername: username,
+      players: [{ socket, username }],
+      createdAt: Date.now()
+    };
+    this.troubleLobbies.set(code, lobbyData);
+    socket.emit('troubleLobby:created', { code, players: [{ username }] });
+  }
+
+  joinTroubleLobby(socket, code) {
+    code = (code || '').toUpperCase().trim();
+    const lobby = this.troubleLobbies.get(code);
+    if (!lobby) return socket.emit('troubleLobby:error', { message: 'Lobby not found' });
+    if (lobby.players.some(p => p.socket.id === socket.id)) {
+      return socket.emit('troubleLobby:error', { message: 'Already in this lobby' });
+    }
+    if (lobby.players.length >= 4) {
+      return socket.emit('troubleLobby:error', { message: 'Lobby is full' });
+    }
+
+    const username = socket.username || socket.guestName || 'Guest';
+    lobby.players.push({ socket, username });
+
+    // Notify all players in lobby
+    const playerList = lobby.players.map(p => ({ username: p.username }));
+    for (const p of lobby.players) {
+      p.socket.emit('troubleLobby:updated', { players: playerList, code });
+    }
+
+    // Auto-start when 4 players join
+    if (lobby.players.length >= 4) {
+      this._launchTroubleLobby(code);
+    }
+  }
+
+  startTroubleLobby(socket, code) {
+    code = (code || '').toUpperCase().trim();
+    const lobby = this.troubleLobbies.get(code);
+    if (!lobby) return socket.emit('troubleLobby:error', { message: 'Lobby not found' });
+    if (lobby.host.id !== socket.id) {
+      return socket.emit('troubleLobby:error', { message: 'Only the host can start the game' });
+    }
+    if (lobby.players.length < 2) {
+      return socket.emit('troubleLobby:error', { message: 'Need at least 2 players to start' });
+    }
+    this._launchTroubleLobby(code);
+  }
+
+  _launchTroubleLobby(code) {
+    const lobby = this.troubleLobbies.get(code);
+    if (!lobby) return;
+    this.troubleLobbies.delete(code);
+    const humanSockets = lobby.players.map(p => p.socket);
+    this._startTroubleGame(humanSockets, 'private');
+  }
+
+  leaveTroubleLobby(socket) {
+    for (const [code, lobby] of this.troubleLobbies) {
+      const idx = lobby.players.findIndex(p => p.socket.id === socket.id);
+      if (idx === -1) continue;
+
+      if (lobby.host.id === socket.id) {
+        // Host leaving: disband lobby
+        for (const p of lobby.players) {
+          if (p.socket.id !== socket.id) {
+            p.socket.emit('troubleLobby:disbanded', { message: 'Host left the lobby' });
+          }
+        }
+        this.troubleLobbies.delete(code);
+      } else {
+        // Non-host leaving: remove and notify rest
+        lobby.players.splice(idx, 1);
+        const playerList = lobby.players.map(p => ({ username: p.username }));
+        for (const p of lobby.players) {
+          p.socket.emit('troubleLobby:updated', { players: playerList, code });
+        }
+      }
+      return;
+    }
+  }
+
+  resolveCodeType(code) {
+    code = (code || '').toUpperCase().trim();
+    if (this.lobbies.has(code)) return { type: 'checkers', code };
+    if (this.troubleLobbies.has(code)) return { type: 'trouble', code };
+    return null;
+  }
+
   leaveQueue(socket) {
     this._removeFromQueues(socket);
     socket.emit('queue:left');
@@ -493,6 +600,9 @@ class Matchmaker {
         break;
       }
     }
+
+    // Clean up trouble lobbies
+    this.leaveTroubleLobby(socket);
 
     // Handle active game — pause instead of end
     const gd = this.getGameForSocket(socket.id);
@@ -867,7 +977,7 @@ class Matchmaker {
 
     const players = allSockets.map(s => ({
       socket: s,
-      username: s.username || 'Guest'
+      username: s.username || s.guestName || 'Guest'
     }));
 
     const gameData = {
@@ -1228,7 +1338,7 @@ class Matchmaker {
 
     const players = allSockets.map(s => ({
       socket: s,
-      username: s.username || 'Guest'
+      username: s.username || s.guestName || 'Guest'
     }));
 
     const gameData = {
