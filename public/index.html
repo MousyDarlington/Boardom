@@ -121,6 +121,30 @@
               </div>
               <div class="game-card-badge">3 modes</div>
             </div>
+            <div class="game-card glass" id="cardC4" data-game="c4">
+              <div class="game-card-icon">&#128308;</div>
+              <div class="game-card-info">
+                <h3 class="game-card-title">Connect Four</h3>
+                <p class="game-card-desc">Drop discs & connect 4!</p>
+              </div>
+              <div class="game-card-badge">3 modes</div>
+            </div>
+            <div class="game-card glass" id="cardBattleship" data-game="battleship">
+              <div class="game-card-icon">&#9875;</div>
+              <div class="game-card-info">
+                <h3 class="game-card-title">Battleship</h3>
+                <p class="game-card-desc">Sink the enemy fleet!</p>
+              </div>
+              <div class="game-card-badge">3 modes</div>
+            </div>
+            <div class="game-card glass" id="cardMancala" data-game="mancala">
+              <div class="game-card-icon">&#127793;</div>
+              <div class="game-card-info">
+                <h3 class="game-card-title">Mancala</h3>
+                <p class="game-card-desc">Ancient stone strategy</p>
+              </div>
+              <div class="game-card-badge">3 modes</div>
+            </div>
           </div>
 
           <div class="game-detail" id="gameDetail">
@@ -469,6 +493,107 @@
     </div>
 
     <!-- Chat removed — uses global popout modal -->
+  </div>
+
+  <!-- ===== CONNECT FOUR GAME SCREEN ===== -->
+  <div id="c4GameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="c4-hud" id="c4Hud">
+          <div class="c4-player-hud glass" id="c4OppHud">
+            <span class="c4-disc c4-disc-opp"></span>
+            <span class="hud-name" id="c4OppName">Opponent</span>
+          </div>
+          <div class="turn-badge" id="c4TurnBadge">YOUR TURN</div>
+          <div class="c4-player-hud glass" id="c4MyHud">
+            <span class="c4-disc c4-disc-me"></span>
+            <span class="hud-name" id="c4MyName">You</span>
+          </div>
+        </div>
+        <canvas id="c4Canvas"></canvas>
+        <div class="game-controls">
+          <div class="match-code-display">
+            <span class="match-code-label">Code:</span>
+            <span class="match-code-value" id="c4MatchCodeValue">------</span>
+            <button class="btn-copy-code" id="btnCopyC4Code" title="Copy code">&#x1F4CB;</button>
+          </div>
+          <button class="btn btn-small btn-ghost" id="btnC4Resign">Resign</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BATTLESHIP GAME SCREEN ===== -->
+  <div id="bsGameScreen" class="screen">
+    <div class="bs-layout">
+      <div class="bs-hud" id="bsHud">
+        <div class="bs-player-hud glass">
+          <span class="hud-name" id="bsMyName">You</span>
+          <span class="bs-status" id="bsMyStatus"></span>
+        </div>
+        <div class="turn-badge" id="bsTurnBadge">YOUR TURN</div>
+        <div class="bs-player-hud glass">
+          <span class="hud-name" id="bsOppName">Opponent</span>
+          <span class="bs-status" id="bsOppStatus"></span>
+        </div>
+      </div>
+      <div class="bs-grids">
+        <div class="bs-grid-container">
+          <h3 class="bs-grid-label">Your Fleet</h3>
+          <canvas id="bsMyCanvas"></canvas>
+        </div>
+        <div class="bs-grid-container">
+          <h3 class="bs-grid-label">Enemy Waters</h3>
+          <canvas id="bsOppCanvas"></canvas>
+        </div>
+      </div>
+      <div class="bs-ship-panel glass" id="bsShipPanel">
+        <div class="bs-ship-list" id="bsShipList"></div>
+        <div class="bs-place-controls" id="bsPlaceControls">
+          <button class="btn btn-small btn-ghost" id="btnBsRotate">Rotate</button>
+          <button class="btn btn-small btn-ghost" id="btnBsAutoPlace">Auto-Place</button>
+          <button class="btn btn-primary" id="btnBsReady">Ready!</button>
+        </div>
+      </div>
+      <div class="bs-message" id="bsMessage"></div>
+      <div class="game-controls">
+        <div class="match-code-display">
+          <span class="match-code-label">Code:</span>
+          <span class="match-code-value" id="bsMatchCodeValue">------</span>
+          <button class="btn-copy-code" id="btnCopyBsCode" title="Copy code">&#x1F4CB;</button>
+        </div>
+        <button class="btn btn-small btn-ghost" id="btnBsResign">Resign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MANCALA GAME SCREEN ===== -->
+  <div id="mancalaGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="mancala-hud" id="mancalaHud">
+          <div class="mancala-player-hud glass" id="mancalaOppHud">
+            <span class="hud-name" id="mancalaOppName">Opponent</span>
+            <span class="mancala-score" id="mancalaOppScore">0</span>
+          </div>
+          <div class="turn-badge" id="mancalaTurnBadge">YOUR TURN</div>
+          <div class="mancala-player-hud glass" id="mancalaMyHud">
+            <span class="hud-name" id="mancalaMyName">You</span>
+            <span class="mancala-score" id="mancalaMyScore">0</span>
+          </div>
+        </div>
+        <canvas id="mancalaCanvas"></canvas>
+        <div class="mancala-info" id="mancalaInfo"></div>
+        <div class="game-controls">
+          <div class="match-code-display">
+            <span class="match-code-label">Code:</span>
+            <span class="match-code-value" id="mancalaMatchCodeValue">------</span>
+            <button class="btn-copy-code" id="btnCopyMancalaCode" title="Copy code">&#x1F4CB;</button>
+          </div>
+          <button class="btn btn-small btn-ghost" id="btnMancalaResign">Resign</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ===== GAME OVER OVERLAY ===== -->

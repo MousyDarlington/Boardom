@@ -31,6 +31,9 @@ class Matchmaker {
     this.troubleLobbies = new Map();  // code -> { host, players: [{ socket, username }], hostUsername, createdAt }
     this.cahQueue = [];               // socket refs for CAH
     this.cahLobbies = new Map();      // code -> { host, players: [{ socket, username }], hostUsername, packType, maxRounds, createdAt }
+    this.c4Queue = [];              // Connect Four queue
+    this.battleshipQueue = [];      // Battleship queue
+    this.mancalaQueue = [];         // Mancala queue
   }
 
   /* ---------- helpers ---------- */
@@ -75,6 +78,18 @@ class Matchmaker {
       board: u?.equippedBoard || 'default',
       pieces: u?.equippedPieces || 'default',
       badge: u?.equippedBadge || null
+    };
+  }
+
+  _getCosmetics(username) {
+    if (!username) return {};
+    const user = this.userStore.getUser(username);
+    if (!user) return {};
+    return {
+      board: user.equippedBoard || 'default',
+      pieces: user.equippedPieces || 'default',
+      badge: user.equippedBadge || null,
+      site: user.equippedSiteTheme || 'default'
     };
   }
 

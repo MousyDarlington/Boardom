@@ -9,13 +9,19 @@ const BotPlayer = require('./BotPlayer');
 const TroubleBotPlayer = require('./TroubleBotPlayer');
 const ScrabbleBotPlayer = require('./ScrabbleBotPlayer');
 const CAHBotPlayer = require('./CAHBotPlayer');
+const ConnectFourGame = require('./ConnectFourGame');
+const BattleshipGame = require('./BattleshipGame');
+const MancalaGame = require('./MancalaGame');
+const ConnectFourBotPlayer = require('./ConnectFourBotPlayer');
+const BattleshipBotPlayer = require('./BattleshipBotPlayer');
+const MancalaBotPlayer = require('./MancalaBotPlayer');
 const fs = require('fs');
 
 /* ================================================
    WORKER STATE
    ================================================ */
-let game = null;           // CheckersGame | TroubleGame | ScrabbleGame | CAHGame
-let gameType = null;       // 'checkers' | 'trouble' | 'scrabble' | 'cah'
+let game = null;           // CheckersGame | TroubleGame | ScrabbleGame | CAHGame | ConnectFourGame | BattleshipGame | MancalaGame
+let gameType = null;       // 'checkers' | 'trouble' | 'scrabble' | 'cah' | 'c4' | 'battleship' | 'mancala'
 let gameId = null;
 let matchCode = null;
 let gameTypeStr = null;    // 'casual' | 'ranked' | 'private'
@@ -43,6 +49,12 @@ parentPort.on('message', (msg) => {
       case 'scrabblePass':      handleScrabblePass(msg.payload); break;
       case 'cahSubmit':         handleCAHSubmit(msg.payload); break;
       case 'cahPick':           handleCAHPick(msg.payload); break;
+      case 'c4Move':           handleC4Move(msg.payload); break;
+      case 'bsPlaceShip':      handleBSPlaceShip(msg.payload); break;
+      case 'bsAutoPlace':      handleBSAutoPlace(msg.payload); break;
+      case 'bsSetReady':       handleBSSetReady(msg.payload); break;
+      case 'bsFireShot':       handleBSFireShot(msg.payload); break;
+      case 'mancalaMove':      handleMancalaMove(msg.payload); break;
       case 'resign':            handleResign(msg.payload); break;
       case 'chat':              handleChat(msg.payload); break;
       case 'playerDisconnect':  handlePlayerDisconnect(msg.payload); break;
@@ -104,6 +116,9 @@ function buildLocalAdapter() {
       get game() { return game; },
       get troubleGame() { return game; },
       get scrabbleGame() { return game; },
+      get c4Game() { return game; },
+      get bsGame() { return game; },
+      get mancalaGame() { return game; },
     }]]),
     makeMove(socket, fr, fc, tr, tc) {
       handleMakeMove({ socketId: socket.id, fromRow: fr, fromCol: fc, toRow: tr, toCol: tc });
@@ -128,6 +143,21 @@ function buildLocalAdapter() {
     },
     cahPickWinner(socket, submissionIdx) {
       handleCAHPick({ socketId: socket.id, submissionIdx });
+    },
+    c4MakeMove(socket, col) {
+      handleC4Move({ socketId: socket.id, col });
+    },
+    bsAutoPlace(socket) {
+      handleBSAutoPlace({ socketId: socket.id });
+    },
+    bsSetReady(socket) {
+      handleBSSetReady({ socketId: socket.id });
+    },
+    bsFireShot(socket, row, col) {
+      handleBSFireShot({ socketId: socket.id, row, col });
+    },
+    mancalaMakeMove(socket, pitIdx) {
+      handleMancalaMove({ socketId: socket.id, pitIdx });
     }
   };
 }
@@ -166,6 +196,15 @@ function handleInit(payload) {
       game = new CAHGame(players.length, cfg.packType || 'pg13', cfg.maxRounds || 10);
       break;
     }
+    case 'c4':
+      game = new ConnectFourGame();
+      break;
+    case 'battleship':
+      game = new BattleshipGame();
+      break;
+    case 'mancala':
+      game = new MancalaGame();
+      break;
   }
 
   // Create bots
@@ -212,6 +251,33 @@ function handleInit(payload) {
         bot.username = p.username;
         bot.id = p.id;
         break;
+      case 'c4':
+        bot = new ConnectFourBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'battleship':
+        bot = new BattleshipBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'mancala':
+        bot = new MancalaBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
     }
     bots.push(bot);
   }
@@ -240,6 +306,28 @@ function handleInit(payload) {
         }
       } else if (gameType === 'cah') {
         ensureCAHBotAction();
+      } else if (gameType === 'c4') {
+        if (game.gameOver) return;
+        const playerConst = game.currentTurn; // 1 or 2
+        const botIdx = playerConst - 1; // PLAYER1=1 -> idx 0, PLAYER2=2 -> idx 1
+        const currentBot = bots.find(b => b.playerIndex === botIdx);
+        if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
+          currentBot._scheduleMove();
+        }
+      } else if (gameType === 'battleship') {
+        if (game.phase === 'over') return;
+        for (const bot of bots) {
+          if (bot.destroyed || bot._paused) continue;
+          if (game.phase === 'playing' && game.currentTurn === bot.playerIndex && !bot._timer) {
+            bot._scheduleShot();
+          }
+        }
+      } else if (gameType === 'mancala') {
+        if (game.gameOver) return;
+        const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
+        if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
+          currentBot._scheduleMove();
+        }
       }
     }, 3000);
   }
@@ -347,6 +435,63 @@ function sendStartData(payload) {
 
     // Start submission timer
     cahStartSubmitTimer();
+  } else if (gameType === 'c4') {
+    const state = game.getState();
+    const playersInfo = players.map(p => ({ username: p.username, rating: p.rating || 1200 }));
+    for (let i = 0; i < players.length; i++) {
+      const startPayload = {
+        gameId, matchCode,
+        playerIndex: i,
+        playerCount: 2,
+        players: playersInfo,
+        type: gameTypeStr,
+        ...state
+      };
+      if (players[i].isBot) {
+        const bot = bots.find(b => b.socket.id === players[i].id);
+        if (bot) bot.socket.emit('c4:start', startPayload);
+      } else {
+        playerStartData.push({ socketId: players[i].id, event: 'c4:start', data: startPayload });
+      }
+    }
+  } else if (gameType === 'battleship') {
+    const playersInfo = players.map(p => ({ username: p.username, rating: p.rating || 1200 }));
+    for (let i = 0; i < players.length; i++) {
+      const state = game.getStateForPlayer(i);
+      const startPayload = {
+        gameId, matchCode,
+        playerIndex: i,
+        playerCount: 2,
+        players: playersInfo,
+        type: gameTypeStr,
+        ...state
+      };
+      if (players[i].isBot) {
+        const bot = bots.find(b => b.socket.id === players[i].id);
+        if (bot) bot.socket.emit('bs:start', startPayload);
+      } else {
+        playerStartData.push({ socketId: players[i].id, event: 'bs:start', data: startPayload });
+      }
+    }
+  } else if (gameType === 'mancala') {
+    const state = game.getState();
+    const playersInfo = players.map(p => ({ username: p.username, rating: p.rating || 1200 }));
+    for (let i = 0; i < players.length; i++) {
+      const startPayload = {
+        gameId, matchCode,
+        playerIndex: i,
+        playerCount: 2,
+        players: playersInfo,
+        type: gameTypeStr,
+        ...state
+      };
+      if (players[i].isBot) {
+        const bot = bots.find(b => b.socket.id === players[i].id);
+        if (bot) bot.socket.emit('mancala:start', startPayload);
+      } else {
+        playerStartData.push({ socketId: players[i].id, event: 'mancala:start', data: startPayload });
+      }
+    }
   }
 
   parentPort.postMessage({ type: 'started', payload: { gameId, playerStartData } });

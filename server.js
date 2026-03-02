@@ -551,6 +551,75 @@ io.on('connection', (socket) => {
     matchmaker.cahResign(socket);
   });
 
+  /* ---- Connect Four ---- */
+  socket.on('c4:join', () => {
+    if (!socket.username) return socket.emit('auth:required');
+    matchmaker.joinC4Queue(socket);
+  });
+
+  socket.on('c4:bot', () => {
+    if (!socket.username) return socket.emit('auth:required');
+    matchmaker.playC4Bot(socket);
+  });
+
+  socket.on('c4:move', (data) => {
+    matchmaker.c4MakeMove(socket, data.col);
+  });
+
+  socket.on('c4:resign', () => {
+    matchmaker.c4Resign(socket);
+  });
+
+  /* ---- Battleship ---- */
+  socket.on('bs:join', () => {
+    if (!socket.username) return socket.emit('auth:required');
+    matchmaker.joinBattleshipQueue(socket);
+  });
+
+  socket.on('bs:bot', () => {
+    if (!socket.username) return socket.emit('auth:required');
+    matchmaker.playBattleshipBot(socket);
+  });
+
+  socket.on('bs:placeShip', (data) => {
+    matchmaker.bsPlaceShip(socket, data.shipName, data.row, data.col, data.horizontal);
+  });
+
+  socket.on('bs:autoPlace', () => {
+    matchmaker.bsAutoPlace(socket);
+  });
+
+  socket.on('bs:ready', () => {
+    matchmaker.bsSetReady(socket);
+  });
+
+  socket.on('bs:fire', (data) => {
+    matchmaker.bsFireShot(socket, data.row, data.col);
+  });
+
+  socket.on('bs:resign', () => {
+    matchmaker.battleshipResign(socket);
+  });
+
+  /* ---- Mancala ---- */
+  socket.on('mancala:join', () => {
+    if (!socket.username) return socket.emit('auth:required');
+    matchmaker.joinMancalaQueue(socket);
+  });
+
+  socket.on('mancala:bot', () => {
+    if (!socket.username) return socket.emit('auth:required');
+    matchmaker.playMancalaBot(socket);
+  });
+
+  socket.on('mancala:move', (data) => {
+    matchmaker.mancalaMakeMove(socket, data.pitIdx);
+  });
+
+  socket.on('mancala:resign', () => {
+    matchmaker.mancalaResign(socket);
+  });
+
   /* ---- Chat ---- */
   socket.on('chat:lobby', (text) => {
     if (!socket.username) return;
