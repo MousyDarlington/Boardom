@@ -1286,6 +1286,15 @@ function handleResign({ socketId }) {
     } else {
       broadcastCAHUpdate();
     }
+  } else if (gameType === 'c4') {
+    const winnerIdx = 1 - idx;
+    postC4GameOver({ over: true, winner: winnerIdx === 0 ? ConnectFourGame.PLAYER1 : ConnectFourGame.PLAYER2, reason: 'Opponent resigned', winLine: null });
+  } else if (gameType === 'battleship') {
+    const winnerIdx = 1 - idx;
+    postBSGameOver({ over: true, winner: winnerIdx, reason: 'Opponent resigned' });
+  } else if (gameType === 'mancala') {
+    const winnerIdx = 1 - idx;
+    postMancalaGameOver({ over: true, winner: winnerIdx, reason: 'Opponent resigned', scores: game._getScores() });
   }
 }
 
@@ -1489,6 +1498,61 @@ function sendRejoinState(socketId, playerIdx) {
           gameId, matchCode,
           playerIndex: playerIdx,
           playerCount: game.playerCount,
+          players: playersInfo,
+          type: gameTypeStr,
+          chatLog,
+          ...state
+        }
+      }
+    });
+  } else if (gameType === 'c4') {
+    const state = game.getState();
+    parentPort.postMessage({
+      type: 'rejoinState',
+      payload: {
+        socketId,
+        event: 'c4:rejoined',
+        data: {
+          gameId, matchCode,
+          playerIndex: playerIdx,
+          playerCount: 2,
+          players: playersInfo,
+          type: gameTypeStr,
+          chatLog,
+          currentTurn: state.currentTurn === ConnectFourGame.PLAYER1 ? 0 : 1,
+          ...state
+        }
+      }
+    });
+  } else if (gameType === 'battleship') {
+    const state = game.getStateForPlayer(playerIdx);
+    parentPort.postMessage({
+      type: 'rejoinState',
+      payload: {
+        socketId,
+        event: 'bs:rejoined',
+        data: {
+          gameId, matchCode,
+          playerIndex: playerIdx,
+          playerCount: 2,
+          players: playersInfo,
+          type: gameTypeStr,
+          chatLog,
+          ...state
+        }
+      }
+    });
+  } else if (gameType === 'mancala') {
+    const state = game.getState();
+    parentPort.postMessage({
+      type: 'rejoinState',
+      payload: {
+        socketId,
+        event: 'mancala:rejoined',
+        data: {
+          gameId, matchCode,
+          playerIndex: playerIdx,
+          playerCount: 2,
           players: playersInfo,
           type: gameTypeStr,
           chatLog,

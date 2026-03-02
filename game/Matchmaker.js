@@ -1622,7 +1622,10 @@ class Matchmaker {
       ranked: this.rankedQueue.length,
       trouble: this.troubleQueue.length,
       scrabble: this.scrabbleQueue.length,
-      cah: this.cahQueue.length
+      cah: this.cahQueue.length,
+      c4: this.c4Queue.length,
+      battleship: this.battleshipQueue.length,
+      mancala: this.mancalaQueue.length,
     };
   }
 
