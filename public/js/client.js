@@ -3372,6 +3372,74 @@
     $('troubleLocalOverlay').classList.add('hidden');
   }
 
+  /* ================================================
+     TROUBLE — PRIVATE LOBBY UI
+     ================================================ */
+  const TROUBLE_DOT_COLORS = ['#d32f2f', '#2f6fd3', '#2fd32f', '#d3d32f'];
+
+  function showTroublePrivateChoice() {
+    const existing = document.querySelector('.private-picker');
+    if (existing) existing.remove();
+
+    const picker = document.createElement('div');
+    picker.className = 'private-picker glass';
+    picker.innerHTML = `
+      <button class="btn btn-primary btn-small" id="btnTroublePrivateCreate">Create Lobby</button>
+      <button class="btn btn-primary btn-small" id="btnTroublePrivateJoin">Join with Code</button>
+      <button class="btn btn-ghost btn-small" id="btnTroublePrivateBack">Cancel</button>
+    `;
+    $('gameDetail').appendChild(picker);
+
+    document.getElementById('btnTroublePrivateCreate').addEventListener('click', () => {
+      picker.remove();
+      socket.emit('troubleLobby:create');
+    });
+    document.getElementById('btnTroublePrivateJoin').addEventListener('click', () => {
+      picker.remove();
+      $('joinCodeInput').value = '';
+      $('joinError').textContent = '';
+      showScreen('join');
+    });
+    document.getElementById('btnTroublePrivateBack').addEventListener('click', () => {
+      picker.remove();
+    });
+  }
+
+  function showTroubleHostScreen() {
+    $('troubleInviteCode').textContent = troubleLobbyCode || '------';
+    $('troubleHostError').textContent = '';
+    updateTroubleHostScreen();
+    showScreen('troubleHost');
+  }
+
+  function updateTroubleHostScreen() {
+    const list = $('troubleLobbyPlayerList');
+    if (!list) return;
+    list.innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+      const p = troubleLobbyPlayers[i];
+      const div = document.createElement('div');
+      if (p) {
+        div.className = 'trouble-lobby-player';
+        div.innerHTML = `<span class="trouble-lobby-dot" style="background:${TROUBLE_DOT_COLORS[i]}"></span>`
+          + `<span>${escapeHtml(p.username)}</span>`
+          + `<span style="color:${TROUBLE_DOT_COLORS[i]};font-size:0.75rem;margin-left:auto">${TROUBLE_COLOR_NAMES[i]}</span>`;
+      } else {
+        div.className = 'trouble-lobby-player empty';
+        div.innerHTML = `<span class="trouble-lobby-dot" style="background:${TROUBLE_DOT_COLORS[i]};opacity:0.3"></span>`
+          + `<span>Waiting... (bot will fill)</span>`;
+      }
+      list.appendChild(div);
+    }
+    const btn = $('btnTroubleStartLobby');
+    if (btn) btn.disabled = !isTroubleLobbyHost || troubleLobbyPlayers.length < 2;
+  }
+
+  function processUrlJoin(code) {
+    if (!socket || !socket.connected) return;
+    socket.emit('lobby:resolve', code);
+  }
+
   function bindTroubleEvents() {
     // Local player count picker
     document.querySelectorAll('.trouble-local-count').forEach(btn => {
@@ -4538,12 +4606,12 @@
       $('copyHint').classList.add('copied');
     });
 
-    // Join lobby
+    // Join lobby (universal — resolves code to checkers or trouble)
     $('btnJoinCode').addEventListener('click', () => {
       const code = $('joinCodeInput').value.trim();
       if (code) {
         $('joinError').textContent = '';
-        socket.emit('lobby:join', code);
+        socket.emit('lobby:resolve', code);
       }
     });
 
