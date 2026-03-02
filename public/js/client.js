@@ -2915,6 +2915,7 @@
     troubleState.currentTurn = data.currentTurn;
     troubleState.phase = data.phase;
     troubleState.diceResult = null;
+    troubleState.placements = data.placements || troubleState.placements || [];
     troubleValidMoves = [];
 
     // Sound and particles
