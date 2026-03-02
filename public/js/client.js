@@ -3103,16 +3103,31 @@
         finishedToken = true;
       }
 
-      const won = this.finished[player] >= 4;
-      if (won) { this.gameOver = true; this.winner = player; }
-      const extraTurn = this.diceResult === 6 && !won;
+      let placed = false;
+      const allDone = this.finished[player] >= 4;
+      if (allDone && !this.placements.includes(player)) {
+        this.placements.push(player);
+        placed = true;
+        if (!this.winner) this.winner = player;
+      }
+
+      const unfinishedCount = this.playerCount - this.placements.length;
+      if (unfinishedCount <= 1) {
+        for (let p = 0; p < this.playerCount; p++) {
+          if (!this.placements.includes(p)) { this.placements.push(p); break; }
+        }
+        this.gameOver = true;
+      }
+
+      const extraTurn = this.diceResult === 6 && !allDone && !this.gameOver;
       this.diceResult = null;
       this.phase = 'roll';
-      if (!extraTurn && !won) this._nextTurn();
+      if (!extraTurn && !this.gameOver) this._nextTurn();
 
       return {
-        valid: true, player, tokenIdx, fromPos, toPos, captured, finishedToken, extraTurn,
-        gameOver: this.gameOver ? { over: true, winner: this.winner } : { over: false },
+        valid: true, player, tokenIdx, fromPos, toPos, captured, finishedToken, extraTurn, placed,
+        placement: placed ? this.placements.length : null,
+        gameOver: this.gameOver ? { over: true, winner: this.winner, placements: [...this.placements] } : { over: false },
         state: this.getState()
       };
     }
