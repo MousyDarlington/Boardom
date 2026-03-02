@@ -1,12 +1,11 @@
 'use strict';
 
-const CheckersGame = require('./CheckersGame');
-const TroubleGame = require('./TroubleGame');
+const { Worker } = require('worker_threads');
+const path = require('path');
+const CheckersGame = require('./CheckersGame'); // for RED/BLACK constants only
 const { calculateNewRatings } = require('./EloRating');
-const BotPlayer = require('./BotPlayer');
-const TroubleBotPlayer = require('./TroubleBotPlayer');
-const ScrabbleGame = require('./ScrabbleGame');
-const ScrabbleBotPlayer = require('./ScrabbleBotPlayer');
+
+const WORKER_SCRIPT = path.join(__dirname, 'GameWorker.js');
 
 const QUEUE_TIMEOUT_MS = 90 * 1000;   // 90 seconds before bot match
 const BOT_MATCH_DELAY_MS = 1500;      // brief UI notice before game starts
