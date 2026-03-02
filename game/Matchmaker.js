@@ -31,6 +31,7 @@ class Matchmaker {
     this.matchCodes = new Map();      // matchCode -> gameId
     this.usernameToGame = new Map();  // username -> gameId
     this.pausedGames = new Map();     // gameId -> { pausedAt, timers, disconnectedPlayers }
+    this.troubleLobbies = new Map();  // code -> { host, players: [{ socket, username }], hostUsername, createdAt }
   }
 
   /* ---------- helpers ---------- */
@@ -44,7 +45,7 @@ class Matchmaker {
 
   _uniqueCode() {
     let code;
-    do { code = this._genCode(); } while (this.lobbies.has(code) || this.matchCodes.has(code));
+    do { code = this._genCode(); } while (this.lobbies.has(code) || this.troubleLobbies.has(code) || this.matchCodes.has(code));
     return code;
   }
 
