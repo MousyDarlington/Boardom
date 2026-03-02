@@ -126,7 +126,6 @@ class Matchmaker {
       case 'started':
         for (const psd of msg.payload.playerStartData) {
           const sock = this._getSocket(psd.socketId);
-          console.log(`[started] game=${gameId} event=${psd.event} socketId=${psd.socketId} sockFound=${!!sock}`);
           if (sock) sock.emit(psd.event, psd.data);
         }
         break;
