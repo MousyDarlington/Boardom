@@ -1348,8 +1348,8 @@ input:focus {
 
 /* --- Game selector responsive (tablet) --- */
 @media (max-width: 768px) {
-  .game-card-row { flex-direction: column; align-items: stretch; }
-  .game-card { max-width: 100%; flex-direction: row; padding: 1rem; gap: 1rem; }
+  .game-card-row { grid-template-columns: repeat(2, 1fr); }
+  .game-card { flex-direction: row; padding: 1rem; gap: 1rem; }
   .game-card-icon { font-size: 2.5rem; }
   .game-card-info { text-align: left; flex: 1; }
   .game-card-title { font-size: 1.1rem; }
