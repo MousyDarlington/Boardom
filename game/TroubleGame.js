@@ -27,6 +27,7 @@ class TroubleGame {
     this.phase = 'roll'; // 'roll' or 'move'
     this.gameOver = false;
     this.winner = null;
+    this.placements = []; // ordered list of player indices as they finish all 4 tokens
 
     // tokens[player][tokenIdx] = position
     this.tokens = [];
@@ -49,7 +50,8 @@ class TroubleGame {
       diceResult: this.diceResult,
       phase: this.phase,
       gameOver: this.gameOver,
-      winner: this.winner
+      winner: this.winner,
+      placements: [...this.placements]
     };
   }
 
@@ -175,20 +177,35 @@ class TroubleGame {
       finishedToken = true;
     }
 
-    // Check win
-    const won = this.finished[player] >= TOKENS_PER_PLAYER;
-    if (won) {
-      this.gameOver = true;
-      this.winner = player;
+    // Check if this player just completed all tokens
+    let placed = false;
+    const allDone = this.finished[player] >= TOKENS_PER_PLAYER;
+    if (allDone && !this.placements.includes(player)) {
+      this.placements.push(player);
+      placed = true;
+      if (!this.winner) this.winner = player; // first to finish = winner
     }
 
-    // Determine extra turn (rolled 6)
-    const extraTurn = this.diceResult === 6 && !won;
+    // Game over when only 1 player hasn't finished (they get last place)
+    const unfinishedCount = this.playerCount - this.placements.length;
+    if (unfinishedCount <= 1) {
+      // Add the remaining player as last place
+      for (let p = 0; p < this.playerCount; p++) {
+        if (!this.placements.includes(p)) {
+          this.placements.push(p);
+          break;
+        }
+      }
+      this.gameOver = true;
+    }
+
+    // Determine extra turn (rolled 6 and player still has tokens to play)
+    const extraTurn = this.diceResult === 6 && !allDone && !this.gameOver;
 
     // Advance turn
     this.diceResult = null;
     this.phase = 'roll';
-    if (!extraTurn && !won) {
+    if (!extraTurn && !this.gameOver) {
       this._nextTurn();
     }
 
@@ -201,7 +218,9 @@ class TroubleGame {
       captured,
       finishedToken,
       extraTurn,
-      gameOver: this.gameOver ? { over: true, winner: this.winner } : { over: false },
+      placed, // true if this player just earned a placement
+      placement: placed ? this.placements.length : null, // 1st, 2nd, 3rd...
+      gameOver: this.gameOver ? { over: true, winner: this.winner, placements: [...this.placements] } : { over: false },
       state: this.getState()
     };
   }

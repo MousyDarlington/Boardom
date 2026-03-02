@@ -645,12 +645,17 @@ class Matchmaker {
       this._endScrabbleGame(gameId, bestPlayer);
     } else if (gd.troubleGame) {
       const playerIdx = gd.players.findIndex(p => p.username === username);
-      let bestPlayer = 0, bestFinished = -1;
+      const existing = gd.troubleGame.placements ? [...gd.troubleGame.placements] : [];
+      const remaining = [];
       for (let i = 0; i < gd.players.length; i++) {
-        if (i === playerIdx) continue;
-        if (gd.troubleGame.finished[i] > bestFinished) { bestFinished = gd.troubleGame.finished[i]; bestPlayer = i; }
+        if (!existing.includes(i)) remaining.push(i);
       }
-      this._endTroubleGame(gameId, bestPlayer);
+      remaining.sort((a, b) => {
+        if (a === playerIdx) return 1;
+        if (b === playerIdx) return -1;
+        return gd.troubleGame.finished[b] - gd.troubleGame.finished[a];
+      });
+      this._endTroubleGame(gameId, [...existing, ...remaining]);
     } else {
       const winner = gd.redUsername === username ? CheckersGame.BLACK : CheckersGame.RED;
       this._endGame(gameId, winner, 'Opponent disconnected (timeout)');
@@ -963,12 +968,24 @@ class Matchmaker {
         tokens: result.state.tokens,
         finished: result.state.finished,
         currentTurn: result.state.currentTurn,
-        phase: result.state.phase
+        phase: result.state.phase,
+        placements: result.state.placements
       });
     }
 
+    // Notify all players when someone earns a placement
+    if (result.placed) {
+      for (const p of gd.players) {
+        p.socket.emit('trouble:placed', {
+          playerIdx: result.player,
+          placement: result.placement,
+          username: gd.players[result.player]?.username
+        });
+      }
+    }
+
     if (result.gameOver.over) {
-      this._endTroubleGame(gd.id, result.gameOver.winner);
+      this._endTroubleGame(gd.id, result.gameOver.placements);
     } else {
       // Ensure next bot acts
       this._ensureTroubleBotTurn(gd);
@@ -1046,32 +1063,45 @@ class Matchmaker {
   }
 
   _troublePlayerDisconnect(gd, socket) {
-    // In trouble, disconnecting just ends the game (simpler than reassigning)
-    // Find a winner: the player with the most finished tokens, or first non-disconnected
+    // Build placements from game state, ranking by finished tokens (disconnected player last)
     const playerIdx = gd.players.findIndex(p => p.socket.id === socket.id);
-    let bestPlayer = 0;
-    let bestFinished = -1;
+    const existing = gd.troubleGame.placements ? [...gd.troubleGame.placements] : [];
+    const remaining = [];
     for (let i = 0; i < gd.players.length; i++) {
-      if (i === playerIdx) continue;
-      if (gd.troubleGame.finished[i] > bestFinished) {
-        bestFinished = gd.troubleGame.finished[i];
-        bestPlayer = i;
-      }
+      if (!existing.includes(i)) remaining.push(i);
     }
-    this._endTroubleGame(gd.id, bestPlayer);
+    // Sort remaining by finished tokens descending, disconnected player last
+    remaining.sort((a, b) => {
+      if (a === playerIdx) return 1;
+      if (b === playerIdx) return -1;
+      return gd.troubleGame.finished[b] - gd.troubleGame.finished[a];
+    });
+    const placements = [...existing, ...remaining];
+    this._endTroubleGame(gd.id, placements);
   }
 
-  _endTroubleGame(gameId, winnerIdx) {
+  _endTroubleGame(gameId, placements) {
     const gd = this.games.get(gameId);
     if (!gd || !gd.troubleGame) return;
 
-    // Award coins: winner 15, others 3 (skip bots)
+    // If placements not provided (e.g. disconnect), build from game state
+    if (!placements || !Array.isArray(placements)) {
+      placements = gd.troubleGame.placements ? [...gd.troubleGame.placements] : [];
+      // Fill in any remaining unplaced players
+      for (let i = 0; i < gd.players.length; i++) {
+        if (!placements.includes(i)) placements.push(i);
+      }
+    }
+
+    // Award coins by placement: 1st=20, 2nd=12, 3rd=6, 4th=3
+    const placementRewards = [20, 12, 6, 3];
     const coinRewards = {};
-    for (let i = 0; i < gd.players.length; i++) {
-      const username = gd.players[i].username;
+    for (let rank = 0; rank < placements.length; rank++) {
+      const playerIdx = placements[rank];
+      const username = gd.players[playerIdx]?.username;
       const user = this.userStore.getUser(username);
       if (!user || user.isBot) continue;
-      const reward = i === winnerIdx ? 15 : 3;
+      const reward = placementRewards[rank] || 3;
       this.userStore.updateUser(username, { coins: (user.coins || 0) + reward });
       coinRewards[username] = reward;
     }
@@ -1082,8 +1112,10 @@ class Matchmaker {
     }
 
     const overData = {
-      winner: winnerIdx,
-      winnerUsername: gd.players[winnerIdx]?.username,
+      winner: placements[0],
+      winnerUsername: gd.players[placements[0]]?.username,
+      placements,
+      placementNames: placements.map(idx => gd.players[idx]?.username || 'Unknown'),
       coinRewards
     };
 
