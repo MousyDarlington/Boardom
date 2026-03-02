@@ -1296,6 +1296,41 @@ input:focus {
   50% { opacity: 0.6; }
 }
 
+/* Placement badges */
+.trouble-place-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 4px;
+  letter-spacing: 0.03em;
+}
+
+.trouble-place-1 {
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  color: #1a1a2e;
+}
+
+.trouble-place-2 {
+  background: linear-gradient(135deg, #c0c0c0, #9a9a9a);
+  color: #1a1a2e;
+}
+
+.trouble-place-3 {
+  background: linear-gradient(135deg, #cd7f32, #a0622e);
+  color: #1a1a2e;
+}
+
+.trouble-place-4 {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.5);
+}
+
+.trouble-player-card.finished {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
 /* Trouble dice button */
 .trouble-dice-btn {
   font-size: 1.1rem;
