@@ -810,19 +810,9 @@ input:focus {
     overflow-y: auto;
   }
 
-  .lobby-chat {
-    width: 100%;
-    height: 200px;
-  }
-
   .game-layout {
     flex-direction: column;
     overflow-y: auto;
-  }
-
-  .game-chat {
-    width: 100%;
-    height: 180px;
   }
 
   .game-hud {
