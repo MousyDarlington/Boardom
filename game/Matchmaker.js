@@ -174,6 +174,9 @@ class Matchmaker {
     const event = gd.gameType === 'scrabble' ? 'scrabble:over'
                 : gd.gameType === 'trouble' ? 'trouble:over'
                 : gd.gameType === 'cah' ? 'cah:over'
+                : gd.gameType === 'c4' ? 'c4:over'
+                : gd.gameType === 'battleship' ? 'bs:over'
+                : gd.gameType === 'mancala' ? 'mancala:over'
                 : 'game:over';
     for (const p of gd.players) {
       if (!p.isBot) {
@@ -306,6 +309,16 @@ class Matchmaker {
   _cancelQueueTimer(socketId) {
     const tid = this.queueTimers.get(socketId);
     if (tid) { clearTimeout(tid); this.queueTimers.delete(socketId); }
+  }
+
+  _setQueueTimer(socket, callback) {
+    this._cancelQueueTimer(socket.id);
+    const tid = setTimeout(callback, QUEUE_TIMEOUT_MS);
+    this.queueTimers.set(socket.id, tid);
+  }
+
+  _clearQueueTimer(socket) {
+    this._cancelQueueTimer(socket.id);
   }
 
   _onQueueTimeout(socket, type) {
@@ -1362,7 +1375,6 @@ class Matchmaker {
   }
 
   playC4Bot(socket) {
-    console.log(`[playC4Bot] socketId=${socket.id} username=${socket.username} inGame=${this.playerToGame.has(socket.id)}`);
     if (this.playerToGame.has(socket.id)) return;
     this.c4Queue = this.c4Queue.filter(s => s.id !== socket.id);
     this._clearQueueTimer(socket);
@@ -1406,6 +1418,14 @@ class Matchmaker {
     for (const p of playerData) {
       if (!p.isBot) this.playerToGame.set(p.id, gameId);
       this.usernameToGame.set(p.username, gameId);
+    }
+
+    // Join real sockets to Socket.IO room
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
     }
 
     this._spawnWorker(gameId, {
@@ -1489,6 +1509,14 @@ class Matchmaker {
     for (const p of playerData) {
       if (!p.isBot) this.playerToGame.set(p.id, gameId);
       this.usernameToGame.set(p.username, gameId);
+    }
+
+    // Join real sockets to Socket.IO room
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
     }
 
     this._spawnWorker(gameId, {
@@ -1593,6 +1621,14 @@ class Matchmaker {
     for (const p of playerData) {
       if (!p.isBot) this.playerToGame.set(p.id, gameId);
       this.usernameToGame.set(p.username, gameId);
+    }
+
+    // Join real sockets to Socket.IO room
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
     }
 
     this._spawnWorker(gameId, {
