@@ -2082,6 +2082,9 @@
           $('queueText').textContent = 'Starting game vs bots...';
           showScreen('queue');
           break;
+        case 'troublePrivate':
+          showTroublePrivateChoice();
+          break;
         case 'troubleLocal':
           showTroubleLocalPicker();
           break;
