@@ -909,11 +909,16 @@ class Matchmaker {
       });
     } else if (gd.troubleGame) {
       const state = gd.troubleGame.getState();
+      // If it's this player's turn and phase is 'move', include valid moves
+      let validMoves = [];
+      if (state.currentTurn === playerIdx && state.phase === 'move') {
+        validMoves = gd.troubleGame.getValidMoves();
+      }
       socket.emit('trouble:rejoined', {
         gameId: gd.id, matchCode: gd.matchCode, playerIndex: playerIdx,
         playerCount: gd.troubleGame.playerCount,
         players: gd.players.map(p => ({ username: p.username, rating: this.userStore.getUser(p.username)?.rating || 1200 })),
-        type: gd.type, cosmetics: cosmeticsArr, chatLog: gd.chatLog || [], ...state
+        type: gd.type, cosmetics: cosmeticsArr, chatLog: gd.chatLog || [], validMoves, ...state
       });
     }
 
