@@ -2544,3 +2544,386 @@ input:focus {
     padding: 0.1rem;
   }
 }
+
+/* ================================================
+   CONNECT FOUR
+   ================================================ */
+.c4-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.c4-player-hud {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-sm);
+}
+
+.c4-disc {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.c4-disc-me { background: #ff2d55; }
+.c4-disc-opp { background: #ffd700; }
+
+#c4Canvas {
+  display: block;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  cursor: pointer;
+  max-width: 100%;
+}
+
+/* ================================================
+   BATTLESHIP
+   ================================================ */
+.bs-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  padding: 0.5rem;
+  overflow-y: auto;
+  gap: 0.5rem;
+}
+
+.bs-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  width: 100%;
+  max-width: 800px;
+}
+
+.bs-player-hud {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-sm);
+}
+
+.bs-status {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.bs-grids {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.bs-grid-container {
+  text-align: center;
+}
+
+.bs-grid-label {
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+#bsMyCanvas, #bsOppCanvas {
+  display: block;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.bs-ship-panel {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 800px;
+}
+
+.bs-ship-list {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+  justify-content: center;
+}
+
+.bs-ship-item {
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  cursor: pointer;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.bs-ship-item:hover { border-color: var(--blue); }
+.bs-ship-item.selected { background: rgba(10,132,255,0.2); border-color: var(--blue); }
+.bs-ship-item.placed { background: rgba(52,199,89,0.15); border-color: var(--green); }
+.bs-ship-item.sunk { opacity: 0.4; text-decoration: line-through; }
+
+.bs-place-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.bs-message {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--gold);
+  min-height: 1.2em;
+  padding: 0.25rem;
+}
+
+/* ================================================
+   MANCALA
+   ================================================ */
+.mancala-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.mancala-player-hud {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-sm);
+}
+
+.mancala-score {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--gold);
+}
+
+#mancalaCanvas {
+  display: block;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.mancala-info {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--gold);
+  min-height: 1.2em;
+  padding: 0.25rem;
+}
+
+/* ================================================
+   NEW GAME RESPONSIVE
+   ================================================ */
+@media (max-width: 600px) {
+  .bs-grids {
+    flex-direction: column;
+    align-items: center;
+  }
+  .c4-hud, .bs-hud, .mancala-hud {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+}
+
+/* ================================================
+   CONNECT FOUR
+   ================================================ */
+.c4-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  gap: 1rem;
+}
+.c4-player-hud {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+}
+.c4-disc {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.c4-disc-me {
+  background: #ff2d55;
+  box-shadow: 0 0 8px rgba(255,45,85,0.5);
+}
+.c4-disc-opp {
+  background: #ffd700;
+  box-shadow: 0 0 8px rgba(255,215,0,0.5);
+}
+#c4Canvas {
+  display: block;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  max-width: 100%;
+  cursor: pointer;
+}
+
+/* ================================================
+   BATTLESHIP
+   ================================================ */
+.bs-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  padding: 0.5rem;
+  gap: 0.5rem;
+  overflow-y: auto;
+}
+.bs-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 800px;
+  padding: 0.3rem 0.5rem;
+  gap: 1rem;
+}
+.bs-player-hud {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
+}
+.bs-status {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.bs-grids {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.bs-grid-container {
+  text-align: center;
+}
+.bs-grid-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+.bs-grid-container canvas {
+  display: block;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.bs-ship-panel {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+}
+.bs-ship-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+.bs-ship-list .bs-ship-item {
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.bs-ship-item.selected {
+  border-color: var(--red);
+  background: rgba(255,45,85,0.15);
+}
+.bs-ship-item.placed {
+  border-color: var(--green);
+  background: rgba(52,199,89,0.15);
+}
+.bs-place-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.bs-message {
+  font-size: 0.85rem;
+  color: var(--gold);
+  min-height: 1.2em;
+  text-align: center;
+}
+
+/* ================================================
+   MANCALA
+   ================================================ */
+.mancala-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  gap: 1rem;
+}
+.mancala-player-hud {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+}
+.mancala-score {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+#mancalaCanvas {
+  display: block;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  max-width: 100%;
+  cursor: pointer;
+}
+.mancala-info {
+  font-size: 0.85rem;
+  color: var(--gold);
+  min-height: 1.2em;
+  text-align: center;
+  padding: 0.3rem;
+}
+
+/* ---- Responsive for new games ---- */
+@media (max-width: 700px) {
+  .bs-grids {
+    flex-direction: column;
+    align-items: center;
+  }
+  .c4-hud, .mancala-hud, .bs-hud {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+}

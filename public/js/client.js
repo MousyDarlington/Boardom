@@ -113,6 +113,36 @@
         { id: 'cahBots',    icon: '\uD83E\uDD16', name: 'Play vs Bots', desc: 'Instant bot game' },
         { id: 'cahPrivate', icon: '\uD83D\uDD12', name: 'Private',      desc: 'Create or join lobby' }
       ]
+    },
+    c4: {
+      title: 'Connect Four',
+      icon: '\uD83D\uDD34',
+      desc: '2 players \u2014 Drop discs and connect 4 in a row!',
+      modes: [
+        { id: 'c4Online', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'c4Bots',   icon: '\uD83E\uDD16', name: 'Play vs Bot', desc: 'Challenge the AI' },
+        { id: 'c4Local',  icon: '\uD83C\uDFAE', name: 'Local 2P', desc: 'Same screen hotseat' }
+      ]
+    },
+    battleship: {
+      title: 'Battleship',
+      icon: '\u2693',
+      desc: '2 players \u2014 Sink the enemy fleet!',
+      modes: [
+        { id: 'bsOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'bsBots',   icon: '\uD83E\uDD16', name: 'Play vs Bot', desc: 'Challenge the AI' },
+        { id: 'bsLocal',  icon: '\uD83C\uDFAE', name: 'Local 2P', desc: 'Same screen hotseat' }
+      ]
+    },
+    mancala: {
+      title: 'Mancala',
+      icon: '\uD83C\uDF31',
+      desc: '2 players \u2014 Ancient stone strategy game!',
+      modes: [
+        { id: 'mancalaOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'mancalaBots',   icon: '\uD83E\uDD16', name: 'Play vs Bot', desc: 'Challenge the AI' },
+        { id: 'mancalaLocal',  icon: '\uD83C\uDFAE', name: 'Local 2P', desc: 'Same screen hotseat' }
+      ]
     }
   };
 
@@ -993,7 +1023,7 @@
   const screenIds = ['titleScreen', 'authScreen', 'lobbyScreen', 'queueScreen',
     'lobbyHostScreen', 'lobbyJoinScreen', 'troubleHostScreen', 'guestJoinScreen',
     'shopScreen', 'gameScreen', 'troubleGameScreen', 'scrabbleGameScreen',
-    'cahHostScreen', 'cahGameScreen'];
+    'cahHostScreen', 'cahGameScreen', 'c4GameScreen', 'bsGameScreen', 'mancalaGameScreen'];
 
   function showScreen(name) {
     currentScreen = name;
@@ -1002,7 +1032,8 @@
       queue: 'queueScreen', host: 'lobbyHostScreen', join: 'lobbyJoinScreen',
       troubleHost: 'troubleHostScreen', guestJoin: 'guestJoinScreen',
       shop: 'shopScreen', game: 'gameScreen', trouble: 'troubleGameScreen',
-      scrabble: 'scrabbleGameScreen', cahHost: 'cahHostScreen', cah: 'cahGameScreen'
+      scrabble: 'scrabbleGameScreen', cahHost: 'cahHostScreen', cah: 'cahGameScreen',
+      c4: 'c4GameScreen', battleship: 'bsGameScreen', mancala: 'mancalaGameScreen'
     };
     for (const id of screenIds) {
       const el = $(id);
@@ -1012,7 +1043,7 @@
     if (target) target.classList.add('active');
 
     // Hide game over overlay when switching screens
-    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah') {
+    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala') {
       $('gameOverOverlay').classList.add('hidden');
       confettiActive = false;
     }
@@ -1020,6 +1051,9 @@
     // Stop game loops when leaving their screens
     if (name !== 'trouble') troubleGameLoopActive = false;
     if (name !== 'scrabble') scrabbleGameLoopActive = false;
+    if (name !== 'c4') c4GameLoopActive = false;
+    if (name !== 'battleship') bsGameLoopActive = false;
+    if (name !== 'mancala') mancalaGameLoopActive = false;
 
     if (name === 'game') {
       setupCanvas();
@@ -1034,6 +1068,19 @@
     if (name === 'scrabble') {
       setupScrabbleCanvas();
       startScrabbleGameLoop();
+    }
+
+    if (name === 'c4') {
+      setupC4Canvas();
+      startC4GameLoop();
+    }
+    if (name === 'battleship') {
+      setupBSCanvases();
+      startBSGameLoop();
+    }
+    if (name === 'mancala') {
+      setupMancalaCanvas();
+      startMancalaGameLoop();
     }
 
     // Hide overlays when leaving lobby
@@ -1454,7 +1501,7 @@
   let chatUnread = 0;
 
   // Screens that should show the chat FAB
-  const CHAT_SCREENS = new Set(['lobby', 'game', 'trouble', 'scrabble', 'cah']);
+  const CHAT_SCREENS = new Set(['lobby', 'game', 'trouble', 'scrabble', 'cah', 'c4', 'battleship', 'mancala']);
 
   function bindChatModal() {
     $('chatFab').addEventListener('click', toggleChat);
@@ -2334,6 +2381,60 @@
           break;
         case 'cahPrivate':
           showCAHPrivateChoice();
+          break;
+      }
+    } else if (gameId === 'c4') {
+      switch (modeId) {
+        case 'c4Online':
+          socket.emit('c4:join');
+          $('queueTitle').textContent = 'Connect Four';
+          $('queueText').textContent = 'Finding an opponent...';
+          showScreen('queue');
+          break;
+        case 'c4Bots':
+          socket.emit('c4:bot');
+          $('queueTitle').textContent = 'Connect Four';
+          $('queueText').textContent = 'Starting game vs bot...';
+          showScreen('queue');
+          break;
+        case 'c4Local':
+          startLocalC4Game();
+          break;
+      }
+    } else if (gameId === 'battleship') {
+      switch (modeId) {
+        case 'bsOnline':
+          socket.emit('bs:join');
+          $('queueTitle').textContent = 'Battleship';
+          $('queueText').textContent = 'Finding an opponent...';
+          showScreen('queue');
+          break;
+        case 'bsBots':
+          socket.emit('bs:bot');
+          $('queueTitle').textContent = 'Battleship';
+          $('queueText').textContent = 'Starting game vs bot...';
+          showScreen('queue');
+          break;
+        case 'bsLocal':
+          startLocalBSGame();
+          break;
+      }
+    } else if (gameId === 'mancala') {
+      switch (modeId) {
+        case 'mancalaOnline':
+          socket.emit('mancala:join');
+          $('queueTitle').textContent = 'Mancala';
+          $('queueText').textContent = 'Finding an opponent...';
+          showScreen('queue');
+          break;
+        case 'mancalaBots':
+          socket.emit('mancala:bot');
+          $('queueTitle').textContent = 'Mancala';
+          $('queueText').textContent = 'Starting game vs bot...';
+          showScreen('queue');
+          break;
+        case 'mancalaLocal':
+          startLocalMancalaGame();
           break;
       }
     }
