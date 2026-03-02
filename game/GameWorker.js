@@ -162,6 +162,11 @@ function handleInit(payload) {
       case 'checkers':
         bot = new BotPlayer(adapter, p.botRating || 1200, p.botName);
         bot.gameId = gameId;
+        // Override auto-generated id to match what main thread registered
+        bot.id = p.id;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
         break;
       case 'trouble':
         bot = new TroubleBotPlayer(adapter, p.botRating || 1200, p.botName);

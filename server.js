@@ -343,7 +343,7 @@ const io = new Server(server, {
 io.engine.use(sessionMiddleware);
 
 const matchmaker = new Matchmaker(io, userStore);
-matchmaker.setScrabbleDictionary(scrabbleDictionary);
+matchmaker.setScrabbleDictionaryPath(DICT_FILE);
 
 // Lobby chat (last 50 messages kept in memory)
 const lobbyChatHistory = [];
@@ -523,14 +523,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('chat:game', (text) => {
-    const gd = matchmaker.getGameForSocket(socket.id);
-    if (gd && gd.scrabbleGame) {
-      matchmaker.scrabbleGameChat(socket, text);
-    } else if (gd && gd.troubleGame) {
-      matchmaker.troubleGameChat(socket, text);
-    } else {
-      matchmaker.gameChat(socket, text);
-    }
+    matchmaker.gameChat(socket, text);
   });
 
   /* ---- Disconnect ---- */
