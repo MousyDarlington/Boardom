@@ -2996,6 +2996,7 @@
       this.phase = 'roll';
       this.gameOver = false;
       this.winner = null;
+      this.placements = [];
       this.tokens = [];
       for (let p = 0; p < this.playerCount; p++) {
         this.tokens.push([-1, -1, -1, -1]);
@@ -3012,7 +3013,8 @@
         diceResult: this.diceResult,
         phase: this.phase,
         gameOver: this.gameOver,
-        winner: this.winner
+        winner: this.winner,
+        placements: [...this.placements]
       };
     }
 
