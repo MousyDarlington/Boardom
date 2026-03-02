@@ -90,6 +90,7 @@
       modes: [
         { id: 'troubleOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
         { id: 'troubleBots',   icon: '\uD83E\uDD16', name: 'Play vs Bots', desc: 'Instant AI opponents' },
+        { id: 'troublePrivate', icon: '\uD83D\uDD12', name: 'Private', desc: 'Create or join lobby' },
         { id: 'troubleLocal',  icon: '\uD83C\uDFAE', name: 'Local (2-4P)', desc: 'Pass and play' }
       ]
     },
@@ -138,6 +139,12 @@
   // Confetti
   let confetti = [];
   let confettiActive = false;
+
+  // Trouble private lobby
+  let troubleLobbyCode = null;
+  let troubleLobbyPlayers = [];
+  let isTroubleLobbyHost = false;
+  let pendingJoinCode = null; // from ?join=CODE
 
   // Cosmetics & Shop
   let activeCosmetics = { board: 'default', pieces: 'default', badge: null, site: 'default' };
