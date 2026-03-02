@@ -981,13 +981,15 @@
      SCREEN MANAGEMENT
      ================================================ */
   const screenIds = ['titleScreen', 'authScreen', 'lobbyScreen', 'queueScreen',
-    'lobbyHostScreen', 'lobbyJoinScreen', 'shopScreen', 'gameScreen', 'troubleGameScreen', 'scrabbleGameScreen'];
+    'lobbyHostScreen', 'lobbyJoinScreen', 'troubleHostScreen', 'guestJoinScreen',
+    'shopScreen', 'gameScreen', 'troubleGameScreen', 'scrabbleGameScreen'];
 
   function showScreen(name) {
     currentScreen = name;
     const map = {
       title: 'titleScreen', auth: 'authScreen', lobby: 'lobbyScreen',
       queue: 'queueScreen', host: 'lobbyHostScreen', join: 'lobbyJoinScreen',
+      troubleHost: 'troubleHostScreen', guestJoin: 'guestJoinScreen',
       shop: 'shopScreen', game: 'gameScreen', trouble: 'troubleGameScreen',
       scrabble: 'scrabbleGameScreen'
     };
