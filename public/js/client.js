@@ -1132,31 +1132,24 @@
   /* ================================================
      SOCKET CONNECTION
      ================================================ */
-  function connectSocket() {
-    if (socket) {
-      // Force reconnect so server picks up the current session
-      if (socket.connected) socket.disconnect();
-      socket.connect();
-      return;
-    }
-    socket = io();
-
-    socket.on('connect', () => {
+  function bindSocketEvents(s) {
+    s.on('connect', () => {
       console.log('Socket connected');
     });
 
-    socket.on('auth:required', () => {
-      showScreen('auth');
+    s.on('auth:required', () => {
+      // Guests don't need auth — only redirect if not a guest
+      if (!s.guestMode) showScreen('auth');
     });
 
     // Stats
-    socket.on('server:stats', (data) => {
+    s.on('server:stats', (data) => {
       $('statOnline').textContent = data.online;
       $('statGames').textContent = data.games;
     });
 
     // Queue
-    socket.on('queue:update', (data) => {
+    s.on('queue:update', (data) => {
       if (data.status === 'bot_matching') {
         $('queueTitle').textContent = 'Opponent Found';
         $('queueText').textContent = 'No players available \u2014 matching with AI...';
@@ -1166,19 +1159,19 @@
       }
     });
 
-    socket.on('queue:left', () => {
+    s.on('queue:left', () => {
       showScreen('lobby');
     });
 
     // Lobby
-    socket.on('lobby:created', (data) => {
+    s.on('lobby:created', (data) => {
       $('inviteCode').textContent = data.code;
       $('copyHint').textContent = 'Click to copy';
       $('copyHint').classList.remove('copied');
       showScreen('host');
     });
 
-    socket.on('lobby:error', (data) => {
+    s.on('lobby:error', (data) => {
       if (currentScreen === 'join') {
         $('joinError').textContent = data.message;
       } else {
@@ -1187,12 +1180,12 @@
     });
 
     // Game start
-    socket.on('game:start', (data) => {
+    s.on('game:start', (data) => {
       onGameStart(data);
     });
 
     // Valid moves response
-    socket.on('game:validMoves', (data) => {
+    s.on('game:validMoves', (data) => {
       if (data.moves.length === 0) {
         selectedPiece = null;
         validMoves = [];
@@ -1203,36 +1196,35 @@
     });
 
     // Game update
-    socket.on('game:update', (data) => {
+    s.on('game:update', (data) => {
       onGameUpdate(data);
     });
 
     // Game over
-    socket.on('game:over', (data) => {
+    s.on('game:over', (data) => {
       onGameOver(data);
     });
 
-    socket.on('game:error', (data) => {
+    s.on('game:error', (data) => {
       console.warn('Game error:', data.message);
     });
 
     // Chat
-    socket.on('chat:lobbyHistory', (messages) => {
+    s.on('chat:lobbyHistory', (messages) => {
       const el = $('lobbyChatMessages');
       el.innerHTML = '';
       messages.forEach(m => appendChatMsg(el, m));
       el.scrollTop = el.scrollHeight;
     });
 
-    socket.on('chat:lobby', (msg) => {
+    s.on('chat:lobby', (msg) => {
       const el = $('lobbyChatMessages');
       appendChatMsg(el, msg);
       el.scrollTop = el.scrollHeight;
       if (currentScreen !== 'lobby') sfxChat();
     });
 
-    socket.on('chat:game', (msg) => {
-      // Route to the correct chat panel based on active screen
+    s.on('chat:game', (msg) => {
       const el = currentScreen === 'scrabble' ? $('scrabbleChatMessages')
                : currentScreen === 'trouble' ? $('troubleChatMessages')
                : $('gameChatMessages');
@@ -1244,17 +1236,17 @@
     });
 
     // Trouble events
-    socket.on('trouble:start', onTroubleStart);
-    socket.on('trouble:rollResult', onTroubleRollResult);
-    socket.on('trouble:update', onTroubleUpdate);
-    socket.on('trouble:over', onTroubleOver);
-    socket.on('trouble:playerReplaced', (data) => {
+    s.on('trouble:start', onTroubleStart);
+    s.on('trouble:rollResult', onTroubleRollResult);
+    s.on('trouble:update', onTroubleUpdate);
+    s.on('trouble:over', onTroubleOver);
+    s.on('trouble:playerReplaced', (data) => {
       if (troubleState && troubleState.players) {
         troubleState.players[data.playerIdx] = { username: data.newUsername };
         updateTroubleHUD();
       }
     });
-    socket.on('trouble:placed', (data) => {
+    s.on('trouble:placed', (data) => {
       if (troubleState) {
         if (!troubleState.placements) troubleState.placements = [];
         if (!troubleState.placements.includes(data.playerIdx)) {
@@ -1264,44 +1256,120 @@
       }
     });
 
+    // Trouble lobby events
+    s.on('troubleLobby:created', (data) => {
+      troubleLobbyCode = data.code;
+      troubleLobbyPlayers = data.players;
+      isTroubleLobbyHost = true;
+      showTroubleHostScreen();
+    });
+
+    s.on('troubleLobby:updated', (data) => {
+      troubleLobbyPlayers = data.players;
+      updateTroubleHostScreen();
+    });
+
+    s.on('troubleLobby:error', (data) => {
+      if (currentScreen === 'troubleHost') {
+        $('troubleHostError').textContent = data.message;
+      } else if (currentScreen === 'guestJoin') {
+        $('guestError').textContent = data.message;
+      } else if (currentScreen === 'join') {
+        $('joinError').textContent = data.message;
+      } else {
+        alert(data.message);
+      }
+    });
+
+    s.on('troubleLobby:disbanded', () => {
+      troubleLobbyCode = null;
+      troubleLobbyPlayers = [];
+      isTroubleLobbyHost = false;
+      if (currentScreen === 'troubleHost') {
+        showScreen('lobby');
+      }
+    });
+
+    s.on('lobby:resolveResult', (data) => {
+      if (!data.found) {
+        if (currentScreen === 'join') {
+          $('joinError').textContent = 'Invalid code';
+        } else if (currentScreen === 'guestJoin') {
+          $('guestError').textContent = 'Invalid code';
+        }
+        return;
+      }
+      if (data.type === 'checkers') {
+        socket.emit('lobby:join', data.code);
+      } else if (data.type === 'trouble') {
+        socket.emit('troubleLobby:join', data.code);
+      }
+    });
+
+    s.on('guest:ready', (data) => {
+      if (pendingJoinCode) {
+        processUrlJoin(pendingJoinCode);
+        pendingJoinCode = null;
+      }
+    });
+
     // Scrabble events
-    socket.on('scrabble:start', onScrabbleStart);
-    socket.on('scrabble:update', onScrabbleUpdate);
-    socket.on('scrabble:over', onScrabbleOver);
-    socket.on('scrabble:error', (data) => {
+    s.on('scrabble:start', onScrabbleStart);
+    s.on('scrabble:update', onScrabbleUpdate);
+    s.on('scrabble:over', onScrabbleOver);
+    s.on('scrabble:error', (data) => {
       showScrabbleError(data.message);
     });
 
-    socket.on('disconnect', () => {
+    s.on('disconnect', () => {
       console.log('Socket disconnected');
-      // Show reconnecting overlay if in a game
       if (currentScreen === 'game' || currentScreen === 'trouble' || currentScreen === 'scrabble') {
         $('reconnectingOverlay')?.classList.remove('hidden');
       }
     });
 
     // Pause/resume/rejoin events
-    socket.on('game:paused', onGamePaused);
-    socket.on('game:resumed', onGameResumed);
-    socket.on('game:rejoined', onGameRejoined);
-    socket.on('trouble:paused', onGamePaused);
-    socket.on('trouble:resumed', onGameResumed);
-    socket.on('trouble:rejoined', onTroubleRejoined);
-    socket.on('scrabble:paused', onGamePaused);
-    socket.on('scrabble:resumed', onGameResumed);
-    socket.on('scrabble:rejoined', onScrabbleRejoined);
+    s.on('game:paused', onGamePaused);
+    s.on('game:resumed', onGameResumed);
+    s.on('game:rejoined', onGameRejoined);
+    s.on('trouble:paused', onGamePaused);
+    s.on('trouble:resumed', onGameResumed);
+    s.on('trouble:rejoined', onTroubleRejoined);
+    s.on('scrabble:paused', onGamePaused);
+    s.on('scrabble:resumed', onGameResumed);
+    s.on('scrabble:rejoined', onScrabbleRejoined);
 
-    socket.on('game:activeGameExists', (data) => {
-      // Player has a paused game — auto-rejoin it
+    s.on('game:activeGameExists', (data) => {
       if (data.paused) {
         socket.emit('game:rejoin', data.matchCode);
       }
     });
 
-    socket.on('game:rejoinError', (data) => {
+    s.on('game:rejoinError', (data) => {
       const el = $('rejoinError');
       if (el) el.textContent = data.message;
     });
+  }
+
+  function connectSocket() {
+    if (socket) {
+      if (socket.connected) socket.disconnect();
+      socket.connect();
+      return;
+    }
+    socket = io();
+    bindSocketEvents(socket);
+  }
+
+  function connectSocketAsGuest() {
+    if (socket) {
+      if (socket.connected) socket.disconnect();
+      socket.connect();
+      return;
+    }
+    socket = io();
+    socket.guestMode = true;
+    bindSocketEvents(socket);
   }
 
   function appendChatMsg(container, msg) {
