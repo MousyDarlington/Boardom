@@ -2706,16 +2706,26 @@
         pips += `<span class="trouble-pip ${pipClass}" style="--pip-color:${pc.mid}"></span>`;
       }
 
+      // Placement badge if player has finished
+      const placementIdx = (troubleState.placements || []).indexOf(p);
+      const ordinals = ['1st', '2nd', '3rd', '4th'];
+      let placeBadge = '';
+      if (placementIdx >= 0) {
+        placeBadge = `<span class="trouble-place-badge trouble-place-${placementIdx + 1}">${ordinals[placementIdx]}</span>`;
+      }
+
       // Phase label for active player
       let phaseLabel = '';
-      if (isActive && !troubleState.gameOver) {
+      if (isActive && !troubleState.gameOver && placementIdx < 0) {
         phaseLabel = troubleState.phase === 'roll' ? 'Rolling...' : 'Moving...';
       }
 
-      html += `<div class="trouble-player-card${isActive ? ' active' : ''}${isMe ? ' is-you' : ''}" style="--pc:${pc.mid}">
+      const isFinished = placementIdx >= 0;
+      html += `<div class="trouble-player-card${isActive && !isFinished ? ' active' : ''}${isMe ? ' is-you' : ''}${isFinished ? ' finished' : ''}" style="--pc:${pc.mid}">
         <div class="trouble-card-top">
           <div class="trouble-card-dot" style="background:${pc.mid}"></div>
           <span class="trouble-card-name">${escapeHtml(displayName)}${isMe ? ' <span class="trouble-you-tag">(You)</span>' : ''}${isBot ? ' <span class="trouble-bot-tag">BOT</span>' : ''}</span>
+          ${placeBadge}
         </div>
         <div class="trouble-token-pips">${pips}</div>
         ${phaseLabel ? `<div class="trouble-phase-label">${phaseLabel}</div>` : ''}
