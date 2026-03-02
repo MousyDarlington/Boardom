@@ -1263,8 +1263,10 @@
     socket.on('scrabble:rejoined', onScrabbleRejoined);
 
     socket.on('game:activeGameExists', (data) => {
-      // Auto-rejoin the active game
-      socket.emit('game:rejoin', data.matchCode);
+      // Player has a paused game — auto-rejoin it
+      if (data.paused) {
+        socket.emit('game:rejoin', data.matchCode);
+      }
     });
 
     socket.on('game:rejoinError', (data) => {

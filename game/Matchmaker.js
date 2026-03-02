@@ -54,7 +54,10 @@ class Matchmaker {
     if (!gameId) return false;
     const gd = this.games.get(gameId);
     if (!gd) { this.usernameToGame.delete(socket.username); return false; }
-    socket.emit('game:activeGameExists', { matchCode: gd.matchCode });
+    const pause = this.pausedGames.get(gameId);
+    const isPaused = pause && pause.disconnectedPlayers.has(socket.username);
+    if (!isPaused) return false; // Not paused — don't block queue joins
+    socket.emit('game:activeGameExists', { matchCode: gd.matchCode, paused: true });
     return true;
   }
 
@@ -245,8 +248,8 @@ class Matchmaker {
     this.matchCodes.set(matchCode, gameId);
     this.playerToGame.set(red.id, gameId);
     this.playerToGame.set(black.id, gameId);
-    if (red.username) this.usernameToGame.set(red.username, gameId);
-    if (black.username) this.usernameToGame.set(black.username, gameId);
+    if (red.username && !red.id.startsWith('bot_')) this.usernameToGame.set(red.username, gameId);
+    if (black.username && !black.id.startsWith('bot_')) this.usernameToGame.set(black.username, gameId);
     red.join(gameId);
     black.join(gameId);
 
