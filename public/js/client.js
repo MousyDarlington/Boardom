@@ -1469,6 +1469,7 @@
     }
     socket = io();
     bindSocketEvents(socket);
+    bindNewGameEvents();
   }
 
   function connectSocketAsGuest() {
@@ -1480,6 +1481,7 @@
     socket = io();
     socket.guestMode = true;
     bindSocketEvents(socket);
+    bindNewGameEvents();
   }
 
   function appendChatMsg(container, msg) {
@@ -5422,6 +5424,838 @@
     // Bind canvas click (use event delegation on #gameCanvas)
     const canvasEl = $('gameCanvas');
     if (canvasEl) canvasEl.addEventListener('click', handleCanvasClick);
+  }
+
+  /* ================================================
+     CONNECT FOUR — CLIENT
+     ================================================ */
+  const C4_ROWS = 6, C4_COLS = 7;
+  const C4_CANVAS_PX = 560;
+  const C4_CELL = C4_CANVAS_PX / C4_COLS;
+  const C4_CANVAS_H = C4_CELL * (C4_ROWS + 1); // extra row for drop preview
+  let c4Canvas, c4Ctx;
+  let c4Board = [];
+  let c4CurrentTurn = 0;
+  let c4MyIndex = -1;
+  let c4GameLoopActive = false;
+  let c4HoverCol = -1;
+  let c4GameOver = false;
+  let c4WinLine = null;
+  let c4MatchCode = null;
+  let c4Local = null; // for local mode
+  let c4OpponentInfo = { username: 'Opponent' };
+
+  function setupC4Canvas() {
+    c4Canvas = $('c4Canvas');
+    if (!c4Canvas) return;
+    c4Canvas.width = C4_CANVAS_PX;
+    c4Canvas.height = C4_CANVAS_H;
+    c4Ctx = c4Canvas.getContext('2d');
+    c4Canvas.addEventListener('mousemove', c4HandleMouseMove);
+    c4Canvas.addEventListener('click', c4HandleClick);
+  }
+
+  function startC4GameLoop() {
+    c4GameLoopActive = true;
+    function loop() {
+      if (!c4GameLoopActive) return;
+      renderC4();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function renderC4() {
+    if (!c4Ctx) return;
+    const ctx = c4Ctx;
+    ctx.clearRect(0, 0, C4_CANVAS_PX, C4_CANVAS_H);
+
+    // Background
+    ctx.fillStyle = '#1a3a7a';
+    ctx.beginPath();
+    ctx.roundRect(0, C4_CELL, C4_CANVAS_PX, C4_ROWS * C4_CELL, 12);
+    ctx.fill();
+
+    // Drop preview
+    if (c4HoverCol >= 0 && !c4GameOver) {
+      const isMyTurn = c4Local ? true : (c4CurrentTurn === c4MyIndex);
+      if (isMyTurn) {
+        const color = c4Local ? (c4Local.currentTurn === 1 ? '#ff2d55' : '#ffd700') :
+                     (c4MyIndex === 0 ? '#ff2d55' : '#ffd700');
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(c4HoverCol * C4_CELL + C4_CELL / 2, C4_CELL / 2, C4_CELL * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // Grid cells
+    for (let r = 0; r < C4_ROWS; r++) {
+      for (let c = 0; c < C4_COLS; c++) {
+        const x = c * C4_CELL + C4_CELL / 2;
+        const y = (r + 1) * C4_CELL + C4_CELL / 2;
+        const val = c4Board[r]?.[c] || 0;
+
+        // Hole
+        ctx.fillStyle = '#0a0a14';
+        ctx.beginPath();
+        ctx.arc(x, y, C4_CELL * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (val === 1) {
+          ctx.fillStyle = '#ff2d55';
+          ctx.beginPath();
+          ctx.arc(x, y, C4_CELL * 0.38, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (val === 2) {
+          ctx.fillStyle = '#ffd700';
+          ctx.beginPath();
+          ctx.arc(x, y, C4_CELL * 0.38, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Highlight win line
+        if (c4WinLine) {
+          const inWin = c4WinLine.some(w => w.row === r && w.col === c);
+          if (inWin) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y, C4_CELL * 0.42, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    // Turn indicator
+    if (!c4GameOver) {
+      const isMyTurn = c4Local ? true : (c4CurrentTurn === c4MyIndex);
+      const badge = $('c4TurnBadge');
+      if (badge) {
+        if (c4Local) {
+          badge.textContent = c4Local.currentTurn === 1 ? 'RED\'S TURN' : 'YELLOW\'S TURN';
+          badge.style.color = c4Local.currentTurn === 1 ? '#ff2d55' : '#ffd700';
+        } else {
+          badge.textContent = isMyTurn ? 'YOUR TURN' : 'OPPONENT\'S TURN';
+          badge.style.color = isMyTurn ? '#34c759' : '#ff2d55';
+        }
+      }
+    }
+  }
+
+  function c4HandleMouseMove(e) {
+    const rect = c4Canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (C4_CANVAS_PX / rect.width);
+    c4HoverCol = Math.floor(x / C4_CELL);
+    if (c4HoverCol < 0 || c4HoverCol >= C4_COLS) c4HoverCol = -1;
+  }
+
+  function c4HandleClick(e) {
+    if (c4GameOver) return;
+    const rect = c4Canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (C4_CANVAS_PX / rect.width);
+    const col = Math.floor(x / C4_CELL);
+    if (col < 0 || col >= C4_COLS) return;
+
+    if (c4Local) {
+      const result = c4Local.makeMove(col);
+      if (result.valid) {
+        c4Board = result.board;
+        sfxMove();
+        if (result.gameOver.over) {
+          c4GameOver = true;
+          c4WinLine = result.gameOver.winLine;
+          const badge = $('c4TurnBadge');
+          if (result.gameOver.winner === 1) badge.textContent = 'RED WINS!';
+          else if (result.gameOver.winner === 2) badge.textContent = 'YELLOW WINS!';
+          else badge.textContent = 'DRAW!';
+          setTimeout(() => showGameOverOverlay({
+            winner: result.gameOver.winner ? (result.gameOver.winner === 1 ? 0 : 1) : null,
+            winnerUsername: result.gameOver.winner === 1 ? 'Red' : result.gameOver.winner === 2 ? 'Yellow' : null,
+            reason: result.gameOver.reason
+          }), 1500);
+        }
+      }
+    } else {
+      if (c4CurrentTurn !== c4MyIndex) return;
+      socket.emit('c4:move', { col });
+    }
+  }
+
+  function startLocalC4Game() {
+    c4Board = Array.from({ length: C4_ROWS }, () => Array(C4_COLS).fill(0));
+    c4GameOver = false;
+    c4WinLine = null;
+    c4Local = { currentTurn: 1, makeMove: localC4MakeMove };
+    c4MyIndex = 0;
+    $('c4MyName').textContent = 'Red';
+    $('c4OppName').textContent = 'Yellow';
+    $('c4MatchCodeValue').textContent = 'LOCAL';
+    showScreen('c4');
+  }
+
+  function localC4MakeMove(col) {
+    if (col < 0 || col >= C4_COLS) return { valid: false };
+    let targetRow = -1;
+    for (let r = C4_ROWS - 1; r >= 0; r--) {
+      if (c4Board[r][col] === 0) { targetRow = r; break; }
+    }
+    if (targetRow === -1) return { valid: false };
+    c4Board[targetRow][col] = c4Local.currentTurn;
+    const go = c4CheckWin();
+    if (!go.over) c4Local.currentTurn = c4Local.currentTurn === 1 ? 2 : 1;
+    return { valid: true, board: c4Board.map(r => [...r]), gameOver: go };
+  }
+
+  function c4CheckWin() {
+    const dirs = [{dr:0,dc:1},{dr:1,dc:0},{dr:1,dc:1},{dr:1,dc:-1}];
+    for (let r = 0; r < C4_ROWS; r++) {
+      for (let c = 0; c < C4_COLS; c++) {
+        const v = c4Board[r][c];
+        if (!v) continue;
+        for (const {dr,dc} of dirs) {
+          const line = [];
+          let ok = true;
+          for (let i = 0; i < 4; i++) {
+            const nr = r + i*dr, nc = c + i*dc;
+            if (nr<0||nr>=C4_ROWS||nc<0||nc>=C4_COLS||c4Board[nr][nc]!==v) { ok=false; break; }
+            line.push({row:nr,col:nc});
+          }
+          if (ok) return { over:true, winner:v, reason:'Four in a row', winLine:line };
+        }
+      }
+    }
+    let full = true;
+    for (let c = 0; c < C4_COLS; c++) if (c4Board[0][c]===0) { full=false; break; }
+    if (full) return { over:true, winner:null, reason:'Draw' };
+    return { over:false };
+  }
+
+  // Socket events for Connect Four
+  function bindC4SocketEvents() {
+    if (!socket) return;
+
+    socket.on('c4:start', (data) => {
+      c4MyIndex = data.playerIndex;
+      c4Board = data.board;
+      c4CurrentTurn = data.currentTurn === 1 ? 0 : 1;
+      c4GameOver = false;
+      c4WinLine = null;
+      c4MatchCode = data.matchCode;
+      c4Local = null;
+      c4OpponentInfo = data.players[1 - c4MyIndex] || { username: 'Opponent' };
+      $('c4MyName').textContent = data.players[c4MyIndex]?.username || 'You';
+      $('c4OppName').textContent = c4OpponentInfo.username;
+      $('c4MatchCodeValue').textContent = data.matchCode || '------';
+      showScreen('c4');
+    });
+
+    socket.on('c4:update', (data) => {
+      c4Board = data.board;
+      c4CurrentTurn = data.currentTurn;
+      c4GameOver = data.gameOver?.over || false;
+      c4WinLine = data.gameOver?.winLine || null;
+      sfxMove();
+      if (c4GameOver) {
+        const badge = $('c4TurnBadge');
+        if (data.gameOver.winner === null) badge.textContent = 'DRAW!';
+        else badge.textContent = (data.gameOver.winner === c4MyIndex ? 'YOU WIN!' : 'YOU LOSE!');
+      }
+    });
+
+    socket.on('c4:over', (data) => {
+      c4GameOver = true;
+      c4WinLine = data.winLine;
+      setTimeout(() => showGameOverOverlay(data), 1500);
+    });
+
+    socket.on('c4:rejoined', (data) => {
+      c4MyIndex = data.playerIndex;
+      c4Board = data.board;
+      c4CurrentTurn = typeof data.currentTurn === 'number' && data.currentTurn <= 1 ? data.currentTurn : (data.currentTurn === 1 ? 0 : 1);
+      c4GameOver = data.gameOver || false;
+      c4WinLine = data.winLine || null;
+      c4MatchCode = data.matchCode;
+      c4Local = null;
+      $('c4MatchCodeValue').textContent = data.matchCode || '------';
+      showScreen('c4');
+    });
+  }
+
+  /* ================================================
+     BATTLESHIP — CLIENT
+     ================================================ */
+  const BS_GRID = 10;
+  const BS_CELL = 32;
+  const BS_CANVAS_PX = BS_GRID * BS_CELL;
+  let bsMyCanvas, bsMyCtx, bsOppCanvas, bsOppCtx;
+  let bsMyIndex = -1;
+  let bsPhase = 'placing';
+  let bsCurrentTurn = 0;
+  let bsMyGrid = [];
+  let bsOppGrid = [];
+  let bsMyShips = [];
+  let bsOppShips = [];
+  let bsGameLoopActive = false;
+  let bsGameOver = false;
+  let bsMatchCode = null;
+  let bsLocal = null;
+  let bsPlacingShip = null;
+  let bsPlaceHorizontal = true;
+  let bsHoverCell = null;
+  let bsMessage = '';
+  const BS_SHIPS = [
+    { name: 'Carrier', size: 5 },
+    { name: 'Battleship', size: 4 },
+    { name: 'Cruiser', size: 3 },
+    { name: 'Submarine', size: 3 },
+    { name: 'Destroyer', size: 2 }
+  ];
+  let bsPlacedShips = new Set();
+
+  function setupBSCanvases() {
+    bsMyCanvas = $('bsMyCanvas');
+    bsOppCanvas = $('bsOppCanvas');
+    if (!bsMyCanvas || !bsOppCanvas) return;
+    bsMyCanvas.width = BS_CANVAS_PX;
+    bsMyCanvas.height = BS_CANVAS_PX;
+    bsOppCanvas.width = BS_CANVAS_PX;
+    bsOppCanvas.height = BS_CANVAS_PX;
+    bsMyCtx = bsMyCanvas.getContext('2d');
+    bsOppCtx = bsOppCanvas.getContext('2d');
+    bsMyCanvas.addEventListener('click', bsMyGridClick);
+    bsOppCanvas.addEventListener('click', bsOppGridClick);
+    bsOppCanvas.addEventListener('mousemove', bsOppMouseMove);
+  }
+
+  function startBSGameLoop() {
+    bsGameLoopActive = true;
+    function loop() {
+      if (!bsGameLoopActive) return;
+      renderBSGrids();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function renderBSGrid(ctx, grid, showShips, hoverR, hoverC) {
+    for (let r = 0; r < BS_GRID; r++) {
+      for (let c = 0; c < BS_GRID; c++) {
+        const x = c * BS_CELL, y = r * BS_CELL;
+        const val = grid[r]?.[c] || 0;
+        ctx.fillStyle = '#0c1a2e';
+        ctx.fillRect(x, y, BS_CELL, BS_CELL);
+        ctx.strokeStyle = '#1a3050';
+        ctx.strokeRect(x, y, BS_CELL, BS_CELL);
+        if (showShips && val === 1) { ctx.fillStyle = '#4a6a8a'; ctx.fillRect(x+1, y+1, BS_CELL-2, BS_CELL-2); }
+        if (val === 2) { ctx.fillStyle = '#ff2d55'; ctx.beginPath(); ctx.arc(x+BS_CELL/2, y+BS_CELL/2, BS_CELL*0.35, 0, Math.PI*2); ctx.fill(); }
+        if (val === 3) { ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(x+BS_CELL/2, y+BS_CELL/2, BS_CELL*0.15, 0, Math.PI*2); ctx.fill(); }
+      }
+    }
+    if (hoverR >= 0 && hoverC >= 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(hoverC * BS_CELL, hoverR * BS_CELL, BS_CELL, BS_CELL);
+    }
+  }
+
+  function renderBSGrids() {
+    if (!bsMyCtx || !bsOppCtx) return;
+    bsMyCtx.clearRect(0, 0, BS_CANVAS_PX, BS_CANVAS_PX);
+    bsOppCtx.clearRect(0, 0, BS_CANVAS_PX, BS_CANVAS_PX);
+    renderBSGrid(bsMyCtx, bsMyGrid, true, -1, -1);
+    const hr = bsHoverCell ? bsHoverCell.row : -1;
+    const hc = bsHoverCell ? bsHoverCell.col : -1;
+    renderBSGrid(bsOppCtx, bsOppGrid, false, hr, hc);
+
+    // Update HUD
+    const badge = $('bsTurnBadge');
+    if (badge) {
+      if (bsPhase === 'placing') badge.textContent = 'PLACE YOUR SHIPS';
+      else if (bsGameOver) badge.textContent = 'GAME OVER';
+      else badge.textContent = bsCurrentTurn === bsMyIndex ? 'YOUR TURN - FIRE!' : 'OPPONENT\'S TURN';
+    }
+    const msgEl = $('bsMessage');
+    if (msgEl) msgEl.textContent = bsMessage;
+
+    // Show/hide placement panel
+    const panel = $('bsShipPanel');
+    if (panel) panel.style.display = bsPhase === 'placing' ? 'block' : 'none';
+  }
+
+  function bsOppMouseMove(e) {
+    if (bsPhase !== 'playing' || bsCurrentTurn !== bsMyIndex) { bsHoverCell = null; return; }
+    const rect = bsOppCanvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (BS_CANVAS_PX / rect.width);
+    const y = (e.clientY - rect.top) * (BS_CANVAS_PX / rect.height);
+    bsHoverCell = { row: Math.floor(y / BS_CELL), col: Math.floor(x / BS_CELL) };
+  }
+
+  function bsOppGridClick(e) {
+    if (bsPhase !== 'playing' || bsGameOver) return;
+    if (!bsLocal && bsCurrentTurn !== bsMyIndex) return;
+    const rect = bsOppCanvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (BS_CANVAS_PX / rect.width);
+    const y = (e.clientY - rect.top) * (BS_CANVAS_PX / rect.height);
+    const row = Math.floor(y / BS_CELL);
+    const col = Math.floor(x / BS_CELL);
+    if (row < 0 || row >= BS_GRID || col < 0 || col >= BS_GRID) return;
+
+    if (bsLocal) {
+      // Local mode not fully implemented - just show message
+      bsMessage = 'Local Battleship: Take turns firing!';
+    } else {
+      socket.emit('bs:fire', { row, col });
+    }
+  }
+
+  function bsMyGridClick(e) {
+    if (bsPhase !== 'placing') return;
+    // For placing ships in local/online mode
+  }
+
+  function startLocalBSGame() {
+    bsMessage = 'Battleship local mode - play online for full experience!';
+    bsPhase = 'placing';
+    bsMyGrid = Array.from({length:BS_GRID}, () => Array(BS_GRID).fill(0));
+    bsOppGrid = Array.from({length:BS_GRID}, () => Array(BS_GRID).fill(0));
+    bsGameOver = false;
+    bsLocal = true;
+    bsMyIndex = 0;
+    $('bsMyName').textContent = 'Player 1';
+    $('bsOppName').textContent = 'Player 2';
+    $('bsMatchCodeValue').textContent = 'LOCAL';
+    showScreen('battleship');
+  }
+
+  function bindBSSocketEvents() {
+    if (!socket) return;
+
+    socket.on('bs:start', (data) => {
+      bsMyIndex = data.playerIndex;
+      bsPhase = data.phase;
+      bsCurrentTurn = data.currentTurn;
+      bsMyGrid = data.myGrid || Array.from({length:BS_GRID}, () => Array(BS_GRID).fill(0));
+      bsOppGrid = data.opponentGrid || Array.from({length:BS_GRID}, () => Array(BS_GRID).fill(0));
+      bsMyShips = data.myShips || [];
+      bsOppShips = data.opponentShips || [];
+      bsGameOver = false;
+      bsMatchCode = data.matchCode;
+      bsLocal = null;
+      bsPlacedShips = new Set(bsMyShips.map(s => s.name));
+      bsMessage = bsPhase === 'placing' ? 'Place your ships! Click Auto-Place or Ready.' : '';
+      $('bsMyName').textContent = data.players[bsMyIndex]?.username || 'You';
+      $('bsOppName').textContent = data.players[1-bsMyIndex]?.username || 'Opponent';
+      $('bsMatchCodeValue').textContent = data.matchCode || '------';
+      showScreen('battleship');
+      bsSetupShipPanel();
+    });
+
+    socket.on('bs:placed', (data) => {
+      bsMyGrid = data.myGrid || bsMyGrid;
+      bsMyShips = data.myShips || bsMyShips;
+      bsPlacedShips = new Set(bsMyShips.map(s => s.name));
+      bsSetupShipPanel();
+    });
+
+    socket.on('bs:ready', (data) => {
+      bsPhase = data.phase;
+      bsCurrentTurn = data.currentTurn;
+      if (data.bothReady) {
+        bsMessage = 'Battle begins!';
+        bsMyGrid = data.myGrid || bsMyGrid;
+        bsOppGrid = data.opponentGrid || bsOppGrid;
+      } else {
+        bsMessage = 'Waiting for opponent to ready up...';
+      }
+    });
+
+    socket.on('bs:update', (data) => {
+      bsPhase = data.phase;
+      bsCurrentTurn = data.currentTurn;
+      bsMyGrid = data.myGrid || bsMyGrid;
+      bsOppGrid = data.opponentGrid || bsOppGrid;
+      bsMyShips = data.myShips || bsMyShips;
+      bsOppShips = data.opponentShips || bsOppShips;
+      if (data.hit !== undefined) {
+        if (data.shooter === bsMyIndex) {
+          bsMessage = data.hit ? (data.sunk ? 'HIT & SUNK ' + (data.shipName || '') + '!' : 'HIT!') : 'Miss...';
+          if (data.hit) sfxCapture(); else sfxMove();
+        } else {
+          bsMessage = data.hit ? 'Your ship was hit!' : 'Enemy missed!';
+          if (data.hit) sfxCapture();
+        }
+      }
+    });
+
+    socket.on('bs:over', (data) => {
+      bsGameOver = true;
+      bsPhase = 'over';
+      const badge = $('bsTurnBadge');
+      if (badge) badge.textContent = data.winner === bsMyIndex ? 'VICTORY!' : 'DEFEAT!';
+      bsMessage = data.reason || 'Game over';
+      setTimeout(() => showGameOverOverlay(data), 1500);
+    });
+
+    socket.on('bs:rejoined', (data) => {
+      bsMyIndex = data.playerIndex;
+      bsPhase = data.phase;
+      bsCurrentTurn = data.currentTurn;
+      bsMyGrid = data.myGrid || bsMyGrid;
+      bsOppGrid = data.opponentGrid || bsOppGrid;
+      bsMatchCode = data.matchCode;
+      bsLocal = null;
+      $('bsMatchCodeValue').textContent = data.matchCode || '------';
+      showScreen('battleship');
+    });
+  }
+
+  function bsSetupShipPanel() {
+    const list = $('bsShipList');
+    if (!list) return;
+    list.innerHTML = '';
+    for (const ship of BS_SHIPS) {
+      const el = document.createElement('div');
+      el.className = 'bs-ship-item' + (bsPlacedShips.has(ship.name) ? ' placed' : '');
+      el.textContent = ship.name + ' (' + ship.size + ')';
+      list.appendChild(el);
+    }
+  }
+
+  // BS button bindings
+  function bindBSButtons() {
+    const autoBtn = $('btnBsAutoPlace');
+    if (autoBtn) autoBtn.addEventListener('click', () => {
+      if (socket && bsPhase === 'placing') socket.emit('bs:autoPlace');
+    });
+    const readyBtn = $('btnBsReady');
+    if (readyBtn) readyBtn.addEventListener('click', () => {
+      if (socket && bsPhase === 'placing') socket.emit('bs:ready');
+    });
+    const resignBtn = $('btnBsResign');
+    if (resignBtn) resignBtn.addEventListener('click', () => {
+      if (socket) socket.emit('bs:resign');
+    });
+  }
+
+  /* ================================================
+     MANCALA — CLIENT
+     ================================================ */
+  const MN_CANVAS_W = 700;
+  const MN_CANVAS_H = 240;
+  const MN_PIT_R = 30;
+  const MN_STORE_W = 60;
+  const MN_STORE_H = 160;
+  let mancalaCanvas, mancalaCtx;
+  let mnPits = new Array(14).fill(4);
+  let mnCurrentTurn = 0;
+  let mnMyIndex = -1;
+  let mnGameLoopActive = false;
+  let mnGameOver = false;
+  let mnMatchCode = null;
+  let mnLocal = null;
+  let mnScores = [0, 0];
+  let mnHoverPit = -1;
+
+  function setupMancalaCanvas() {
+    mancalaCanvas = $('mancalaCanvas');
+    if (!mancalaCanvas) return;
+    mancalaCanvas.width = MN_CANVAS_W;
+    mancalaCanvas.height = MN_CANVAS_H;
+    mancalaCtx = mancalaCanvas.getContext('2d');
+    mancalaCanvas.addEventListener('mousemove', mnHandleMouseMove);
+    mancalaCanvas.addEventListener('click', mnHandleClick);
+  }
+
+  function startMancalaGameLoop() {
+    mnGameLoopActive = true;
+    function loop() {
+      if (!mnGameLoopActive) return;
+      renderMancala();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function mnGetPitPos(idx) {
+    // Store P1 (index 13) = left side, Store P0 (index 6) = right side
+    // P0 pits (0-5) = bottom row left-to-right
+    // P1 pits (7-12) = top row right-to-left
+    const storeW = MN_STORE_W;
+    const pitAreaW = MN_CANVAS_W - 2 * storeW;
+    const pitSpacing = pitAreaW / 6;
+    const cy1 = MN_CANVAS_H * 0.7; // bottom row (P0)
+    const cy0 = MN_CANVAS_H * 0.3; // top row (P1)
+
+    if (idx === 6) return { x: MN_CANVAS_W - storeW/2, y: MN_CANVAS_H/2, isStore: true }; // P0 store (right)
+    if (idx === 13) return { x: storeW/2, y: MN_CANVAS_H/2, isStore: true }; // P1 store (left)
+    if (idx >= 0 && idx <= 5) return { x: storeW + pitSpacing * idx + pitSpacing/2, y: cy1, isStore: false }; // P0 pits
+    if (idx >= 7 && idx <= 12) return { x: storeW + pitSpacing * (12 - idx) + pitSpacing/2, y: cy0, isStore: false }; // P1 pits
+    return null;
+  }
+
+  function renderMancala() {
+    if (!mancalaCtx) return;
+    const ctx = mancalaCtx;
+    ctx.clearRect(0, 0, MN_CANVAS_W, MN_CANVAS_H);
+
+    // Board background
+    ctx.fillStyle = '#3d2b1f';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, MN_CANVAS_W, MN_CANVAS_H, 20);
+    ctx.fill();
+
+    // Draw all pits and stores
+    for (let i = 0; i < 14; i++) {
+      const pos = mnGetPitPos(i);
+      if (!pos) continue;
+      const stones = mnPits[i] || 0;
+
+      if (pos.isStore) {
+        // Store (tall oval)
+        ctx.fillStyle = '#2a1a0e';
+        ctx.beginPath();
+        ctx.ellipse(pos.x, pos.y, MN_STORE_W*0.4, MN_STORE_H*0.45, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = '#5a4030';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else {
+        // Pit (circle)
+        const isMyPit = (mnLocal) ? true :
+          (mnMyIndex === 0 && i >= 0 && i <= 5) || (mnMyIndex === 1 && i >= 7 && i <= 12);
+        const isHover = mnHoverPit === i;
+        const isActive = !mnGameOver && stones > 0 && isMyPit &&
+          (mnLocal ? (mnLocal.currentTurn === 0 ? i <= 5 : i >= 7) : mnCurrentTurn === mnMyIndex);
+
+        ctx.fillStyle = isHover && isActive ? '#4a3520' : '#2a1a0e';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, MN_PIT_R, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = isActive ? '#8a7060' : '#5a4030';
+        ctx.lineWidth = isActive ? 2.5 : 1.5;
+        ctx.stroke();
+      }
+
+      // Draw stone count
+      ctx.fillStyle = stones > 0 ? '#ffd700' : '#5a4030';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(stones.toString(), pos.x, pos.y);
+    }
+
+    // Labels
+    ctx.fillStyle = '#aaa';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    const isFlipped = mnMyIndex === 1;
+    ctx.fillText(isFlipped ? 'Your Pits' : 'Opponent\'s Pits', MN_CANVAS_W/2, 12);
+    ctx.fillText(isFlipped ? 'Opponent\'s Pits' : 'Your Pits', MN_CANVAS_W/2, MN_CANVAS_H - 6);
+
+    // Score display
+    $('mancalaMyScore').textContent = mnScores[mnMyIndex] || 0;
+    $('mancalaOppScore').textContent = mnScores[1 - mnMyIndex] || 0;
+
+    // Turn badge
+    const badge = $('mancalaTurnBadge');
+    if (badge) {
+      if (mnGameOver) badge.textContent = 'GAME OVER';
+      else if (mnLocal) badge.textContent = mnLocal.currentTurn === 0 ? 'PLAYER 1\'S TURN' : 'PLAYER 2\'S TURN';
+      else badge.textContent = mnCurrentTurn === mnMyIndex ? 'YOUR TURN' : 'OPPONENT\'S TURN';
+    }
+  }
+
+  function mnHandleMouseMove(e) {
+    const rect = mancalaCanvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (MN_CANVAS_W / rect.width);
+    const my = (e.clientY - rect.top) * (MN_CANVAS_H / rect.height);
+    mnHoverPit = -1;
+    for (let i = 0; i < 14; i++) {
+      if (i === 6 || i === 13) continue; // skip stores
+      const pos = mnGetPitPos(i);
+      if (!pos) continue;
+      const dx = mx - pos.x, dy = my - pos.y;
+      if (dx*dx + dy*dy < MN_PIT_R * MN_PIT_R) { mnHoverPit = i; break; }
+    }
+  }
+
+  function mnHandleClick(e) {
+    if (mnGameOver || mnHoverPit < 0) return;
+    const pit = mnHoverPit;
+
+    if (mnLocal) {
+      const player = mnLocal.currentTurn;
+      const start = player === 0 ? 0 : 7;
+      const end = start + 6;
+      if (pit < start || pit >= end || mnPits[pit] === 0) return;
+      const result = mnLocalMakeMove(pit);
+      if (result.valid) {
+        mnPits = result.pits;
+        mnScores = result.scores;
+        sfxMove();
+        if (result.extraTurn) {
+          const info = $('mancalaInfo');
+          if (info) info.textContent = 'Extra turn!';
+        } else {
+          const info = $('mancalaInfo');
+          if (info) info.textContent = result.captured > 0 ? 'Captured ' + result.captured + ' stones!' : '';
+        }
+        if (result.gameOver.over) {
+          mnGameOver = true;
+          setTimeout(() => showGameOverOverlay({
+            winner: result.gameOver.winner === 'draw' ? null : result.gameOver.winner,
+            winnerUsername: result.gameOver.winner === 0 ? 'Player 1' : result.gameOver.winner === 1 ? 'Player 2' : null,
+            reason: result.gameOver.reason
+          }), 1500);
+        }
+      }
+    } else {
+      if (mnCurrentTurn !== mnMyIndex) return;
+      const start = mnMyIndex === 0 ? 0 : 7;
+      const end = start + 6;
+      if (pit < start || pit >= end || mnPits[pit] === 0) return;
+      socket.emit('mancala:move', { pitIdx: pit });
+    }
+  }
+
+  function startLocalMancalaGame() {
+    mnPits = new Array(14).fill(4);
+    mnPits[6] = 0; mnPits[13] = 0;
+    mnScores = [0, 0];
+    mnGameOver = false;
+    mnMyIndex = 0;
+    mnLocal = { currentTurn: 0 };
+    $('mancalaMyName').textContent = 'Player 1';
+    $('mancalaOppName').textContent = 'Player 2';
+    $('mancalaMatchCodeValue').textContent = 'LOCAL';
+    const info = $('mancalaInfo');
+    if (info) info.textContent = '';
+    showScreen('mancala');
+  }
+
+  function mnLocalMakeMove(pitIdx) {
+    const player = mnLocal.currentTurn;
+    const oppStore = player === 0 ? 13 : 6;
+    const ownStore = player === 0 ? 6 : 13;
+    let stones = mnPits[pitIdx];
+    if (stones === 0) return { valid: false };
+    mnPits[pitIdx] = 0;
+    let idx = pitIdx;
+    while (stones > 0) {
+      idx = (idx + 1) % 14;
+      if (idx === oppStore) continue;
+      mnPits[idx]++;
+      stones--;
+    }
+    let extraTurn = idx === ownStore;
+    let captured = 0;
+    const OPPOSITE = [12,-1,-1,-1,-1,-1,-1,5,4,3,2,1,0];
+    // Recalc opposite properly
+    const OPP_MAP = {0:12,1:11,2:10,3:9,4:8,5:7,7:5,8:4,9:3,10:2,11:1,12:0};
+    if (!extraTurn && mnPits[idx] === 1) {
+      const isOwnSide = (player === 0 && idx >= 0 && idx <= 5) || (player === 1 && idx >= 7 && idx <= 12);
+      if (isOwnSide && OPP_MAP[idx] !== undefined && mnPits[OPP_MAP[idx]] > 0) {
+        captured = mnPits[OPP_MAP[idx]] + 1;
+        mnPits[ownStore] += captured;
+        mnPits[idx] = 0;
+        mnPits[OPP_MAP[idx]] = 0;
+      }
+    }
+    // Check game over
+    let p0empty = true, p1empty = true;
+    for (let i = 0; i < 6; i++) if (mnPits[i] > 0) p0empty = false;
+    for (let i = 7; i < 13; i++) if (mnPits[i] > 0) p1empty = false;
+    let go = { over: false };
+    if (p0empty || p1empty) {
+      for (let i = 0; i < 6; i++) { mnPits[6] += mnPits[i]; mnPits[i] = 0; }
+      for (let i = 7; i < 13; i++) { mnPits[13] += mnPits[i]; mnPits[i] = 0; }
+      const s0 = mnPits[6], s1 = mnPits[13];
+      go = { over: true, winner: s0 > s1 ? 0 : s1 > s0 ? 1 : 'draw', reason: 'Game ended' };
+    }
+    if (!extraTurn && !go.over) mnLocal.currentTurn = 1 - mnLocal.currentTurn;
+    return { valid: true, pits: [...mnPits], scores: [mnPits[6], mnPits[13]], extraTurn, captured, gameOver: go };
+  }
+
+  function bindMancalaSocketEvents() {
+    if (!socket) return;
+
+    socket.on('mancala:start', (data) => {
+      mnMyIndex = data.playerIndex;
+      mnPits = data.pits;
+      mnCurrentTurn = data.currentTurn;
+      mnScores = data.scores || [0, 0];
+      mnGameOver = false;
+      mnMatchCode = data.matchCode;
+      mnLocal = null;
+      $('mancalaMyName').textContent = data.players[mnMyIndex]?.username || 'You';
+      $('mancalaOppName').textContent = data.players[1-mnMyIndex]?.username || 'Opponent';
+      $('mancalaMatchCodeValue').textContent = data.matchCode || '------';
+      const info = $('mancalaInfo');
+      if (info) info.textContent = '';
+      showScreen('mancala');
+    });
+
+    socket.on('mancala:update', (data) => {
+      mnPits = data.pits;
+      mnCurrentTurn = data.currentTurn;
+      mnScores = data.scores;
+      sfxMove();
+      const info = $('mancalaInfo');
+      if (info) {
+        if (data.extraTurn) info.textContent = 'Extra turn!';
+        else if (data.captured > 0) info.textContent = 'Captured ' + data.captured + ' stones!';
+        else info.textContent = '';
+      }
+      if (data.gameOver && data.gameOver.over) {
+        mnGameOver = true;
+      }
+    });
+
+    socket.on('mancala:over', (data) => {
+      mnGameOver = true;
+      setTimeout(() => showGameOverOverlay(data), 1500);
+    });
+
+    socket.on('mancala:rejoined', (data) => {
+      mnMyIndex = data.playerIndex;
+      mnPits = data.pits;
+      mnCurrentTurn = data.currentTurn;
+      mnScores = data.scores || [mnPits[6], mnPits[13]];
+      mnGameOver = data.gameOver || false;
+      mnMatchCode = data.matchCode;
+      mnLocal = null;
+      $('mancalaMatchCodeValue').textContent = data.matchCode || '------';
+      showScreen('mancala');
+    });
+  }
+
+  /* ================================================
+     BIND NEW GAME EVENTS & BUTTONS
+     ================================================ */
+  function bindNewGameEvents() {
+    bindC4SocketEvents();
+    bindBSSocketEvents();
+    bindMancalaSocketEvents();
+    bindBSButtons();
+
+    // C4 resign
+    const c4Resign = $('btnC4Resign');
+    if (c4Resign) c4Resign.addEventListener('click', () => { if (socket) socket.emit('c4:resign'); });
+
+    // Mancala resign
+    const mnResign = $('btnMancalaResign');
+    if (mnResign) mnResign.addEventListener('click', () => { if (socket) socket.emit('mancala:resign'); });
+
+    // Copy code buttons
+    const c4Copy = $('btnCopyC4Code');
+    if (c4Copy) c4Copy.addEventListener('click', () => { navigator.clipboard?.writeText($('c4MatchCodeValue')?.textContent || ''); });
+    const bsCopy = $('btnCopyBsCode');
+    if (bsCopy) bsCopy.addEventListener('click', () => { navigator.clipboard?.writeText($('bsMatchCodeValue')?.textContent || ''); });
+    const mnCopy = $('btnCopyMancalaCode');
+    if (mnCopy) mnCopy.addEventListener('click', () => { navigator.clipboard?.writeText($('mancalaMatchCodeValue')?.textContent || ''); });
   }
 
   // Start when DOM is ready
