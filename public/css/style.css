@@ -1560,12 +1560,7 @@ input:focus {
   min-height: 1.2em;
 }
 
-/* Chat in side column */
-#scrabbleChatPanel {
-  flex: 1;
-  min-height: 150px;
-  max-height: 300px;
-}
+/* Chat panel removed — uses global popout modal */
 
 /* Blank tile letter picker */
 .scrabble-letter-grid {
@@ -1633,13 +1628,6 @@ input:focus {
     min-width: 240px;
   }
 
-  #scrabbleChatPanel {
-    flex: 1;
-    min-width: 240px;
-    height: 180px;
-    max-height: 180px;
-  }
-
   .scrabble-leave-btn {
     width: 100%;
     margin-top: 0;
@@ -1654,7 +1642,6 @@ input:focus {
   .scrabble-submit-btn { font-size: 0.85rem; padding: 6px 16px; }
   .scrabble-side-col { flex-direction: column; }
   .scrabble-rack-section { min-width: unset; }
-  #scrabbleChatPanel { min-width: unset; width: 100%; }
 }
 
 /* ---------- Match Code & Pause/Rejoin ---------- */
@@ -2127,8 +2114,8 @@ input:focus {
   100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 
-/* ---- Chat Popout Modal ---- */
-.cah-chat-toggle {
+/* ---- Global Chat Popout Modal ---- */
+.chat-fab {
   position: fixed;
   bottom: 1.25rem;
   right: 1.25rem;
@@ -2146,18 +2133,18 @@ input:focus {
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   transition: transform 0.2s, box-shadow 0.2s;
 }
-.cah-chat-toggle:hover {
+.chat-fab:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 24px rgba(0,0,0,0.5);
 }
-.cah-chat-toggle:active {
+.chat-fab:active {
   transform: scale(0.95);
 }
-.cah-chat-toggle-icon {
+.chat-fab-icon {
   font-size: 1.5rem;
   line-height: 1;
 }
-.cah-chat-badge {
+.chat-fab-badge {
   position: absolute;
   top: -4px;
   right: -4px;
@@ -2175,7 +2162,7 @@ input:focus {
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
-.cah-chat-modal {
+.chat-modal {
   position: fixed;
   bottom: 4.5rem;
   right: 1.25rem;
@@ -2185,21 +2172,22 @@ input:focus {
   height: 420px;
   max-height: calc(100vh - 6rem);
   max-height: calc(100dvh - 6rem);
-  animation: cahChatSlideUp 0.25s ease;
+  animation: chatSlideUp 0.25s ease;
 }
-.cah-chat-modal.hidden {
+.chat-modal.hidden {
   display: none;
 }
-.cah-chat-modal-inner {
+.chat-modal-inner {
   display: flex;
   flex-direction: column;
+  width: 100%;
   height: 100%;
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid var(--glass-border);
   box-shadow: 0 8px 40px rgba(0,0,0,0.5);
 }
-.cah-chat-modal-header {
+.chat-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2209,7 +2197,7 @@ input:focus {
   border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
 }
-.cah-chat-close {
+.chat-modal-close {
   background: none;
   border: none;
   color: var(--text-muted);
@@ -2219,23 +2207,42 @@ input:focus {
   line-height: 1;
   transition: color 0.2s;
 }
-.cah-chat-close:hover {
+.chat-modal-close:hover {
   color: var(--text);
 }
-.cah-chat-modal .chat-messages {
+.chat-modal .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 0.5rem;
+  padding: 0.5rem 0.75rem;
   min-height: 0;
 }
-.cah-chat-modal .chat-input-row {
+.chat-modal .chat-input-row {
   flex-shrink: 0;
   border-top: 1px solid var(--glass-border);
 }
 
-@keyframes cahChatSlideUp {
+@keyframes chatSlideUp {
   0% { opacity: 0; transform: translateY(16px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile — smaller chat modal */
+@media (max-width: 480px) {
+  .chat-fab {
+    width: 46px;
+    height: 46px;
+    bottom: 0.75rem;
+    right: 0.75rem;
+  }
+  .chat-fab-icon {
+    font-size: 1.3rem;
+  }
+  .chat-modal {
+    bottom: 3.75rem;
+    right: 0.75rem;
+    width: calc(100vw - 1.5rem);
+    height: 350px;
+  }
 }
 
 /* ---- Responsive ---- */
@@ -2410,10 +2417,6 @@ input:focus {
     font-size: 0.8rem;
     padding: 0.4rem 1.2rem;
   }
-  #cahChatPanel {
-    height: 140px;
-    max-height: 140px;
-  }
   .cah-round-result {
     max-width: 92vw;
     padding: 0.75rem 1rem;
@@ -2519,11 +2522,5 @@ input:focus {
   .cah-phase-banner {
     font-size: 0.7rem;
     padding: 0.1rem;
-  }
-  #cahChatPanel {
-    width: 200px;
-    max-width: 200px;
-    height: auto;
-    max-height: none;
   }
 }
