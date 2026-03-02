@@ -143,6 +143,14 @@
         { id: 'mancalaBots',   icon: '\uD83E\uDD16', name: 'Play vs Bot', desc: 'Challenge the AI' },
         { id: 'mancalaLocal',  icon: '\uD83C\uDFAE', name: 'Local 2P', desc: 'Same screen hotseat' }
       ]
+    },
+    mahjong: {
+      title: 'Mahjong',
+      icon: '\uD83C\uDC04',
+      desc: 'Single player \u2014 Match pairs of free tiles to clear the board!',
+      modes: [
+        { id: 'mahjongPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
+      ]
     }
   };
 
@@ -1023,7 +1031,8 @@
   const screenIds = ['titleScreen', 'authScreen', 'lobbyScreen', 'queueScreen',
     'lobbyHostScreen', 'lobbyJoinScreen', 'troubleHostScreen', 'guestJoinScreen',
     'shopScreen', 'gameScreen', 'troubleGameScreen', 'scrabbleGameScreen',
-    'cahHostScreen', 'cahGameScreen', 'c4GameScreen', 'bsGameScreen', 'mancalaGameScreen'];
+    'cahHostScreen', 'cahGameScreen', 'c4GameScreen', 'bsGameScreen', 'mancalaGameScreen',
+    'mahjongGameScreen'];
 
   function showScreen(name) {
     currentScreen = name;
@@ -1033,7 +1042,8 @@
       troubleHost: 'troubleHostScreen', guestJoin: 'guestJoinScreen',
       shop: 'shopScreen', game: 'gameScreen', trouble: 'troubleGameScreen',
       scrabble: 'scrabbleGameScreen', cahHost: 'cahHostScreen', cah: 'cahGameScreen',
-      c4: 'c4GameScreen', battleship: 'bsGameScreen', mancala: 'mancalaGameScreen'
+      c4: 'c4GameScreen', battleship: 'bsGameScreen', mancala: 'mancalaGameScreen',
+      mahjong: 'mahjongGameScreen'
     };
     for (const id of screenIds) {
       const el = $(id);
@@ -1043,7 +1053,7 @@
     if (target) target.classList.add('active');
 
     // Hide game over overlay when switching screens
-    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala') {
+    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala' && name !== 'mahjong') {
       $('gameOverOverlay').classList.add('hidden');
       confettiActive = false;
     }
@@ -1053,7 +1063,8 @@
     if (name !== 'scrabble') scrabbleGameLoopActive = false;
     if (name !== 'c4') c4GameLoopActive = false;
     if (name !== 'battleship') bsGameLoopActive = false;
-    if (name !== 'mancala') mancalaGameLoopActive = false;
+    if (name !== 'mancala') mnGameLoopActive = false;
+    if (name !== 'mahjong') mjGameLoopActive = false;
 
     if (name === 'game') {
       setupCanvas();
@@ -1081,6 +1092,10 @@
     if (name === 'mancala') {
       setupMancalaCanvas();
       startMancalaGameLoop();
+    }
+    if (name === 'mahjong') {
+      setupMahjongCanvas();
+      startMahjongGameLoop();
     }
 
     // Hide overlays when leaving lobby
@@ -2258,9 +2273,9 @@
     const game = GAME_CATALOG[gameId];
     if (!game) return;
 
-    // Collapse the game card row
-    const cardRow = $('gameCardRow');
-    cardRow.classList.add('collapsed');
+    // Collapse all game categories
+    const categories = $('gameCategories');
+    if (categories) categories.classList.add('collapsed');
 
     // Mark the selected card
     document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
@@ -2296,8 +2311,8 @@
   function deselectGame() {
     selectedGame = null;
     $('gameDetail').classList.remove('active');
-    const cardRow = $('gameCardRow');
-    if (cardRow) cardRow.classList.remove('collapsed');
+    const categories = $('gameCategories');
+    if (categories) categories.classList.remove('collapsed');
     document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
     // Remove any lingering private picker
     const picker = document.querySelector('.private-picker');
@@ -2437,6 +2452,12 @@
           break;
         case 'mancalaLocal':
           startLocalMancalaGame();
+          break;
+      }
+    } else if (gameId === 'mahjong') {
+      switch (modeId) {
+        case 'mahjongPlay':
+          startMahjongGame();
           break;
       }
     }
@@ -4832,14 +4853,11 @@
       showScreen('title');
     });
 
-    // Game card selection (Netflix-style)
-    $('cardCheckers').addEventListener('click', () => selectGame('checkers'));
-    $('cardTrouble').addEventListener('click', () => selectGame('trouble'));
-    $('cardScrabble').addEventListener('click', () => selectGame('scrabble'));
-    $('cardCAH').addEventListener('click', () => selectGame('cah'));
-    $('cardC4').addEventListener('click', () => selectGame('c4'));
-    $('cardBattleship').addEventListener('click', () => selectGame('battleship'));
-    $('cardMancala').addEventListener('click', () => selectGame('mancala'));
+    // Game card selection (event delegation on categories container)
+    $('gameCategories').addEventListener('click', (e) => {
+      const card = e.target.closest('.game-card');
+      if (card && card.dataset.game) selectGame(card.dataset.game);
+    });
     $('btnGameDetailBack').addEventListener('click', deselectGame);
 
     // Queue cancel
@@ -4899,7 +4917,11 @@
     $('btnPlayAgain').addEventListener('click', () => {
       $('gameOverOverlay').classList.add('hidden');
       confettiActive = false;
-      showScreen('lobby');
+      if (currentScreen === 'mahjong') {
+        startMahjongGame();
+      } else {
+        showScreen('lobby');
+      }
     });
 
     $('btnBackToLobby').addEventListener('click', () => {
@@ -6236,6 +6258,417 @@
   }
 
   /* ================================================
+     MAHJONG SOLITAIRE -- CLIENT
+     ================================================ */
+  const MJ_CANVAS_W = 760;
+  const MJ_CANVAS_H = 480;
+  const MJ_TILE_W = 38;
+  const MJ_TILE_H = 50;
+  const MJ_DEPTH = 5; // 3D layer offset pixels
+
+  let mahjongCanvas, mahjongCtx;
+  let mjGameLoopActive = false;
+  let mjTiles = [];
+  let mjSelected = null;
+  let mjHoverTile = -1;
+  let mjMoves = 0;
+  let mjPairsLeft = 72;
+  let mjHintsLeft = 3;
+  let mjGameOver = false;
+  let mjHintPair = null;
+
+  // --- Turtle layout: 144 [layer, row, col] positions ---
+  // Coordinates use half-tile grid; a tile at (r,c) occupies [r, r+1) x [c, c+1)
+  const MJ_LAYOUT = (function() {
+    const pos = [];
+    // Layer 0 (base): 12 wide x 8 tall cross shape = 87 tiles
+    // Main rectangle rows 1-6, cols 1-10 (6 rows x 10 cols = 60)
+    for (let r = 1; r <= 6; r++) for (let c = 1; c <= 10; c++) pos.push([0, r, c]);
+    // Top extensions: row 0, cols 3-8 (6 tiles)
+    for (let c = 3; c <= 8; c++) pos.push([0, 0, c]);
+    // Bottom extensions: row 7, cols 3-8 (6 tiles)
+    for (let c = 3; c <= 8; c++) pos.push([0, 7, c]);
+    // Left wing: rows 3-4, col 0 (2 tiles)
+    pos.push([0, 3, 0]); pos.push([0, 4, 0]);
+    // Right wing: rows 3-4, col 11 (2 tiles)
+    pos.push([0, 3, 11]); pos.push([0, 4, 11]);
+    // Far right single: row 3.5, col 12 (1 tile)
+    pos.push([0, 3.5, 12]);
+    // That's 60 + 6 + 6 + 2 + 2 + 1 = 77
+
+    // Layer 1: rows 1.5-5.5 (5 rows), cols 2.5-8.5 (7 cols) = 35 but we need a rectangle
+    // 4 rows x 8 cols = 32
+    for (let r = 2; r <= 5; r++) for (let c = 2; c <= 9; c++) pos.push([1, r - 0.5, c - 0.5]);
+    // That's 4*8 = 32, total so far = 109
+
+    // Layer 2: 3 rows x 6 cols = 18
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) pos.push([2, 2 + r, 3 + c]);
+    // Total = 127
+
+    // Layer 3: 2 rows x 4 cols = 8
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) pos.push([3, 2.5 + r, 3.5 + c]);
+    // Total = 135
+
+    // Layer 4: 1 row x 2 cols = 2
+    pos.push([4, 3, 4]); pos.push([4, 3, 5]);
+    // Total = 137
+
+    // Need 7 more to reach 144. Add side extensions to layer 0:
+    // Extra left column: rows 2,5 col 0
+    pos.push([0, 2, 0]); pos.push([0, 5, 0]);
+    // Extra right column: rows 2,5 col 11
+    pos.push([0, 2, 11]); pos.push([0, 5, 11]);
+    // Bottom row extensions: row 7, cols 2 and 9
+    pos.push([0, 7, 2]); pos.push([0, 7, 9]);
+    // Top extension: row 0, col 2
+    pos.push([0, 0, 2]);
+    // Total = 144
+
+    return pos;
+  })();
+
+  // --- Tile set generation ---
+  function mjGenerateTileSet() {
+    const tiles = [];
+    let id = 0;
+    const suits = ['bamboo', 'circle', 'character'];
+    for (const suit of suits) {
+      for (let rank = 1; rank <= 9; rank++) {
+        for (let copy = 0; copy < 4; copy++) {
+          tiles.push({ id: id++, suit, rank, type: 'suit' });
+        }
+      }
+    }
+    const winds = ['north', 'south', 'east', 'west'];
+    for (const w of winds) {
+      for (let copy = 0; copy < 4; copy++) {
+        tiles.push({ id: id++, suit: 'wind', rank: w, type: 'honor' });
+      }
+    }
+    const dragons = ['red', 'green', 'white'];
+    for (const d of dragons) {
+      for (let copy = 0; copy < 4; copy++) {
+        tiles.push({ id: id++, suit: 'dragon', rank: d, type: 'honor' });
+      }
+    }
+    for (let i = 0; i < 4; i++) tiles.push({ id: id++, suit: 'season', rank: i, type: 'bonus' });
+    for (let i = 0; i < 4; i++) tiles.push({ id: id++, suit: 'flower', rank: i, type: 'bonus' });
+    return tiles;
+  }
+
+  // --- Shuffle and deal ---
+  function mjDealTiles() {
+    const tileSet = mjGenerateTileSet();
+    for (let i = tileSet.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tileSet[i], tileSet[j]] = [tileSet[j], tileSet[i]];
+    }
+    mjTiles = MJ_LAYOUT.map((pos, idx) => ({
+      ...tileSet[idx],
+      layer: pos[0], row: pos[1], col: pos[2],
+      matched: false
+    }));
+    mjSelected = null;
+    mjHoverTile = -1;
+    mjMoves = 0;
+    mjPairsLeft = 72;
+    mjHintsLeft = 3;
+    mjGameOver = false;
+    mjHintPair = null;
+  }
+
+  // --- Free tile detection ---
+  function mjIsFree(idx) {
+    const tile = mjTiles[idx];
+    if (tile.matched) return false;
+    // Check covered by higher layer
+    for (let i = 0; i < mjTiles.length; i++) {
+      if (i === idx || mjTiles[i].matched) continue;
+      const o = mjTiles[i];
+      if (o.layer <= tile.layer) continue;
+      if (Math.abs(o.row - tile.row) < 1 && Math.abs(o.col - tile.col) < 1) return false;
+    }
+    // Check side exposure: need at least one side (left or right) clear
+    let blockedLeft = false, blockedRight = false;
+    for (let i = 0; i < mjTiles.length; i++) {
+      if (i === idx || mjTiles[i].matched) continue;
+      const o = mjTiles[i];
+      if (o.layer !== tile.layer) continue;
+      if (Math.abs(o.row - tile.row) >= 1) continue;
+      const dc = o.col - tile.col;
+      if (dc > 0.5 && dc < 1.5) blockedRight = true;
+      if (dc < -0.5 && dc > -1.5) blockedLeft = true;
+    }
+    return !blockedLeft || !blockedRight;
+  }
+
+  // --- Matching rules ---
+  function mjTilesMatch(a, b) {
+    if (a.type === 'bonus' && b.type === 'bonus') return a.suit === b.suit;
+    return a.suit === b.suit && a.rank === b.rank;
+  }
+
+  // --- Check if any valid moves exist ---
+  function mjHasValidMoves() {
+    const free = [];
+    for (let i = 0; i < mjTiles.length; i++) {
+      if (!mjTiles[i].matched && mjIsFree(i)) free.push(i);
+    }
+    for (let a = 0; a < free.length; a++) {
+      for (let b = a + 1; b < free.length; b++) {
+        if (mjTilesMatch(mjTiles[free[a]], mjTiles[free[b]])) return true;
+      }
+    }
+    return false;
+  }
+
+  // --- Screen position helpers ---
+  function mjTileX(tile) {
+    return 20 + tile.col * (MJ_TILE_W + 1) - tile.layer * MJ_DEPTH;
+  }
+  function mjTileY(tile) {
+    return 30 + tile.row * (MJ_TILE_H + 1) - tile.layer * MJ_DEPTH;
+  }
+
+  // --- Tile symbol rendering ---
+  function mjTileLabel(tile) {
+    if (tile.suit === 'bamboo') return tile.rank + 'B';
+    if (tile.suit === 'circle') return tile.rank + 'C';
+    if (tile.suit === 'character') return tile.rank + 'W';
+    if (tile.suit === 'wind') return ({ north: 'N', south: 'S', east: 'E', west: 'W' })[tile.rank];
+    if (tile.suit === 'dragon') return ({ red: 'Dr', green: 'Dg', white: 'Dw' })[tile.rank];
+    if (tile.suit === 'season') return 'S' + (tile.rank + 1);
+    if (tile.suit === 'flower') return 'F' + (tile.rank + 1);
+    return '?';
+  }
+  function mjTileColor(tile) {
+    if (tile.suit === 'bamboo') return '#2e8b57';
+    if (tile.suit === 'circle') return '#1e90ff';
+    if (tile.suit === 'character') return '#dc143c';
+    if (tile.suit === 'wind') return '#4a4a4a';
+    if (tile.suit === 'dragon') {
+      return ({ red: '#ff2d55', green: '#34c759', white: '#8e8e93' })[tile.rank];
+    }
+    if (tile.suit === 'season') return '#ff9500';
+    if (tile.suit === 'flower') return '#af52de';
+    return '#333';
+  }
+
+  // --- Canvas setup and game loop ---
+  function setupMahjongCanvas() {
+    mahjongCanvas = $('mahjongCanvas');
+    if (!mahjongCanvas) return;
+    mahjongCanvas.width = MJ_CANVAS_W;
+    mahjongCanvas.height = MJ_CANVAS_H;
+    mahjongCtx = mahjongCanvas.getContext('2d');
+    mahjongCanvas.addEventListener('click', mjHandleClick);
+    mahjongCanvas.addEventListener('mousemove', mjHandleMouseMove);
+  }
+
+  function startMahjongGameLoop() {
+    mjGameLoopActive = true;
+    function loop() {
+      if (!mjGameLoopActive) return;
+      renderMahjong();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // --- Rendering ---
+  function renderMahjong() {
+    if (!mahjongCtx) return;
+    const ctx = mahjongCtx;
+    ctx.clearRect(0, 0, MJ_CANVAS_W, MJ_CANVAS_H);
+
+    // Background
+    ctx.fillStyle = '#1a3a2a';
+    ctx.fillRect(0, 0, MJ_CANVAS_W, MJ_CANVAS_H);
+
+    // Sort: lower layer first, then top-to-bottom, left-to-right
+    const sorted = mjTiles
+      .map((t, i) => ({ ...t, idx: i }))
+      .filter(t => !t.matched)
+      .sort((a, b) => a.layer - b.layer || a.row - b.row || a.col - b.col);
+
+    for (const tile of sorted) {
+      const x = mjTileX(tile);
+      const y = mjTileY(tile);
+      const free = mjIsFree(tile.idx);
+      const selected = mjSelected === tile.idx;
+      const hinted = mjHintPair && mjHintPair.includes(tile.idx);
+      const hover = mjHoverTile === tile.idx && free;
+
+      // 3D edge (shadow)
+      ctx.fillStyle = '#555544';
+      ctx.fillRect(x + MJ_DEPTH, y + MJ_DEPTH, MJ_TILE_W, MJ_TILE_H);
+
+      // Tile face
+      ctx.fillStyle = selected ? '#ffffcc' : hinted ? '#ccffcc' : hover ? '#f8f8f0' : (free ? '#f5f0e0' : '#c8c3b5');
+      ctx.fillRect(x, y, MJ_TILE_W, MJ_TILE_H);
+
+      // Border
+      ctx.strokeStyle = selected ? '#ff2d55' : '#8b7355';
+      ctx.lineWidth = selected ? 2 : 1;
+      ctx.strokeRect(x, y, MJ_TILE_W, MJ_TILE_H);
+
+      // Label
+      ctx.fillStyle = mjTileColor(tile);
+      ctx.font = 'bold 13px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(mjTileLabel(tile), x + MJ_TILE_W / 2, y + MJ_TILE_H / 2);
+    }
+  }
+
+  // --- Hit testing: find tile at screen coords (top layer first) ---
+  function mjHitTest(mx, my) {
+    const sorted = mjTiles
+      .map((t, i) => ({ ...t, idx: i }))
+      .filter(t => !t.matched)
+      .sort((a, b) => b.layer - a.layer || b.row - a.row);
+    for (const tile of sorted) {
+      const x = mjTileX(tile);
+      const y = mjTileY(tile);
+      if (mx >= x && mx <= x + MJ_TILE_W && my >= y && my <= y + MJ_TILE_H) {
+        return tile.idx;
+      }
+    }
+    return -1;
+  }
+
+  // --- Mouse handlers ---
+  function mjHandleMouseMove(e) {
+    if (!mahjongCanvas) return;
+    const rect = mahjongCanvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (MJ_CANVAS_W / rect.width);
+    const my = (e.clientY - rect.top) * (MJ_CANVAS_H / rect.height);
+    mjHoverTile = mjHitTest(mx, my);
+  }
+
+  function mjHandleClick(e) {
+    if (mjGameOver || !mahjongCanvas) return;
+    const rect = mahjongCanvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (MJ_CANVAS_W / rect.width);
+    const my = (e.clientY - rect.top) * (MJ_CANVAS_H / rect.height);
+
+    const clickedIdx = mjHitTest(mx, my);
+    if (clickedIdx === -1) { mjSelected = null; return; }
+    if (!mjIsFree(clickedIdx)) return;
+
+    if (mjSelected === null) {
+      mjSelected = clickedIdx;
+    } else if (mjSelected === clickedIdx) {
+      mjSelected = null;
+    } else {
+      // Attempt match
+      if (mjTilesMatch(mjTiles[mjSelected], mjTiles[clickedIdx])) {
+        mjTiles[mjSelected].matched = true;
+        mjTiles[clickedIdx].matched = true;
+        mjMoves++;
+        mjPairsLeft--;
+        mjSelected = null;
+        mjHintPair = null;
+        $('mahjongMoves').textContent = mjMoves;
+        $('mahjongPairsLeft').textContent = mjPairsLeft;
+
+        if (mjPairsLeft === 0) {
+          mjGameOver = true;
+          mjShowGameOver(true);
+        } else if (!mjHasValidMoves()) {
+          mjGameOver = true;
+          mjShowGameOver(false);
+        }
+      } else {
+        mjSelected = clickedIdx;
+      }
+    }
+  }
+
+  // --- Hint ---
+  function mjShowHint() {
+    if (mjHintsLeft <= 0 || mjGameOver) return;
+    const free = [];
+    for (let i = 0; i < mjTiles.length; i++) {
+      if (!mjTiles[i].matched && mjIsFree(i)) free.push(i);
+    }
+    for (let a = 0; a < free.length; a++) {
+      for (let b = a + 1; b < free.length; b++) {
+        if (mjTilesMatch(mjTiles[free[a]], mjTiles[free[b]])) {
+          mjHintsLeft--;
+          $('mahjongHints').textContent = mjHintsLeft;
+          mjHintPair = [free[a], free[b]];
+          setTimeout(() => { mjHintPair = null; }, 2000);
+          return;
+        }
+      }
+    }
+    const info = $('mahjongInfo');
+    if (info) info.textContent = 'No valid pairs found!';
+  }
+
+  // --- Shuffle remaining tiles ---
+  function mjShuffle() {
+    if (mjGameOver) return;
+    const remaining = mjTiles.filter(t => !t.matched);
+    const data = remaining.map(t => ({ suit: t.suit, rank: t.rank, type: t.type, id: t.id }));
+    for (let i = data.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [data[i], data[j]] = [data[j], data[i]];
+    }
+    let idx = 0;
+    for (const tile of mjTiles) {
+      if (!tile.matched) {
+        tile.suit = data[idx].suit;
+        tile.rank = data[idx].rank;
+        tile.type = data[idx].type;
+        tile.id = data[idx].id;
+        idx++;
+      }
+    }
+    mjSelected = null;
+    mjHintPair = null;
+    const info = $('mahjongInfo');
+    if (info) info.textContent = '';
+  }
+
+  // --- Game over ---
+  function mjShowGameOver(isWin) {
+    const title = $('gameOverTitle');
+    if (title) {
+      title.textContent = isWin ? 'You Win!' : 'No Moves Left';
+      title.className = isWin ? 'win' : 'lose';
+    }
+    const reason = $('gameOverReason');
+    if (reason) reason.textContent = isWin
+      ? 'Cleared all tiles in ' + mjMoves + ' moves!'
+      : 'No matching pairs remain. Try again!';
+    const rc = $('gameOverRating');
+    if (rc) rc.innerHTML = '';
+    const coinEl = $('gameOverCoins');
+    if (coinEl) coinEl.textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    if (isWin) {
+      if (typeof sfxWin === 'function') sfxWin();
+      if (typeof startConfetti === 'function') startConfetti();
+    } else {
+      if (typeof sfxLose === 'function') sfxLose();
+    }
+  }
+
+  // --- Start a new Mahjong game ---
+  function startMahjongGame() {
+    mjDealTiles();
+    $('mahjongPairsLeft').textContent = mjPairsLeft;
+    $('mahjongMoves').textContent = mjMoves;
+    $('mahjongHints').textContent = mjHintsLeft;
+    const info = $('mahjongInfo');
+    if (info) info.textContent = '';
+    $('gameOverOverlay').classList.add('hidden');
+    showScreen('mahjong');
+  }
+
+  /* ================================================
      BIND NEW GAME EVENTS & BUTTONS
      ================================================ */
   function bindNewGameEvents() {
@@ -6259,6 +6692,16 @@
     if (bsCopy) bsCopy.addEventListener('click', () => { navigator.clipboard?.writeText($('bsMatchCodeValue')?.textContent || ''); });
     const mnCopy = $('btnCopyMancalaCode');
     if (mnCopy) mnCopy.addEventListener('click', () => { navigator.clipboard?.writeText($('mancalaMatchCodeValue')?.textContent || ''); });
+
+    // Mahjong buttons
+    const mjHint = $('btnMahjongHint');
+    if (mjHint) mjHint.addEventListener('click', mjShowHint);
+    const mjShuf = $('btnMahjongShuffle');
+    if (mjShuf) mjShuf.addEventListener('click', mjShuffle);
+    const mjNew = $('btnMahjongNewGame');
+    if (mjNew) mjNew.addEventListener('click', startMahjongGame);
+    const mjQuit = $('btnMahjongQuit');
+    if (mjQuit) mjQuit.addEventListener('click', () => showScreen('lobby'));
   }
 
   // Start when DOM is ready

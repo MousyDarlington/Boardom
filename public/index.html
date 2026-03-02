@@ -88,63 +88,93 @@
 
         <!-- Netflix-style Game Selector -->
         <div class="game-selector" id="gameSelector">
-          <div class="game-card-row" id="gameCardRow">
-            <div class="game-card glass" id="cardCheckers" data-game="checkers">
-              <div class="game-card-icon">&#9823;</div>
-              <div class="game-card-info">
-                <h3 class="game-card-title">Checkers</h3>
-                <p class="game-card-desc">Classic strategy board game</p>
+          <div class="game-categories" id="gameCategories">
+
+            <!-- Single Player -->
+            <div class="game-category">
+              <h3 class="game-category-heading">Single Player</h3>
+              <div class="game-card-row">
+                <div class="game-card glass" id="cardMahjong" data-game="mahjong">
+                  <div class="game-card-icon">&#126980;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Mahjong</h3>
+                    <p class="game-card-desc">Classic tile-matching solitaire</p>
+                  </div>
+                  <div class="game-card-badge">1 mode</div>
+                </div>
               </div>
-              <div class="game-card-badge">5 modes</div>
             </div>
-            <div class="game-card glass" id="cardTrouble" data-game="trouble">
-              <div class="game-card-icon">&#127922;</div>
-              <div class="game-card-info">
-                <h3 class="game-card-title">Trouble</h3>
-                <p class="game-card-desc">Roll &amp; race to the finish!</p>
+
+            <!-- 2 Player -->
+            <div class="game-category">
+              <h3 class="game-category-heading">2 Player</h3>
+              <div class="game-card-row">
+                <div class="game-card glass" id="cardCheckers" data-game="checkers">
+                  <div class="game-card-icon">&#9823;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Checkers</h3>
+                    <p class="game-card-desc">Classic strategy board game</p>
+                  </div>
+                  <div class="game-card-badge">5 modes</div>
+                </div>
+                <div class="game-card glass" id="cardC4" data-game="c4">
+                  <div class="game-card-icon">&#128308;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Connect Four</h3>
+                    <p class="game-card-desc">Drop discs &amp; connect 4!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" id="cardBattleship" data-game="battleship">
+                  <div class="game-card-icon">&#9875;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Battleship</h3>
+                    <p class="game-card-desc">Sink the enemy fleet!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" id="cardMancala" data-game="mancala">
+                  <div class="game-card-icon">&#127793;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Mancala</h3>
+                    <p class="game-card-desc">Ancient stone strategy</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
               </div>
-              <div class="game-card-badge">4 modes</div>
             </div>
-            <div class="game-card glass" id="cardScrabble" data-game="scrabble">
-              <div class="game-card-icon">&#128289;</div>
-              <div class="game-card-info">
-                <h3 class="game-card-title">Scrabble</h3>
-                <p class="game-card-desc">Build words &amp; score big!</p>
+
+            <!-- Party (3+ Players) -->
+            <div class="game-category">
+              <h3 class="game-category-heading">Party</h3>
+              <div class="game-card-row">
+                <div class="game-card glass" id="cardTrouble" data-game="trouble">
+                  <div class="game-card-icon">&#127922;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Trouble</h3>
+                    <p class="game-card-desc">Roll &amp; race to the finish!</p>
+                  </div>
+                  <div class="game-card-badge">4 modes</div>
+                </div>
+                <div class="game-card glass" id="cardScrabble" data-game="scrabble">
+                  <div class="game-card-icon">&#128289;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Scrabble</h3>
+                    <p class="game-card-desc">Build words &amp; score big!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" id="cardCAH" data-game="cah">
+                  <div class="game-card-icon">&#127183;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Cards Against Humanity</h3>
+                    <p class="game-card-desc">The party game for horrible people</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
               </div>
-              <div class="game-card-badge">3 modes</div>
             </div>
-            <div class="game-card glass" id="cardCAH" data-game="cah">
-              <div class="game-card-icon">&#127183;</div>
-              <div class="game-card-info">
-                <h3 class="game-card-title">Cards Against Humanity</h3>
-                <p class="game-card-desc">The party game for horrible people</p>
-              </div>
-              <div class="game-card-badge">3 modes</div>
-            </div>
-            <div class="game-card glass" id="cardC4" data-game="c4">
-              <div class="game-card-icon">&#128308;</div>
-              <div class="game-card-info">
-                <h3 class="game-card-title">Connect Four</h3>
-                <p class="game-card-desc">Drop discs & connect 4!</p>
-              </div>
-              <div class="game-card-badge">3 modes</div>
-            </div>
-            <div class="game-card glass" id="cardBattleship" data-game="battleship">
-              <div class="game-card-icon">&#9875;</div>
-              <div class="game-card-info">
-                <h3 class="game-card-title">Battleship</h3>
-                <p class="game-card-desc">Sink the enemy fleet!</p>
-              </div>
-              <div class="game-card-badge">3 modes</div>
-            </div>
-            <div class="game-card glass" id="cardMancala" data-game="mancala">
-              <div class="game-card-icon">&#127793;</div>
-              <div class="game-card-info">
-                <h3 class="game-card-title">Mancala</h3>
-                <p class="game-card-desc">Ancient stone strategy</p>
-              </div>
-              <div class="game-card-badge">3 modes</div>
-            </div>
+
           </div>
 
           <div class="game-detail" id="gameDetail">
@@ -591,6 +621,36 @@
             <button class="btn-copy-code" id="btnCopyMancalaCode" title="Copy code">&#x1F4CB;</button>
           </div>
           <button class="btn btn-small btn-ghost" id="btnMancalaResign">Resign</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MAHJONG GAME SCREEN ===== -->
+  <div id="mahjongGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="mahjong-hud" id="mahjongHud">
+          <div class="mahjong-stat glass">
+            <span class="hud-name">Pairs Left</span>
+            <span class="mahjong-stat-value" id="mahjongPairsLeft">72</span>
+          </div>
+          <div class="mahjong-stat glass">
+            <span class="hud-name">Moves</span>
+            <span class="mahjong-stat-value" id="mahjongMoves">0</span>
+          </div>
+          <div class="mahjong-stat glass">
+            <span class="hud-name">Hints</span>
+            <span class="mahjong-stat-value" id="mahjongHints">3</span>
+          </div>
+        </div>
+        <canvas id="mahjongCanvas"></canvas>
+        <div class="mahjong-info" id="mahjongInfo"></div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnMahjongHint">Hint</button>
+          <button class="btn btn-small btn-ghost" id="btnMahjongShuffle">Shuffle</button>
+          <button class="btn btn-small btn-ghost" id="btnMahjongNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnMahjongQuit">Quit</button>
         </div>
       </div>
     </div>

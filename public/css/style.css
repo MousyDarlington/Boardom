@@ -398,6 +398,36 @@ input:focus {
   width: 100%;
 }
 
+/* --- Game Categories Container --- */
+.game-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+  max-height: 2000px;
+  overflow: visible;
+}
+
+.game-categories.collapsed {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
+.game-category-heading {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--red);
+}
+
 /* --- Game Card Row --- */
 .game-card-row {
   display: grid;
@@ -2915,13 +2945,50 @@ input:focus {
   padding: 0.3rem;
 }
 
+/* ================================================
+   MAHJONG SOLITAIRE
+   ================================================ */
+.mahjong-hud {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
+}
+.mahjong-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  gap: 0.2rem;
+}
+.mahjong-stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+#mahjongCanvas {
+  display: block;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  max-width: 100%;
+  cursor: pointer;
+}
+.mahjong-info {
+  font-size: 0.85rem;
+  color: var(--gold);
+  min-height: 1.2em;
+  text-align: center;
+  padding: 0.3rem;
+}
+
 /* ---- Responsive for new games ---- */
 @media (max-width: 700px) {
   .bs-grids {
     flex-direction: column;
     align-items: center;
   }
-  .c4-hud, .mancala-hud, .bs-hud {
+  .c4-hud, .mancala-hud, .bs-hud, .mahjong-hud {
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.5rem;
