@@ -1408,6 +1408,20 @@ function handlePlayerRejoined({ oldSocketId, username, newSocketId }) {
       if (currentBot && !currentBot.destroyed) currentBot._scheduleTurn();
     }
     if (gameType === 'cah') ensureCAHBotAction();
+    if (gameType === 'c4') {
+      const playerConst = game.currentTurn;
+      const botIdx = playerConst - 1;
+      const currentBot = bots.find(b => b.playerIndex === botIdx);
+      if (currentBot && !currentBot.destroyed) currentBot._scheduleMove();
+    }
+    if (gameType === 'battleship') {
+      const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
+      if (currentBot && !currentBot.destroyed && game.phase === 'playing') currentBot._scheduleShot();
+    }
+    if (gameType === 'mancala') {
+      const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
+      if (currentBot && !currentBot.destroyed) currentBot._scheduleMove();
+    }
   }
 
   // Send rejoin state
