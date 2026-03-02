@@ -1001,6 +1001,262 @@ function postCAHGameOver(winnerIdx) {
 }
 
 /* ================================================
+   CONNECT FOUR ACTIONS
+   ================================================ */
+function handleC4Move({ socketId, col }) {
+  if (gameType !== 'c4') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const playerConst = idx === 0 ? ConnectFourGame.PLAYER1 : ConnectFourGame.PLAYER2;
+  if (playerConst !== game.currentTurn) {
+    postEmit(socketId, 'c4:error', { message: 'Not your turn' });
+    return;
+  }
+
+  const result = game.makeMove(col);
+  if (!result.valid) {
+    postEmit(socketId, 'c4:error', { message: 'Invalid move' });
+    return;
+  }
+
+  const updateData = {
+    player: idx,
+    row: result.row,
+    col: result.col,
+    board: result.board,
+    currentTurn: result.currentTurn === ConnectFourGame.PLAYER1 ? 0 : 1,
+    gameOver: result.gameOver
+  };
+
+  broadcastToPlayers('c4:update', updateData);
+
+  if (result.gameOver.over) {
+    postC4GameOver(result.gameOver);
+  }
+}
+
+function postC4GameOver(goResult) {
+  let winnerIdx = null;
+  if (goResult.winner === ConnectFourGame.PLAYER1) winnerIdx = 0;
+  else if (goResult.winner === ConnectFourGame.PLAYER2) winnerIdx = 1;
+
+  const overData = {
+    winner: winnerIdx,
+    winnerUsername: winnerIdx !== null ? players[winnerIdx]?.username : null,
+    reason: goResult.reason,
+    winLine: goResult.winLine
+  };
+
+  for (const p of players) {
+    if (p.isBot) {
+      const bot = bots.find(b => b.socket.id === p.id);
+      if (bot) bot.socket.emit('c4:over', overData);
+    }
+  }
+
+  const humanTargets = players.filter(p => !p.isBot)
+    .map(p => ({ socketId: p.id, event: 'c4:over', data: overData }));
+
+  parentPort.postMessage({
+    type: 'gameOver',
+    payload: {
+      gameId, gameType: 'c4',
+      winnerIdx,
+      reason: goResult.reason,
+      playerUsernames: players.map(p => p.username),
+      overTargets: humanTargets
+    }
+  });
+}
+
+/* ================================================
+   BATTLESHIP ACTIONS
+   ================================================ */
+function handleBSPlaceShip({ socketId, shipName, row, col, horizontal }) {
+  if (gameType !== 'battleship') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+
+  const result = game.placeShip(idx, shipName, row, col, horizontal);
+  if (!result.valid) {
+    postEmit(socketId, 'bs:error', { message: result.error });
+    return;
+  }
+
+  const state = game.getStateForPlayer(idx);
+  postEmit(socketId, 'bs:placed', state);
+}
+
+function handleBSAutoPlace({ socketId }) {
+  if (gameType !== 'battleship') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+
+  const result = game.autoPlace(idx);
+  if (!result.valid) {
+    postEmit(socketId, 'bs:error', { message: result.error });
+    return;
+  }
+
+  const state = game.getStateForPlayer(idx);
+  postEmit(socketId, 'bs:placed', state);
+}
+
+function handleBSSetReady({ socketId }) {
+  if (gameType !== 'battleship') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+
+  const result = game.setReady(idx);
+  if (!result.valid) {
+    postEmit(socketId, 'bs:error', { message: result.error });
+    return;
+  }
+
+  if (result.bothReady) {
+    // Game is now in playing phase, send updated state to both
+    broadcastPerPlayer((i) => {
+      const state = game.getStateForPlayer(i);
+      return { event: 'bs:ready', data: { ...state, bothReady: true } };
+    });
+  } else {
+    postEmit(socketId, 'bs:ready', { ...game.getStateForPlayer(idx), bothReady: false });
+  }
+}
+
+function handleBSFireShot({ socketId, row, col }) {
+  if (gameType !== 'battleship') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+
+  const result = game.fireShot(idx, row, col);
+  if (!result.valid) {
+    postEmit(socketId, 'bs:error', { message: result.error });
+    return;
+  }
+
+  // Send update to both players with their own perspective
+  broadcastPerPlayer((i) => {
+    const state = game.getStateForPlayer(i);
+    return {
+      event: 'bs:update',
+      data: {
+        ...state,
+        shooter: idx,
+        row: result.row,
+        col: result.col,
+        hit: result.hit,
+        sunk: result.sunk,
+        shipName: result.shipName
+      }
+    };
+  });
+
+  if (result.gameOver.over) {
+    postBSGameOver(result.gameOver);
+  }
+}
+
+function postBSGameOver(goResult) {
+  const overData = {
+    winner: goResult.winner,
+    winnerUsername: players[goResult.winner]?.username,
+    reason: goResult.reason
+  };
+
+  for (const p of players) {
+    if (p.isBot) {
+      const bot = bots.find(b => b.socket.id === p.id);
+      if (bot) bot.socket.emit('bs:over', overData);
+    }
+  }
+
+  const humanTargets = players.filter(p => !p.isBot)
+    .map(p => ({ socketId: p.id, event: 'bs:over', data: overData }));
+
+  parentPort.postMessage({
+    type: 'gameOver',
+    payload: {
+      gameId, gameType: 'battleship',
+      winner: goResult.winner,
+      reason: goResult.reason,
+      playerUsernames: players.map(p => p.username),
+      overTargets: humanTargets
+    }
+  });
+}
+
+/* ================================================
+   MANCALA ACTIONS
+   ================================================ */
+function handleMancalaMove({ socketId, pitIdx }) {
+  if (gameType !== 'mancala') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  if (idx !== game.currentTurn) {
+    postEmit(socketId, 'mancala:error', { message: 'Not your turn' });
+    return;
+  }
+
+  const result = game.makeMove(pitIdx);
+  if (!result.valid) {
+    postEmit(socketId, 'mancala:error', { message: result.reason });
+    return;
+  }
+
+  const updateData = {
+    player: idx,
+    pitIdx: result.pitIdx,
+    stoneCount: result.stoneCount,
+    endIdx: result.endIdx,
+    extraTurn: result.extraTurn,
+    captured: result.captured,
+    capturedFrom: result.capturedFrom,
+    pits: result.state.pits,
+    currentTurn: result.state.currentTurn,
+    scores: result.scores,
+    gameOver: result.gameOver
+  };
+
+  broadcastToPlayers('mancala:update', updateData);
+
+  if (result.gameOver.over) {
+    postMancalaGameOver(result.gameOver);
+  }
+}
+
+function postMancalaGameOver(goResult) {
+  const overData = {
+    winner: goResult.winner,
+    winnerUsername: typeof goResult.winner === 'number' ? players[goResult.winner]?.username : null,
+    reason: goResult.reason,
+    scores: goResult.scores
+  };
+
+  for (const p of players) {
+    if (p.isBot) {
+      const bot = bots.find(b => b.socket.id === p.id);
+      if (bot) bot.socket.emit('mancala:over', overData);
+    }
+  }
+
+  const humanTargets = players.filter(p => !p.isBot)
+    .map(p => ({ socketId: p.id, event: 'mancala:over', data: overData }));
+
+  parentPort.postMessage({
+    type: 'gameOver',
+    payload: {
+      gameId, gameType: 'mancala',
+      winner: goResult.winner,
+      scores: goResult.scores,
+      reason: goResult.reason,
+      playerUsernames: players.map(p => p.username),
+      overTargets: humanTargets
+    }
+  });
+}
+
+/* ================================================
    RESIGN
    ================================================ */
 function handleResign({ socketId }) {
