@@ -1164,57 +1164,136 @@ input:focus {
 
 /* ---------- Trouble Game ---------- */
 
-/* Trouble HUD — horizontal bar with player slots */
-.trouble-hud {
+/* Trouble HUD — player cards row */
+.trouble-players-hud {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
-.trouble-hud-player {
+.trouble-player-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--glass);
+  border: 2px solid var(--glass-border);
+  font-size: 0.82rem;
+  transition: all 0.3s ease;
+  opacity: 0.55;
+  min-width: 110px;
+}
+
+.trouble-player-card.active {
+  opacity: 1;
+  border-color: var(--pc, var(--gold));
+  box-shadow: 0 0 16px rgba(255,215,0,0.2), 0 0 6px var(--pc, transparent);
+}
+
+.trouble-player-card.is-you {
+  border-color: var(--gold);
+  opacity: 0.85;
+}
+
+.trouble-player-card.is-you.active {
+  opacity: 1;
+  box-shadow: 0 0 18px rgba(255,215,0,0.35);
+}
+
+.trouble-card-top {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  font-size: 0.85rem;
-  transition: all 0.3s ease;
-  opacity: 0.6;
 }
 
-.trouble-hud-player.active {
-  opacity: 1;
-  border-color: var(--pc, var(--gold));
-  box-shadow: 0 0 12px rgba(255,215,0,0.25);
-}
-
-.trouble-hud-player.me {
-  border-color: var(--gold);
-}
-
-.trouble-hud-dot {
-  width: 12px;
-  height: 12px;
+.trouble-card-dot {
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 0 6px var(--pc, transparent);
 }
 
-.trouble-hud-name {
+.trouble-card-name {
   font-weight: 600;
-  max-width: 80px;
+  max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.trouble-hud-score {
+.trouble-you-tag {
   color: var(--gold);
   font-weight: 700;
-  margin-left: 4px;
+  font-size: 0.75rem;
+}
+
+.trouble-bot-tag {
+  color: rgba(255,255,255,0.4);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: rgba(255,255,255,0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.trouble-token-pips {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.trouble-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  transition: all 0.3s ease;
+}
+
+.trouble-pip.pip-home {
+  background: rgba(255,255,255,0.1);
+}
+
+.trouble-pip.pip-active {
+  background: var(--pip-color, #fff);
+  box-shadow: 0 0 4px var(--pip-color, #fff);
+}
+
+.trouble-pip.pip-done {
+  background: var(--gold);
+  box-shadow: 0 0 6px var(--gold);
+  border-color: var(--gold);
+}
+
+.trouble-phase-label {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.6);
+  font-style: italic;
+}
+
+/* Turn banner */
+.trouble-turn-banner {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  min-height: 1.4em;
+  transition: color 0.3s ease;
+}
+
+.trouble-turn-banner.your-turn {
+  animation: troubleBannerPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes troubleBannerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 /* Trouble dice button */

@@ -1239,6 +1239,12 @@
     socket.on('trouble:rollResult', onTroubleRollResult);
     socket.on('trouble:update', onTroubleUpdate);
     socket.on('trouble:over', onTroubleOver);
+    socket.on('trouble:playerReplaced', (data) => {
+      if (troubleState && troubleState.players) {
+        troubleState.players[data.playerIdx] = { username: data.newUsername };
+        updateTroubleHUD();
+      }
+    });
 
     // Scrabble events
     socket.on('scrabble:start', onScrabbleStart);
@@ -2120,49 +2126,70 @@
   const TROUBLE_FINISH_BASE = 100;
   const TROUBLE_FINISH_SLOTS = 4;
   const TROUBLE_ENTRY = [0, 7, 14, 21];
+  const CENTER = TROUBLE_CANVAS_PX / 2;
 
-  // 28 track positions forming a square loop on the 640x640 canvas
-  // Top side: positions 0-6 (left to right), Right side: 7-13 (top to bottom)
-  // Bottom side: 14-20 (right to left), Left side: 21-27 (bottom to top)
+  // 28 track positions on a circular path — no corner overlap
+  const TRACK_RADIUS = 215;
   const TROUBLE_TRACK = (() => {
     const pts = [];
-    const margin = 90, end = TROUBLE_CANVAS_PX - margin;
-    const perSide = 7;
-    // Top edge (left to right): positions 0-6
-    for (let i = 0; i < perSide; i++) pts.push({ x: margin + i * ((end - margin) / (perSide - 1)), y: margin });
-    // Right edge (top to bottom): positions 7-13
-    for (let i = 0; i < perSide; i++) pts.push({ x: end, y: margin + i * ((end - margin) / (perSide - 1)) });
-    // Bottom edge (right to left): positions 14-20
-    for (let i = 0; i < perSide; i++) pts.push({ x: end - i * ((end - margin) / (perSide - 1)), y: end });
-    // Left edge (bottom to top): positions 21-27
-    for (let i = 0; i < perSide; i++) pts.push({ x: margin, y: end - i * ((end - margin) / (perSide - 1)) });
+    for (let i = 0; i < 28; i++) {
+      const angle = (i / 28) * Math.PI * 2 - Math.PI / 2; // top = 0, clockwise
+      pts.push({
+        x: CENTER + Math.cos(angle) * TRACK_RADIUS,
+        y: CENTER + Math.sin(angle) * TRACK_RADIUS
+      });
+    }
     return pts;
   })();
 
-  // Home positions — 4 clusters in corners (2x2 grid per player)
-  const TROUBLE_HOMES = [
-    // Player 0 (Red): top-left corner
-    [{ x: 135, y: 165 }, { x: 175, y: 165 }, { x: 135, y: 205 }, { x: 175, y: 205 }],
-    // Player 1 (Blue): top-right corner
-    [{ x: 465, y: 165 }, { x: 505, y: 165 }, { x: 465, y: 205 }, { x: 505, y: 205 }],
-    // Player 2 (Green): bottom-right corner
-    [{ x: 465, y: 435 }, { x: 505, y: 435 }, { x: 465, y: 475 }, { x: 505, y: 475 }],
-    // Player 3 (Yellow): bottom-left corner
-    [{ x: 135, y: 435 }, { x: 175, y: 435 }, { x: 135, y: 475 }, { x: 175, y: 475 }]
-  ];
+  // Home positions — 4 clusters outside the track circle, in diagonal quadrants
+  const HOME_DIST = 275; // distance from center for home clusters
+  const TROUBLE_HOMES = (() => {
+    const homes = [];
+    const diags = [
+      { dx:  1, dy: -1 }, // P0 Red: upper-right
+      { dx:  1, dy:  1 }, // P1 Blue: lower-right
+      { dx: -1, dy:  1 }, // P2 Green: lower-left
+      { dx: -1, dy: -1 }  // P3 Yellow: upper-left
+    ];
+    const sp = 15; // half-spacing between tokens in a 2x2 grid
+    for (const d of diags) {
+      const cx = CENTER + d.dx * HOME_DIST * 0.707;
+      const cy = CENTER + d.dy * HOME_DIST * 0.707;
+      homes.push([
+        { x: cx - sp, y: cy - sp },
+        { x: cx + sp, y: cy - sp },
+        { x: cx - sp, y: cy + sp },
+        { x: cx + sp, y: cy + sp }
+      ]);
+    }
+    return homes;
+  })();
 
-  // Finish lane positions — 4 lanes from edge midpoints toward center
-  const CENTER = TROUBLE_CANVAS_PX / 2;
-  const TROUBLE_FINISH = [
-    // Player 0: from top midpoint downward
-    [{ x: CENTER, y: 155 }, { x: CENTER, y: 205 }, { x: CENTER, y: 255 }, { x: CENTER, y: 295 }],
-    // Player 1: from right midpoint leftward
-    [{ x: 485, y: CENTER }, { x: 435, y: CENTER }, { x: 385, y: CENTER }, { x: 345, y: CENTER }],
-    // Player 2: from bottom midpoint upward
-    [{ x: CENTER, y: 485 }, { x: CENTER, y: 435 }, { x: CENTER, y: 385 }, { x: CENTER, y: 345 }],
-    // Player 3: from left midpoint rightward
-    [{ x: 155, y: CENTER }, { x: 205, y: CENTER }, { x: 255, y: CENTER }, { x: 295, y: CENTER }]
-  ];
+  // Finish lanes — 4 slots per player, going from just inside entry toward center
+  const TROUBLE_FINISH = (() => {
+    const lanes = [];
+    // Direction from entry point toward center
+    const dirs = [
+      { dx: 0, dy: 1 },   // P0: top entry, lane goes down
+      { dx: -1, dy: 0 },  // P1: right entry, lane goes left
+      { dx: 0, dy: -1 },  // P2: bottom entry, lane goes up
+      { dx: 1, dy: 0 }    // P3: left entry, lane goes right
+    ];
+    for (let p = 0; p < 4; p++) {
+      const entry = TROUBLE_TRACK[TROUBLE_ENTRY[p]];
+      const d = dirs[p];
+      const lane = [];
+      for (let s = 0; s < 4; s++) {
+        lane.push({
+          x: entry.x + d.dx * (35 + s * 35),
+          y: entry.y + d.dy * (35 + s * 35)
+        });
+      }
+      lanes.push(lane);
+    }
+    return lanes;
+  })();
 
   // Player colors for Trouble (fixed per seat, piece theme used for animation effects)
   const TROUBLE_PLAYER_COLORS = [
@@ -2279,23 +2306,30 @@
     c.fillStyle = theme.light;
     c.fillRect(0, 0, TROUBLE_CANVAS_PX, TROUBLE_CANVAS_PX);
 
-    // Inner board area
+    // Circular board area
+    c.save();
+    c.beginPath();
+    c.arc(CENTER, CENTER, TRACK_RADIUS + 50, 0, Math.PI * 2);
     c.fillStyle = theme.dark;
-    c.fillRect(60, 60, TROUBLE_CANVAS_PX - 120, TROUBLE_CANVAS_PX - 120);
+    c.fill();
+    c.restore();
 
-    // Animated board overlays (reuse patterns from checkers)
+    // Animated board overlays
     if (theme.anim) {
+      c.save();
+      c.beginPath();
+      c.arc(CENTER, CENTER, TRACK_RADIUS + 50, 0, Math.PI * 2);
+      c.clip();
       if (theme.anim === 'lava') {
-        c.save(); c.globalAlpha = 0.15;
+        c.globalAlpha = 0.15;
         c.strokeStyle = theme.glow; c.lineWidth = 2;
         c.beginPath();
         for (let x = 60; x < TROUBLE_CANVAS_PX - 60; x += 4) {
           const y = CENTER + Math.sin(x / 60 + t / 600) * 80 + Math.sin(x / 30 + t / 400) * 30;
           x === 60 ? c.moveTo(x, y) : c.lineTo(x, y);
         }
-        c.stroke(); c.restore();
+        c.stroke();
       } else if (theme.anim === 'aurora') {
-        c.save();
         for (let band = 0; band < 3; band++) {
           const yOff = TROUBLE_CANVAS_PX * (0.2 + band * 0.3) + Math.sin(t / 1200 + band * 2) * 50;
           const grad = c.createLinearGradient(0, yOff - 60, 0, yOff + 60);
@@ -2307,23 +2341,20 @@
           grad.addColorStop(0.7, `hsla(${hue1},80%,50%,0.08)`);
           grad.addColorStop(1, 'transparent');
           c.fillStyle = grad;
-          c.fillRect(60, 60, TROUBLE_CANVAS_PX - 120, TROUBLE_CANVAS_PX - 120);
+          c.fillRect(0, 0, TROUBLE_CANVAS_PX, TROUBLE_CANVAS_PX);
         }
-        c.restore();
       } else if (theme.anim === 'matrix') {
-        c.save(); c.font = '10px monospace';
+        c.font = '10px monospace';
         for (let i = 0; i < 12; i++) {
           const x = 80 + (i / 12) * (TROUBLE_CANVAS_PX - 160);
           const speed = 40 + (i * 7) % 30;
           const yBase = ((t / speed) + i * 47) % (TROUBLE_CANVAS_PX + 200) - 100;
           for (let j = 0; j < 6; j++) {
             const y = yBase + j * 14;
-            if (y < 60 || y > TROUBLE_CANVAS_PX - 60) continue;
             c.fillStyle = `rgba(0,255,65,${Math.max(0, 0.25 - j * 0.04)})`;
             c.fillText(String.fromCharCode(0x30A0 + Math.floor(((t / 200 + i + j * 3) % 96))), x, y);
           }
         }
-        c.restore();
       } else if (theme.anim === 'pulse') {
         for (let i = 0; i < 3; i++) {
           const dist = (t / 500 + i * 2) % 5 * 80;
@@ -2334,36 +2365,45 @@
           c.beginPath(); c.arc(CENTER, CENTER, dist, 0, Math.PI * 2); c.stroke();
         }
       }
+      c.restore();
     }
 
-    // Border
+    // Circular border
     c.strokeStyle = 'rgba(255,255,255,0.1)';
     c.lineWidth = 2;
-    c.strokeRect(60, 60, TROUBLE_CANVAS_PX - 120, TROUBLE_CANVAS_PX - 120);
+    c.beginPath();
+    c.arc(CENTER, CENTER, TRACK_RADIUS + 50, 0, Math.PI * 2);
+    c.stroke();
   }
 
   function drawTroubleTrack() {
     const c = troubleCtx;
     const theme = BOARD_THEMES[activeCosmetics.board] || BOARD_THEMES['default'];
-    const t = performance.now();
 
+    // Draw circular path ring connecting all positions
+    c.beginPath();
+    c.arc(CENTER, CENTER, TRACK_RADIUS, 0, Math.PI * 2);
+    c.strokeStyle = 'rgba(255,255,255,0.06)';
+    c.lineWidth = 36;
+    c.stroke();
+
+    // Draw position circles
     for (let i = 0; i < TROUBLE_TRACK.length; i++) {
       const pt = TROUBLE_TRACK[i];
-      // Highlight entry points
       const isEntry = TROUBLE_ENTRY.includes(i);
       const entryPlayer = isEntry ? TROUBLE_ENTRY.indexOf(i) : -1;
 
       c.beginPath();
-      c.arc(pt.x, pt.y, 18, 0, Math.PI * 2);
+      c.arc(pt.x, pt.y, isEntry ? 20 : 16, 0, Math.PI * 2);
       if (isEntry && entryPlayer < troubleState.playerCount) {
         const pc = TROUBLE_PLAYER_COLORS[entryPlayer];
         c.fillStyle = pc.dark;
         c.fill();
         c.strokeStyle = pc.mid;
-        c.lineWidth = 2;
+        c.lineWidth = 2.5;
         c.stroke();
       } else {
-        const grad = c.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 18);
+        const grad = c.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 16);
         grad.addColorStop(0, theme.dark2 || theme.dark);
         grad.addColorStop(1, theme.dark);
         c.fillStyle = grad;
@@ -2439,6 +2479,17 @@
     const pTheme = PIECE_THEMES[activeCosmetics.pieces] || PIECE_THEMES['default'];
     const t = performance.now();
 
+    // Build occupancy map for track positions to offset overlapping tokens
+    const trackOccupants = new Map(); // pos -> [{player, tokenIdx}]
+    for (let p = 0; p < troubleState.playerCount; p++) {
+      for (let ti = 0; ti < 4; ti++) {
+        const pos = troubleState.tokens[p][ti];
+        if (pos === TROUBLE_HOME || pos >= TROUBLE_FINISH_BASE) continue;
+        if (!trackOccupants.has(pos)) trackOccupants.set(pos, []);
+        trackOccupants.get(pos).push({ player: p, tokenIdx: ti });
+      }
+    }
+
     for (let p = 0; p < troubleState.playerCount; p++) {
       const pc = TROUBLE_PLAYER_COLORS[p];
       for (let ti = 0; ti < 4; ti++) {
@@ -2453,6 +2504,22 @@
           if (!pt) continue;
         }
 
+        // Offset tokens sharing the same track position
+        let ox = 0, oy = 0;
+        if (pos !== TROUBLE_HOME && pos < TROUBLE_FINISH_BASE) {
+          const occ = trackOccupants.get(pos);
+          if (occ && occ.length > 1) {
+            const idx = occ.findIndex(o => o.player === p && o.tokenIdx === ti);
+            const offsets = [[-8, -8], [8, -8], [-8, 8], [8, 8]];
+            if (idx >= 0 && idx < offsets.length) {
+              ox = offsets[idx][0];
+              oy = offsets[idx][1];
+            }
+          }
+        }
+        const px = pt.x + ox;
+        const py = pt.y + oy;
+
         const radius = pos === TROUBLE_HOME ? 10 : 14;
         const isMyToken = troubleIsLocal ? (p === troubleState.currentTurn) : (p === troublePlayerIndex);
         const isMovable = isMyToken && troubleState.phase === 'move' &&
@@ -2462,7 +2529,7 @@
         if (isMovable) {
           const pulse = 1 + Math.sin(t / 300) * 0.15;
           c.beginPath();
-          c.arc(pt.x, pt.y, (radius + 6) * pulse, 0, Math.PI * 2);
+          c.arc(px, py, (radius + 6) * pulse, 0, Math.PI * 2);
           c.fillStyle = 'rgba(255,215,0,0.25)';
           c.fill();
           c.strokeStyle = 'rgba(255,215,0,0.6)';
@@ -2472,23 +2539,23 @@
 
         // Shadow
         c.beginPath();
-        c.arc(pt.x + 1, pt.y + 2, radius, 0, Math.PI * 2);
+        c.arc(px + 1, py + 2, radius, 0, Math.PI * 2);
         c.fillStyle = 'rgba(0,0,0,0.3)';
         c.fill();
 
         // Outer ring
         c.beginPath();
-        c.arc(pt.x, pt.y + 1, radius, 0, Math.PI * 2);
+        c.arc(px, py + 1, radius, 0, Math.PI * 2);
         c.fillStyle = pc.outer;
         c.fill();
 
         // Main body gradient
-        const g = c.createRadialGradient(pt.x - radius * 0.3, pt.y - radius * 0.3, radius * 0.05, pt.x, pt.y, radius);
+        const g = c.createRadialGradient(px - radius * 0.3, py - radius * 0.3, radius * 0.05, px, py, radius);
         g.addColorStop(0, pc.highlight);
         g.addColorStop(0.6, pc.mid);
         g.addColorStop(1, pc.dark);
         c.beginPath();
-        c.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+        c.arc(px, py, radius, 0, Math.PI * 2);
         c.fillStyle = g;
         c.fill();
         c.strokeStyle = pc.stroke;
@@ -2497,14 +2564,14 @@
 
         // Inner ring
         c.beginPath();
-        c.arc(pt.x, pt.y, radius * 0.6, 0, Math.PI * 2);
+        c.arc(px, py, radius * 0.6, 0, Math.PI * 2);
         c.strokeStyle = 'rgba(255,255,255,0.15)';
         c.lineWidth = 1;
         c.stroke();
 
         // Piece theme animation effects
         if (pTheme.anim) {
-          drawTroubleTokenAnim(pTheme.anim, pt.x, pt.y, radius, pc, p);
+          drawTroubleTokenAnim(pTheme.anim, px, py, radius, pc, p);
         }
       }
     }
@@ -2611,17 +2678,57 @@
     let html = '';
     for (let p = 0; p < troubleState.playerCount; p++) {
       const pc = TROUBLE_PLAYER_COLORS[p];
-      const name = troubleState.players?.[p]?.username || TROUBLE_COLOR_NAMES[p];
-      const finished = troubleState.finished[p];
+      const rawName = troubleState.players?.[p]?.username || TROUBLE_COLOR_NAMES[p];
+      const isBot = rawName.startsWith('trouble_bot_');
+      const displayName = isBot ? `Bot ${TROUBLE_COLOR_NAMES[p]}` : rawName;
       const isActive = troubleState.currentTurn === p;
-      const isMe = troubleIsLocal ? false : (p === troublePlayerIndex);
-      html += `<div class="trouble-hud-player${isActive ? ' active' : ''}${isMe ? ' me' : ''}" style="--pc:${pc.mid}">
-        <div class="trouble-hud-dot" style="background:${pc.mid}"></div>
-        <span class="trouble-hud-name">${escapeHtml(name)}</span>
-        <span class="trouble-hud-score">${finished}/4</span>
+      const isMe = !troubleIsLocal && p === troublePlayerIndex;
+
+      // Build token pips: home=dim, on-board=colored, finished=gold
+      let pips = '';
+      for (let ti = 0; ti < 4; ti++) {
+        const tpos = troubleState.tokens[p][ti];
+        let pipClass = 'pip-home';
+        if (tpos >= TROUBLE_FINISH_BASE + TROUBLE_FINISH_SLOTS) {
+          pipClass = 'pip-done';
+        } else if (tpos !== TROUBLE_HOME) {
+          pipClass = 'pip-active';
+        }
+        pips += `<span class="trouble-pip ${pipClass}" style="--pip-color:${pc.mid}"></span>`;
+      }
+
+      // Phase label for active player
+      let phaseLabel = '';
+      if (isActive && !troubleState.gameOver) {
+        phaseLabel = troubleState.phase === 'roll' ? 'Rolling...' : 'Moving...';
+      }
+
+      html += `<div class="trouble-player-card${isActive ? ' active' : ''}${isMe ? ' is-you' : ''}" style="--pc:${pc.mid}">
+        <div class="trouble-card-top">
+          <div class="trouble-card-dot" style="background:${pc.mid}"></div>
+          <span class="trouble-card-name">${escapeHtml(displayName)}${isMe ? ' <span class="trouble-you-tag">(You)</span>' : ''}${isBot ? ' <span class="trouble-bot-tag">BOT</span>' : ''}</span>
+        </div>
+        <div class="trouble-token-pips">${pips}</div>
+        ${phaseLabel ? `<div class="trouble-phase-label">${phaseLabel}</div>` : ''}
       </div>`;
     }
     hudEl.innerHTML = html;
+
+    // Update turn banner
+    const bannerEl = $('troubleTurnBanner');
+    if (bannerEl && !troubleState.gameOver) {
+      const cp = troubleState.currentTurn;
+      const cpc = TROUBLE_PLAYER_COLORS[cp];
+      const myTurn = !troubleIsLocal && cp === troublePlayerIndex;
+      const turnName = myTurn ? 'Your' : (troubleState.players?.[cp]?.username || TROUBLE_COLOR_NAMES[cp]);
+      const turnDisplayName = (turnName.startsWith('trouble_bot_') ? `Bot ${TROUBLE_COLOR_NAMES[cp]}` : turnName);
+      const phaseText = troubleState.phase === 'roll' ? 'Roll!' : 'Pick a token!';
+      bannerEl.textContent = myTurn ? `Your Turn \u2014 ${phaseText}` : `${turnDisplayName} is ${troubleState.phase === 'roll' ? 'rolling' : 'moving'}...`;
+      bannerEl.style.color = cpc.highlight;
+      bannerEl.classList.toggle('your-turn', myTurn);
+    } else if (bannerEl) {
+      bannerEl.textContent = '';
+    }
   }
 
   /* ================================================
@@ -3113,9 +3220,9 @@
         showScreen('lobby');
         return;
       }
-      if (confirm('Leave this Trouble game?')) {
+      if (confirm('Resign and let a bot take over?')) {
         socket.emit('trouble:resign');
-        showScreen('lobby');
+        // Stay on the screen — a bot will replace us, game continues
       }
     });
 

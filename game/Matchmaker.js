@@ -1001,8 +1001,48 @@ class Matchmaker {
   troubleResign(socket) {
     const gd = this.getGameForSocket(socket.id);
     if (!gd || !gd.troubleGame) return;
-    // Just treat as disconnect — removes player
-    this._troublePlayerDisconnect(gd, socket);
+    const playerIdx = gd.players.findIndex(p => p.socket.id === socket.id);
+    if (playerIdx === -1) return;
+    this._replaceTroublePlayerWithBot(gd, playerIdx, socket);
+  }
+
+  _replaceTroublePlayerWithBot(gd, playerIdx, oldSocket) {
+    const botRating = 1200;
+    const bot = new TroubleBotPlayer(this, botRating);
+    bot.gameId = gd.id;
+    bot.playerIndex = playerIdx;
+    this.userStore.ensureBotUser(bot.username, botRating);
+
+    // Clean up old socket from maps
+    this.playerToGame.delete(oldSocket.id);
+    if (oldSocket.username) this.usernameToGame.delete(oldSocket.username);
+    oldSocket.leave(gd.id);
+
+    // Replace player entry
+    gd.players[playerIdx] = { socket: bot.socket, username: bot.username };
+
+    // Register bot socket
+    this.playerToGame.set(bot.socket.id, gd.id);
+
+    // Add bot to troubleBots
+    let bots = this.troubleBots.get(gd.id);
+    if (!bots) {
+      bots = [];
+      this.troubleBots.set(gd.id, bots);
+    }
+    bots.push(bot);
+
+    // Broadcast replacement to all human players
+    for (const p of gd.players) {
+      if (!p.socket.id.startsWith('bot_')) {
+        p.socket.emit('trouble:playerReplaced', { playerIdx, newUsername: bot.username });
+      }
+    }
+
+    // If it's the replaced player's turn, kick off the bot
+    if (gd.troubleGame.currentTurn === playerIdx && !gd.troubleGame.gameOver) {
+      this._ensureTroubleBotTurn(gd);
+    }
   }
 
   _troublePlayerDisconnect(gd, socket) {
