@@ -37,10 +37,14 @@ class TroubleBotPlayer {
         this._scheduleRoll();
       }
     } else if (event === 'trouble:rollResult') {
-      if (data.currentTurn === this.playerIndex && data.validMoves && data.validMoves.length > 0) {
-        this._scheduleMove(data.validMoves);
+      if (data.currentTurn === this.playerIndex) {
+        if (data.validMoves && data.validMoves.length > 0) {
+          this._scheduleMove(data.validMoves);
+        } else if (data.phase === 'roll') {
+          // Previous player was skipped — it's now our turn to roll
+          this._scheduleRoll();
+        }
       }
-      // If skipped (no valid moves), next turn event will come via trouble:update or next rollResult
     } else if (event === 'trouble:update') {
       if (data.currentTurn === this.playerIndex && data.phase === 'roll') {
         this._scheduleRoll();
