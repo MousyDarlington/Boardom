@@ -4679,6 +4679,65 @@
       // Defer canvas event binding until game screen is active
     });
 
+    // Trouble host screen
+    $('troubleInviteCode').addEventListener('click', () => {
+      const code = $('troubleInviteCode').textContent;
+      navigator.clipboard?.writeText(code);
+      $('troubleCopyHint').textContent = 'Copied!';
+      setTimeout(() => { $('troubleCopyHint').textContent = 'Click to copy'; }, 1500);
+    });
+
+    $('btnCopyTroubleLink').addEventListener('click', () => {
+      const code = $('troubleInviteCode').textContent;
+      const link = `${window.location.origin}?join=${code}`;
+      navigator.clipboard?.writeText(link);
+      $('btnCopyTroubleLink').textContent = 'Copied!';
+      setTimeout(() => { $('btnCopyTroubleLink').textContent = 'Copy Invite Link'; }, 1500);
+    });
+
+    $('btnTroubleStartLobby').addEventListener('click', () => {
+      if (socket && troubleLobbyCode) {
+        socket.emit('troubleLobby:start', troubleLobbyCode);
+      }
+    });
+
+    $('btnTroubleCancelLobby').addEventListener('click', () => {
+      if (socket) socket.emit('troubleLobby:leave');
+      troubleLobbyCode = null;
+      troubleLobbyPlayers = [];
+      isTroubleLobbyHost = false;
+      showScreen('lobby');
+    });
+
+    // Guest join screen
+    $('btnGuestJoin').addEventListener('click', () => {
+      const name = $('guestNameInput').value.trim();
+      if (!name || name.length < 1) {
+        $('guestError').textContent = 'Please enter a display name';
+        return;
+      }
+      $('guestError').textContent = '';
+      connectSocketAsGuest();
+      socket.on('connect', function onGuestConnect() {
+        socket.off('connect', onGuestConnect);
+        socket.emit('guest:setName', name);
+      });
+      // If already connected, emit immediately
+      if (socket.connected) {
+        socket.emit('guest:setName', name);
+      }
+    });
+
+    $('btnGuestSignup').addEventListener('click', () => {
+      // Store pending code so we can join after login
+      // pendingJoinCode is already set from URL parsing
+      showScreen('auth');
+    });
+
+    $('guestNameInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('btnGuestJoin').click();
+    });
+
     // Shop
     bindShopEvents();
 
@@ -4692,13 +4751,36 @@
   /* ================================================
      INITIALIZATION
      ================================================ */
-  function init() {
+  async function init() {
     bindEvents();
     initTitleBackground();
-    showScreen('title');
+
+    // Check for ?join=CODE in URL
+    const params = new URLSearchParams(window.location.search);
+    const urlJoinCode = params.get('join');
+    if (urlJoinCode) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    // Try session first
+    const hasSession = await checkSession();
+
+    if (urlJoinCode) {
+      if (hasSession) {
+        // Already logged in — connect socket and join
+        pendingJoinCode = urlJoinCode;
+        // Socket connects in onLoggedIn → connectSocket, pending code handled there
+      } else {
+        // Not logged in — show guest join screen
+        pendingJoinCode = urlJoinCode;
+        showScreen('guestJoin');
+        return;
+      }
+    } else if (!hasSession) {
+      showScreen('title');
+    }
 
     // Bind canvas click (use event delegation on #gameCanvas)
-    // Need to re-bind after canvas is set up
     const canvasEl = $('gameCanvas');
     if (canvasEl) canvasEl.addEventListener('click', handleCanvasClick);
   }
