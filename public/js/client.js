@@ -2813,10 +2813,16 @@
         tokens: result.state.tokens,
         finished: result.state.finished,
         currentTurn: result.state.currentTurn,
-        phase: result.state.phase
+        phase: result.state.phase,
+        placements: result.state.placements
       });
       if (result.gameOver.over) {
-        onTroubleOver({ winner: result.gameOver.winner, winnerUsername: TROUBLE_COLOR_NAMES[result.gameOver.winner], coinRewards: {} });
+        onTroubleOver({
+          winner: result.gameOver.winner,
+          placements: result.gameOver.placements,
+          placementNames: result.gameOver.placements.map(i => TROUBLE_COLOR_NAMES[i]),
+          coinRewards: {}
+        });
       }
     } else {
       socket.emit('trouble:move', { tokenIdx });
