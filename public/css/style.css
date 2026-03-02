@@ -911,20 +911,40 @@ input:focus {
   align-items: center;
 }
 
-/* ---------- Support Link ---------- */
-.support-link {
-  display: flex;
-  justify-content: center;
-  margin-top: 0.25rem;
+/* ---------- Floating Support Link ---------- */
+.support-fab {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  z-index: 90;
+  padding: 0.5rem 1rem;
+  border-radius: 24px;
+  background: var(--glass);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+.support-fab:hover {
+  transform: scale(1.05);
+  background: rgba(255, 215, 0, 0.12);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+}
+.support-fab:active {
+  transform: scale(0.97);
 }
 
-.btn-support {
-  border-color: var(--gold) !important;
-  color: var(--gold) !important;
-}
-
-.btn-support:hover {
-  background: rgba(255,215,0,0.1);
+@media (max-width: 480px) {
+  .support-fab {
+    bottom: 0.75rem;
+    left: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.7rem;
+  }
 }
 
 /* ---------- Coin Reward ---------- */
