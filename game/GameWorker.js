@@ -4,16 +4,18 @@ const { parentPort } = require('worker_threads');
 const CheckersGame = require('./CheckersGame');
 const TroubleGame = require('./TroubleGame');
 const ScrabbleGame = require('./ScrabbleGame');
+const CAHGame = require('./CAHGame');
 const BotPlayer = require('./BotPlayer');
 const TroubleBotPlayer = require('./TroubleBotPlayer');
 const ScrabbleBotPlayer = require('./ScrabbleBotPlayer');
+const CAHBotPlayer = require('./CAHBotPlayer');
 const fs = require('fs');
 
 /* ================================================
    WORKER STATE
    ================================================ */
-let game = null;           // CheckersGame | TroubleGame | ScrabbleGame
-let gameType = null;       // 'checkers' | 'trouble' | 'scrabble'
+let game = null;           // CheckersGame | TroubleGame | ScrabbleGame | CAHGame
+let gameType = null;       // 'checkers' | 'trouble' | 'scrabble' | 'cah'
 let gameId = null;
 let matchCode = null;
 let gameTypeStr = null;    // 'casual' | 'ranked' | 'private'
@@ -39,6 +41,8 @@ parentPort.on('message', (msg) => {
       case 'scrabblePlace':     handleScrabblePlace(msg.payload); break;
       case 'scrabbleExchange':  handleScrabbleExchange(msg.payload); break;
       case 'scrabblePass':      handleScrabblePass(msg.payload); break;
+      case 'cahSubmit':         handleCAHSubmit(msg.payload); break;
+      case 'cahPick':           handleCAHPick(msg.payload); break;
       case 'resign':            handleResign(msg.payload); break;
       case 'chat':              handleChat(msg.payload); break;
       case 'playerDisconnect':  handlePlayerDisconnect(msg.payload); break;
@@ -118,6 +122,12 @@ function buildLocalAdapter() {
     },
     scrabblePass(socket) {
       handleScrabblePass({ socketId: socket.id });
+    },
+    cahSubmitCards(socket, cardIndices) {
+      handleCAHSubmit({ socketId: socket.id, cardIndices });
+    },
+    cahPickWinner(socket, submissionIdx) {
+      handleCAHPick({ socketId: socket.id, submissionIdx });
     }
   };
 }
@@ -149,6 +159,11 @@ function handleInit(payload) {
       const words = fs.readFileSync(dictPath, 'utf-8').split(/\r?\n/).filter(w => w.length > 0);
       dictionary = new Set(words.map(w => w.toUpperCase()));
       game = new ScrabbleGame(players.length, dictionary);
+      break;
+    }
+    case 'cah': {
+      const cfg = payload.gameConfig || {};
+      game = new CAHGame(players.length, cfg.packType || 'pg13', cfg.maxRounds || 10);
       break;
     }
   }
@@ -188,6 +203,15 @@ function handleInit(payload) {
         bot.username = p.username;
         bot.id = p.id;
         break;
+      case 'cah':
+        bot = new CAHBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
     }
     bots.push(bot);
   }
@@ -214,6 +238,8 @@ function handleInit(payload) {
         if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
           currentBot._scheduleTurn();
         }
+      } else if (gameType === 'cah') {
+        ensureCAHBotAction();
       }
     }, 3000);
   }
@@ -294,6 +320,33 @@ function sendStartData(payload) {
         playerStartData.push({ socketId: players[i].id, event: 'scrabble:start', data: startPayload });
       }
     }
+  } else if (gameType === 'cah') {
+    // Start the first round
+    game.startRound();
+
+    const playersInfo = players.map(p => ({ username: p.username, rating: p.rating || 1200 }));
+
+    for (let i = 0; i < players.length; i++) {
+      const state = game.getStateForPlayer(i);
+      const startPayload = {
+        gameId, matchCode,
+        playerIndex: i,
+        playerCount: game.playerCount,
+        players: playersInfo,
+        type: gameTypeStr,
+        ...state
+      };
+
+      if (players[i].isBot) {
+        const bot = bots.find(b => b.socket.id === players[i].id);
+        if (bot) bot.socket.emit('cah:start', startPayload);
+      } else {
+        playerStartData.push({ socketId: players[i].id, event: 'cah:start', data: startPayload });
+      }
+    }
+
+    // Start submission timer
+    cahStartSubmitTimer();
   }
 
   parentPort.postMessage({ type: 'started', payload: { gameId, playerStartData } });
@@ -617,6 +670,192 @@ function postScrabbleGameOver(winnerIdx) {
 }
 
 /* ================================================
+   CARDS AGAINST HUMANITY ACTIONS
+   ================================================ */
+let cahSubmitTimer = null;
+let cahJudgeTimer = null;
+const CAH_SUBMIT_TIMEOUT = 60000;   // 60 seconds to submit
+const CAH_JUDGE_TIMEOUT = 45000;    // 45 seconds for czar to pick
+const CAH_ROUND_DELAY = 4000;       // 4 seconds between rounds
+
+function handleCAHSubmit({ socketId, cardIndices }) {
+  if (gameType !== 'cah') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+
+  const result = game.submitCards(idx, cardIndices);
+  if (!result.valid) {
+    postEmit(socketId, 'cah:error', { message: result.error });
+    return;
+  }
+
+  // Broadcast update to all players (per-player for private hands)
+  broadcastCAHUpdate();
+
+  // If all submitted, auto-reveal
+  if (result.allSubmitted) {
+    cahRevealSubmissions();
+  }
+}
+
+function handleCAHPick({ socketId, submissionIdx }) {
+  if (gameType !== 'cah') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+
+  const result = game.pickWinner(idx, submissionIdx);
+  if (!result.valid) {
+    postEmit(socketId, 'cah:error', { message: result.error });
+    return;
+  }
+
+  // Clear judge timer
+  if (cahJudgeTimer) { clearTimeout(cahJudgeTimer); cahJudgeTimer = null; }
+
+  // Broadcast round result
+  broadcastToPlayers('cah:roundResult', {
+    winnerIndex: result.winnerIndex,
+    winnerName: players[result.winnerIndex]?.username || 'Unknown',
+    winningCards: result.winningCards,
+    blackCard: result.blackCard,
+    submissionIdx: result.submissionIdx,
+    scores: result.scores,
+    round: result.round
+  });
+
+  if (result.gameOver.over) {
+    postCAHGameOver(result.gameOver.winner);
+  } else {
+    // Start next round after delay
+    setTimeout(() => {
+      if (!game || game.gameOver) return;
+      const roundResult = game.startRound();
+      if (roundResult.valid) {
+        broadcastCAHUpdate();
+        cahStartSubmitTimer();
+      }
+    }, CAH_ROUND_DELAY);
+  }
+}
+
+function cahRevealSubmissions() {
+  if (!game || game.phase !== 'submitting') return;
+
+  // Clear submit timer
+  if (cahSubmitTimer) { clearTimeout(cahSubmitTimer); cahSubmitTimer = null; }
+
+  const result = game.revealSubmissions();
+  if (!result.valid) return;
+
+  // Broadcast submissions to all (including czar indicator for bots)
+  broadcastPerPlayer((i) => {
+    const state = game.getStateForPlayer(i);
+    return {
+      event: 'cah:update',
+      data: {
+        ...state,
+        shuffledSubmissions: result.shuffledSubmissions
+      }
+    };
+  });
+
+  // Start judge timer
+  cahStartJudgeTimer();
+}
+
+function cahStartSubmitTimer() {
+  if (cahSubmitTimer) clearTimeout(cahSubmitTimer);
+  cahSubmitTimer = setTimeout(() => {
+    cahSubmitTimer = null;
+    if (!game || game.gameOver || game.phase !== 'submitting') return;
+    // Auto-reveal (which auto-submits for stragglers)
+    cahRevealSubmissions();
+  }, CAH_SUBMIT_TIMEOUT);
+}
+
+function cahStartJudgeTimer() {
+  if (cahJudgeTimer) clearTimeout(cahJudgeTimer);
+  cahJudgeTimer = setTimeout(() => {
+    cahJudgeTimer = null;
+    if (!game || game.gameOver) return;
+    if (game.phase !== 'revealing' && game.phase !== 'judging') return;
+    // Auto-pick random winner
+    const count = game.shuffledSubmissions.length;
+    if (count > 0) {
+      const randomIdx = Math.floor(Math.random() * count);
+      handleCAHPick({ socketId: players[game.currentCzar]?.id, submissionIdx: randomIdx });
+    }
+  }, CAH_JUDGE_TIMEOUT);
+}
+
+function broadcastCAHUpdate() {
+  broadcastPerPlayer((i) => {
+    const state = game.getStateForPlayer(i);
+    return { event: 'cah:update', data: state };
+  });
+}
+
+function ensureCAHBotAction() {
+  if (!game || game.gameOver) return;
+
+  if (game.phase === 'submitting') {
+    // Check if any bot hasn't submitted
+    for (const bot of bots) {
+      if (bot.destroyed || bot._paused) continue;
+      if (bot.playerIndex === game.currentCzar) continue;
+      if (game.submissions.has(bot.playerIndex)) continue;
+      if (!bot._timer) {
+        const state = game.getStateForPlayer(bot.playerIndex);
+        bot._hand = state.hand;
+        bot._scheduleSubmit(game.currentBlack);
+      }
+    }
+  } else if (game.phase === 'revealing') {
+    // Check if czar bot should pick
+    const czarBot = bots.find(b => b.playerIndex === game.currentCzar);
+    if (czarBot && !czarBot.destroyed && !czarBot._paused && !czarBot._timer) {
+      czarBot._isCzar = true;
+      czarBot._schedulePick(game.shuffledSubmissions);
+    }
+  }
+}
+
+function postCAHGameOver(winnerIdx) {
+  const overData = {
+    winner: winnerIdx,
+    winnerUsername: players[winnerIdx]?.username,
+    scores: [...game.scores],
+    round: game.round,
+    maxRounds: game.maxRounds
+  };
+
+  // Clear timers
+  if (cahSubmitTimer) { clearTimeout(cahSubmitTimer); cahSubmitTimer = null; }
+  if (cahJudgeTimer) { clearTimeout(cahJudgeTimer); cahJudgeTimer = null; }
+
+  for (const p of players) {
+    if (p.isBot) {
+      const bot = bots.find(b => b.socket.id === p.id);
+      if (bot) bot.socket.emit('cah:over', overData);
+    }
+  }
+
+  const humanTargets = players.filter(p => !p.isBot)
+    .map(p => ({ socketId: p.id, event: 'cah:over', data: overData }));
+
+  parentPort.postMessage({
+    type: 'gameOver',
+    payload: {
+      gameId, gameType: 'cah',
+      winnerIdx,
+      scores: [...game.scores],
+      playerUsernames: players.map(p => p.username),
+      overTargets: humanTargets
+    }
+  });
+}
+
+/* ================================================
    RESIGN
    ================================================ */
 function handleResign({ socketId }) {
@@ -639,6 +878,13 @@ function handleResign({ socketId }) {
       if (game.scores[i] > bestScore) { bestScore = game.scores[i]; bestPlayer = i; }
     }
     postScrabbleGameOver(bestPlayer);
+  } else if (gameType === 'cah') {
+    const result = game.removePlayer(idx);
+    if (result.gameOver && result.gameOver.over) {
+      postCAHGameOver(result.gameOver.winner || game.winner);
+    } else {
+      broadcastCAHUpdate();
+    }
   }
 }
 
@@ -751,6 +997,7 @@ function handlePlayerRejoined({ oldSocketId, username, newSocketId }) {
       const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
       if (currentBot && !currentBot.destroyed) currentBot._scheduleTurn();
     }
+    if (gameType === 'cah') ensureCAHBotAction();
   }
 
   // Send rejoin state
@@ -824,6 +1071,25 @@ function sendRejoinState(socketId, playerIdx) {
           players: playersInfo,
           type: gameTypeStr,
           cosmetics: cosmeticsArr,
+          chatLog,
+          ...state
+        }
+      }
+    });
+  } else if (gameType === 'cah') {
+    const state = game.getStateForPlayer(playerIdx);
+
+    parentPort.postMessage({
+      type: 'rejoinState',
+      payload: {
+        socketId,
+        event: 'cah:rejoined',
+        data: {
+          gameId, matchCode,
+          playerIndex: playerIdx,
+          playerCount: game.playerCount,
+          players: playersInfo,
+          type: gameTypeStr,
           chatLog,
           ...state
         }

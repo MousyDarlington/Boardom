@@ -113,6 +113,14 @@
               </div>
               <div class="game-card-badge">3 modes</div>
             </div>
+            <div class="game-card glass" id="cardCAH" data-game="cah">
+              <div class="game-card-icon">&#127183;</div>
+              <div class="game-card-info">
+                <h3 class="game-card-title">Cards Against Humanity</h3>
+                <p class="game-card-desc">The party game for horrible people</p>
+              </div>
+              <div class="game-card-badge">3 modes</div>
+            </div>
           </div>
 
           <div class="game-detail" id="gameDetail">
@@ -408,6 +416,98 @@
       <p class="muted">What letter should this blank represent?</p>
       <div class="scrabble-letter-grid" id="scrabbleLetterGrid"></div>
       <button class="btn btn-ghost" id="btnScrabbleBlankCancel" style="margin-top:1rem">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ===== CAH PRIVATE LOBBY ===== -->
+  <div id="cahHostScreen" class="screen">
+    <div class="card glass center-card">
+      <h2>Cards Against Humanity Lobby</h2>
+      <p class="muted">Share this code with friends:</p>
+      <div class="invite-code" id="cahInviteCode">------</div>
+      <p class="copy-hint" id="cahCopyHint">Click to copy</p>
+      <button class="btn btn-small btn-ghost" id="btnCopyCahLink">Copy Invite Link</button>
+      <div class="cah-lobby-options">
+        <div class="cah-lobby-option">
+          <label class="muted">Card Pack</label>
+          <div class="cah-pack-toggle" id="cahPackToggle">
+            <button class="btn btn-small cah-pack-btn active" data-pack="pg13">PG-13</button>
+            <button class="btn btn-small cah-pack-btn" data-pack="adult">Adult</button>
+          </div>
+        </div>
+        <div class="cah-lobby-option">
+          <label class="muted">Rounds: <strong id="cahRoundsLabel">10</strong></label>
+          <input type="range" id="cahRoundsSlider" min="3" max="25" value="10" class="cah-rounds-slider">
+        </div>
+      </div>
+      <div class="trouble-lobby-player-list" id="cahLobbyPlayerList"></div>
+      <p class="auth-error" id="cahHostError"></p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnCAHStartLobby" disabled>Start Game</button>
+        <button class="btn btn-ghost" id="btnCAHCancelLobby">Cancel</button>
+      </div>
+      <p class="muted" style="font-size:0.75rem;margin-top:0.5rem">Need at least 3 players. Empty slots fill with bots.</p>
+    </div>
+  </div>
+
+  <!-- ===== CAH GAME SCREEN ===== -->
+  <div id="cahGameScreen" class="screen">
+    <div class="cah-layout">
+      <div class="cah-main-col">
+        <!-- Scoreboard HUD -->
+        <div class="cah-scoreboard glass" id="cahScoreboard"></div>
+
+        <!-- Phase Banner -->
+        <div class="cah-phase-banner" id="cahPhaseBanner"></div>
+
+        <!-- Timer Bar -->
+        <div class="cah-timer-container" id="cahTimerContainer">
+          <div class="cah-timer-bar" id="cahTimerBar"></div>
+        </div>
+
+        <!-- Game Table -->
+        <div class="cah-table">
+          <!-- Black Card -->
+          <div class="cah-black-card-area">
+            <div class="cah-black-card" id="cahBlackCard">
+              <p class="cah-black-text">Waiting for black card...</p>
+              <span class="cah-pick-badge" id="cahPickBadge"></span>
+            </div>
+          </div>
+
+          <!-- Submissions Area -->
+          <div class="cah-submissions-area" id="cahSubmissionsArea"></div>
+        </div>
+
+        <!-- Hand -->
+        <div class="cah-hand-section" id="cahHandSection">
+          <div class="cah-hand-label">Your Hand</div>
+          <div class="cah-hand" id="cahHand"></div>
+          <div class="cah-hand-controls">
+            <button class="btn btn-primary" id="btnCAHSubmit" disabled>Submit</button>
+          </div>
+        </div>
+
+        <!-- Game Controls -->
+        <div class="game-controls">
+          <div class="match-code-display">
+            <span class="match-code-label">Code:</span>
+            <span class="match-code-value" id="cahMatchCodeValue">------</span>
+            <button class="btn-copy-code" id="btnCopyCahCode" title="Copy code">&#x1F4CB;</button>
+          </div>
+          <button class="btn btn-small btn-ghost" id="btnCAHResign">Leave Game</button>
+        </div>
+      </div>
+
+      <!-- Chat -->
+      <div class="game-chat glass" id="cahChatPanel">
+        <div class="chat-header">Game Chat</div>
+        <div class="chat-messages" id="cahChatMessages"></div>
+        <form class="chat-input-row" id="cahChatForm">
+          <input type="text" id="cahChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
+          <button type="submit" class="btn btn-small btn-primary">Send</button>
+        </form>
+      </div>
     </div>
   </div>
 

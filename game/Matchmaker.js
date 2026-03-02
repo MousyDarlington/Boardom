@@ -29,6 +29,8 @@ class Matchmaker {
     this.usernameToGame = new Map();  // username -> gameId
     this.pausedGames = new Map();     // gameId -> { pausedAt, timers, disconnectedPlayers }
     this.troubleLobbies = new Map();  // code -> { host, players: [{ socket, username }], hostUsername, createdAt }
+    this.cahQueue = [];               // socket refs for CAH
+    this.cahLobbies = new Map();      // code -> { host, players: [{ socket, username }], hostUsername, packType, maxRounds, createdAt }
   }
 
   /* ---------- helpers ---------- */
@@ -42,7 +44,7 @@ class Matchmaker {
 
   _uniqueCode() {
     let code;
-    do { code = this._genCode(); } while (this.lobbies.has(code) || this.troubleLobbies.has(code) || this.matchCodes.has(code));
+    do { code = this._genCode(); } while (this.lobbies.has(code) || this.troubleLobbies.has(code) || this.cahLobbies.has(code) || this.matchCodes.has(code));
     return code;
   }
 
@@ -63,6 +65,7 @@ class Matchmaker {
     this.casualQueue = this.casualQueue.filter(s => s.id !== socket.id);
     this.rankedQueue = this.rankedQueue.filter(s => s.id !== socket.id);
     this.scrabbleQueue = this.scrabbleQueue.filter(s => s.id !== socket.id);
+    this.cahQueue = this.cahQueue.filter(s => s.id !== socket.id);
     this._cancelQueueTimer(socket.id);
   }
 
@@ -155,6 +158,7 @@ class Matchmaker {
     const reason = 'Game ended due to server error';
     const event = gd.gameType === 'scrabble' ? 'scrabble:over'
                 : gd.gameType === 'trouble' ? 'trouble:over'
+                : gd.gameType === 'cah' ? 'cah:over'
                 : 'game:over';
     for (const p of gd.players) {
       if (!p.isBot) {
@@ -259,6 +263,17 @@ class Matchmaker {
         const user = this.userStore.getUser(username);
         if (!user || user.isBot) continue;
         const reward = i === winnerIdx ? 20 : 5;
+        this.userStore.updateUser(username, { coins: (user.coins || 0) + reward });
+      }
+      for (const p of gd.players) this._decrementTrials(p.username);
+
+    } else if (gd.gameType === 'cah') {
+      const { winnerIdx } = overPayload;
+      for (let i = 0; i < gd.players.length; i++) {
+        const username = gd.players[i].username;
+        const user = this.userStore.getUser(username);
+        if (!user || user.isBot) continue;
+        const reward = i === winnerIdx ? 15 : 5;
         this.userStore.updateUser(username, { coins: (user.coins || 0) + reward });
       }
       for (const p of gd.players) this._decrementTrials(p.username);
@@ -509,6 +524,7 @@ class Matchmaker {
     code = (code || '').toUpperCase().trim();
     if (this.lobbies.has(code)) return { type: 'checkers', code };
     if (this.troubleLobbies.has(code)) return { type: 'trouble', code };
+    if (this.cahLobbies.has(code)) return { type: 'cah', code };
     return null;
   }
 
@@ -613,6 +629,7 @@ class Matchmaker {
     this._removeFromQueues(socket);
     this.troubleQueue = this.troubleQueue.filter(s => s.id !== socket.id);
     this.scrabbleQueue = this.scrabbleQueue.filter(s => s.id !== socket.id);
+    this.cahQueue = this.cahQueue.filter(s => s.id !== socket.id);
 
     // Clean up lobbies
     for (const [code, lobby] of this.lobbies) {
@@ -624,6 +641,9 @@ class Matchmaker {
 
     // Clean up trouble lobbies
     this.leaveTroubleLobby(socket);
+
+    // Clean up CAH lobbies
+    this.leaveCAHLobby(socket);
 
     // Handle active game — pause instead of end
     const gd = this.getGameForSocket(socket.id);
@@ -684,6 +704,7 @@ class Matchmaker {
     const timeRemaining = RECONNECT_TIMEOUT_MS / 1000;
     const eventName = gd.gameType === 'scrabble' ? 'scrabble:paused'
                     : gd.gameType === 'trouble' ? 'trouble:paused'
+                    : gd.gameType === 'cah' ? 'cah:paused'
                     : 'game:paused';
 
     for (const p of gd.players) {
@@ -764,6 +785,7 @@ class Matchmaker {
         // Notify other human players of resume
         const eventName = gd.gameType === 'scrabble' ? 'scrabble:resumed'
                         : gd.gameType === 'trouble' ? 'trouble:resumed'
+                        : gd.gameType === 'cah' ? 'cah:resumed'
                         : 'game:resumed';
         for (const p of gd.players) {
           if (p.username !== username && !p.isBot) {
@@ -1088,6 +1110,214 @@ class Matchmaker {
     if (worker) worker.postMessage({ type: 'resign', payload: { socketId: socket.id } });
   }
 
+  /* ========== CARDS AGAINST HUMANITY GAME ========== */
+
+  joinCAHQueue(socket) {
+    if (this._hasActiveGame(socket)) return;
+    this._removeFromQueues(socket);
+    this.cahQueue = this.cahQueue.filter(s => s.id !== socket.id);
+    this.cahQueue.push(socket);
+    socket.emit('queue:update', { type: 'cah', position: this.cahQueue.length });
+
+    if (this.cahQueue.length >= 6) {
+      const players = this.cahQueue.splice(0, 6);
+      this._startCAHGame(players, 'casual');
+    } else if (this.cahQueue.length >= 3) {
+      this._startCAHQueueTimer();
+    }
+  }
+
+  _startCAHQueueTimer() {
+    if (this._cahQueueTimer) return;
+    this._cahQueueTimer = setTimeout(() => {
+      this._cahQueueTimer = null;
+      if (this.cahQueue.length >= 3) {
+        const players = this.cahQueue.splice(0, Math.min(8, this.cahQueue.length));
+        this._startCAHGame(players, 'casual');
+      }
+    }, 15000);
+  }
+
+  playCAHBot(socket) {
+    if (this._hasActiveGame(socket)) return;
+    this._removeFromQueues(socket);
+    this.cahQueue = this.cahQueue.filter(s => s.id !== socket.id);
+    this._startCAHGame([socket], 'casual');
+  }
+
+  createCAHLobby(socket, options) {
+    if (this._hasActiveGame(socket)) return;
+    // Remove existing lobby by this host
+    for (const [code, lobby] of this.cahLobbies) {
+      if (lobby.host.id === socket.id) {
+        for (const p of lobby.players) {
+          if (p.socket.id !== socket.id) {
+            p.socket.emit('cahLobby:disbanded', { message: 'Host cancelled the lobby' });
+          }
+        }
+        this.cahLobbies.delete(code);
+        break;
+      }
+    }
+    const code = this._uniqueCode();
+    const username = socket.username || socket.guestName || 'Host';
+    const packType = (options && options.packType === 'adult') ? 'adult' : 'pg13';
+    const maxRounds = Math.max(3, Math.min(25, (options && options.maxRounds) || 10));
+    const lobbyData = {
+      host: socket,
+      hostUsername: username,
+      players: [{ socket, username }],
+      packType,
+      maxRounds,
+      createdAt: Date.now()
+    };
+    this.cahLobbies.set(code, lobbyData);
+    socket.emit('cahLobby:created', { code, players: [{ username }], packType, maxRounds });
+  }
+
+  joinCAHLobby(socket, code) {
+    code = (code || '').toUpperCase().trim();
+    const lobby = this.cahLobbies.get(code);
+    if (!lobby) return socket.emit('cahLobby:error', { message: 'Lobby not found' });
+    if (lobby.players.some(p => p.socket.id === socket.id)) {
+      return socket.emit('cahLobby:error', { message: 'Already in this lobby' });
+    }
+    if (lobby.players.length >= 8) {
+      return socket.emit('cahLobby:error', { message: 'Lobby is full (max 8 players)' });
+    }
+
+    const username = socket.username || socket.guestName || 'Guest';
+    lobby.players.push({ socket, username });
+
+    const playerList = lobby.players.map(p => ({ username: p.username }));
+    for (const p of lobby.players) {
+      p.socket.emit('cahLobby:updated', { players: playerList, code, packType: lobby.packType, maxRounds: lobby.maxRounds });
+    }
+  }
+
+  startCAHLobby(socket, code) {
+    code = (code || '').toUpperCase().trim();
+    const lobby = this.cahLobbies.get(code);
+    if (!lobby) return socket.emit('cahLobby:error', { message: 'Lobby not found' });
+    if (lobby.host.id !== socket.id) {
+      return socket.emit('cahLobby:error', { message: 'Only the host can start the game' });
+    }
+    if (lobby.players.length < 3) {
+      return socket.emit('cahLobby:error', { message: 'Need at least 3 players to start' });
+    }
+    this._launchCAHLobby(code);
+  }
+
+  _launchCAHLobby(code) {
+    const lobby = this.cahLobbies.get(code);
+    if (!lobby) return;
+    this.cahLobbies.delete(code);
+    const humanSockets = lobby.players.map(p => p.socket);
+    this._startCAHGame(humanSockets, 'private', lobby.packType, lobby.maxRounds);
+  }
+
+  leaveCAHLobby(socket) {
+    for (const [code, lobby] of this.cahLobbies) {
+      const idx = lobby.players.findIndex(p => p.socket.id === socket.id);
+      if (idx === -1) continue;
+
+      if (lobby.host.id === socket.id) {
+        for (const p of lobby.players) {
+          if (p.socket.id !== socket.id) {
+            p.socket.emit('cahLobby:disbanded', { message: 'Host left the lobby' });
+          }
+        }
+        this.cahLobbies.delete(code);
+      } else {
+        lobby.players.splice(idx, 1);
+        const playerList = lobby.players.map(p => ({ username: p.username }));
+        for (const p of lobby.players) {
+          p.socket.emit('cahLobby:updated', { players: playerList, code, packType: lobby.packType, maxRounds: lobby.maxRounds });
+        }
+      }
+      return;
+    }
+  }
+
+  _startCAHGame(humanSockets, type, packType, maxRounds) {
+    packType = packType || 'pg13';
+    maxRounds = maxRounds || 10;
+
+    const minPlayers = 3;
+    const gameId = `cah_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const matchCode = this._uniqueCode();
+
+    const players = [];
+    for (const sock of humanSockets) {
+      const username = sock.username || sock.guestName || 'Guest';
+      players.push({
+        id: sock.id,
+        username,
+        isBot: false,
+        rating: this.userStore.getUser(username)?.rating || 1200,
+        cosmetics: this._cosmeticsOf(username)
+      });
+    }
+
+    // Fill with bots if under minimum
+    while (players.length < minPlayers) {
+      const botRating = 1200;
+      const botUsername = `cah_bot_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const botSocketId = `bot_${botUsername}`;
+      this.userStore.ensureBotUser(botUsername, botRating);
+      players.push({
+        id: botSocketId,
+        username: botUsername,
+        isBot: true,
+        botRating,
+        botName: botUsername,
+        rating: botRating,
+        cosmetics: this._cosmeticsOf(botUsername)
+      });
+    }
+
+    const gameData = { id: gameId, matchCode, gameType: 'cah', type, players, startedAt: Date.now() };
+    this.games.set(gameId, gameData);
+    this.matchCodes.set(matchCode, gameId);
+
+    for (const p of players) {
+      this.playerToGame.set(p.id, gameId);
+      if (!p.isBot && p.username) this.usernameToGame.set(p.username, gameId);
+    }
+
+    for (const p of players) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'cah', gameTypeStr: type, players,
+      gameConfig: { packType, maxRounds }
+    });
+  }
+
+  /* ---------- CAH action relays ---------- */
+
+  cahSubmitCards(socket, cardIndices) {
+    const gameId = this.playerToGame.get(socket.id);
+    const worker = gameId && this.workers.get(gameId);
+    if (worker) worker.postMessage({ type: 'cahSubmit', payload: { socketId: socket.id, cardIndices } });
+  }
+
+  cahPickWinner(socket, submissionIdx) {
+    const gameId = this.playerToGame.get(socket.id);
+    const worker = gameId && this.workers.get(gameId);
+    if (worker) worker.postMessage({ type: 'cahPick', payload: { socketId: socket.id, submissionIdx } });
+  }
+
+  cahResign(socket) {
+    const gameId = this.playerToGame.get(socket.id);
+    const worker = gameId && this.workers.get(gameId);
+    if (worker) worker.postMessage({ type: 'resign', payload: { socketId: socket.id } });
+  }
+
   /* ---------- Stats ---------- */
 
   getOnlineCount() {
@@ -1099,7 +1329,8 @@ class Matchmaker {
       casual: this.casualQueue.length,
       ranked: this.rankedQueue.length,
       trouble: this.troubleQueue.length,
-      scrabble: this.scrabbleQueue.length
+      scrabble: this.scrabbleQueue.length,
+      cah: this.cahQueue.length
     };
   }
 

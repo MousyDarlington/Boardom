@@ -509,6 +509,48 @@ io.on('connection', (socket) => {
     matchmaker.scrabbleResign(socket);
   });
 
+  /* ---- Cards Against Humanity ---- */
+  socket.on('cah:join', () => {
+    if (!socket.username) return socket.emit('auth:required');
+    matchmaker.joinCAHQueue(socket);
+  });
+
+  socket.on('cah:bot', () => {
+    if (!socket.username) return socket.emit('auth:required');
+    matchmaker.playCAHBot(socket);
+  });
+
+  socket.on('cahLobby:create', (opts) => {
+    if (!socket.username && !socket.guestName) return socket.emit('auth:required');
+    matchmaker.createCAHLobby(socket, opts);
+  });
+
+  socket.on('cahLobby:join', (code) => {
+    if (!socket.username && !socket.guestName) return socket.emit('auth:required');
+    matchmaker.joinCAHLobby(socket, code);
+  });
+
+  socket.on('cahLobby:start', (code) => {
+    if (!socket.username && !socket.guestName) return socket.emit('auth:required');
+    matchmaker.startCAHLobby(socket, code);
+  });
+
+  socket.on('cahLobby:leave', () => {
+    matchmaker.leaveCAHLobby(socket);
+  });
+
+  socket.on('cah:submit', (data) => {
+    matchmaker.cahSubmitCards(socket, data.cardIndices);
+  });
+
+  socket.on('cah:pick', (data) => {
+    matchmaker.cahPickWinner(socket, data.submissionIdx);
+  });
+
+  socket.on('cah:resign', () => {
+    matchmaker.cahResign(socket);
+  });
+
   /* ---- Chat ---- */
   socket.on('chat:lobby', (text) => {
     if (!socket.username) return;

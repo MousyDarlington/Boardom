@@ -103,6 +103,16 @@
         { id: 'scrabbleBots',   icon: '\uD83E\uDD16', name: 'Play vs Bots', desc: 'AI opponents' },
         { id: 'scrabbleLocal',  icon: '\uD83C\uDFAE', name: 'Local (2-8P)', desc: 'Pass and play' }
       ]
+    },
+    cah: {
+      title: 'Cards Against Humanity',
+      icon: '\uD83C\uDCCF',
+      desc: '3-8 players \u2014 The party game for horrible people!',
+      modes: [
+        { id: 'cahOnline',  icon: '\uD83C\uDF10', name: 'Play Online',  desc: 'Match with players' },
+        { id: 'cahBots',    icon: '\uD83E\uDD16', name: 'Play vs Bots', desc: 'Instant bot game' },
+        { id: 'cahPrivate', icon: '\uD83D\uDD12', name: 'Private',      desc: 'Create or join lobby' }
+      ]
     }
   };
 
@@ -982,7 +992,8 @@
      ================================================ */
   const screenIds = ['titleScreen', 'authScreen', 'lobbyScreen', 'queueScreen',
     'lobbyHostScreen', 'lobbyJoinScreen', 'troubleHostScreen', 'guestJoinScreen',
-    'shopScreen', 'gameScreen', 'troubleGameScreen', 'scrabbleGameScreen'];
+    'shopScreen', 'gameScreen', 'troubleGameScreen', 'scrabbleGameScreen',
+    'cahHostScreen', 'cahGameScreen'];
 
   function showScreen(name) {
     currentScreen = name;
@@ -991,7 +1002,7 @@
       queue: 'queueScreen', host: 'lobbyHostScreen', join: 'lobbyJoinScreen',
       troubleHost: 'troubleHostScreen', guestJoin: 'guestJoinScreen',
       shop: 'shopScreen', game: 'gameScreen', trouble: 'troubleGameScreen',
-      scrabble: 'scrabbleGameScreen'
+      scrabble: 'scrabbleGameScreen', cahHost: 'cahHostScreen', cah: 'cahGameScreen'
     };
     for (const id of screenIds) {
       const el = $(id);
@@ -1001,7 +1012,7 @@
     if (target) target.classList.add('active');
 
     // Hide game over overlay when switching screens
-    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble') {
+    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah') {
       $('gameOverOverlay').classList.add('hidden');
       confettiActive = false;
     }
@@ -1242,6 +1253,7 @@
     s.on('chat:game', (msg) => {
       const el = currentScreen === 'scrabble' ? $('scrabbleChatMessages')
                : currentScreen === 'trouble' ? $('troubleChatMessages')
+               : currentScreen === 'cah' ? $('cahChatMessages')
                : $('gameChatMessages');
       if (el) {
         appendChatMsg(el, msg);
@@ -1325,6 +1337,8 @@
         socket.emit('lobby:join', data.code);
       } else if (data.type === 'trouble') {
         socket.emit('troubleLobby:join', data.code);
+      } else if (data.type === 'cah') {
+        socket.emit('cahLobby:join', data.code);
       }
     });
 
@@ -1343,9 +1357,30 @@
       showScrabbleError(data.message);
     });
 
+    // CAH events
+    s.on('cah:start', onCAHStart);
+    s.on('cah:update', onCAHUpdate);
+    s.on('cah:submissions', onCAHUpdate);
+    s.on('cah:roundResult', onCAHRoundResult);
+    s.on('cah:over', onCAHOver);
+    s.on('cah:error', (data) => {
+      const el = $('cahHostError');
+      if (el) el.textContent = data.message;
+    });
+    s.on('cahLobby:created', onCAHLobbyCreated);
+    s.on('cahLobby:updated', onCAHLobbyUpdated);
+    s.on('cahLobby:disbanded', () => { showScreen('lobby'); });
+    s.on('cahLobby:error', (data) => {
+      const el = $('cahHostError');
+      if (el) el.textContent = data.message;
+    });
+    s.on('cah:paused', onGamePaused);
+    s.on('cah:resumed', onGameResumed);
+    s.on('cah:rejoined', onCAHRejoined);
+
     s.on('disconnect', () => {
       console.log('Socket disconnected');
-      if (currentScreen === 'game' || currentScreen === 'trouble' || currentScreen === 'scrabble') {
+      if (currentScreen === 'game' || currentScreen === 'trouble' || currentScreen === 'scrabble' || currentScreen === 'cah') {
         $('reconnectingOverlay')?.classList.remove('hidden');
       }
     });
@@ -2195,6 +2230,24 @@
           break;
         case 'scrabbleLocal':
           showScrabbleLocalPicker();
+          break;
+      }
+    } else if (gameId === 'cah') {
+      switch (modeId) {
+        case 'cahOnline':
+          socket.emit('cah:join');
+          $('queueTitle').textContent = 'Cards Against Humanity';
+          $('queueText').textContent = 'Finding players...';
+          showScreen('queue');
+          break;
+        case 'cahBots':
+          socket.emit('cah:bot');
+          $('queueTitle').textContent = 'Cards Against Humanity';
+          $('queueText').textContent = 'Starting game vs bots...';
+          showScreen('queue');
+          break;
+        case 'cahPrivate':
+          showCAHPrivateChoice();
           break;
       }
     }
@@ -4554,6 +4607,7 @@
     copyHandler('btnCopyMatchCode');
     copyHandler('btnCopyTroubleCode');
     copyHandler('btnCopyScrabbleCode');
+    copyHandler('btnCopyCahCode');
 
     // Manual rejoin from lobby
     $('btnRejoinCode')?.addEventListener('click', () => {
@@ -4614,6 +4668,7 @@
     $('cardCheckers').addEventListener('click', () => selectGame('checkers'));
     $('cardTrouble').addEventListener('click', () => selectGame('trouble'));
     $('cardScrabble').addEventListener('click', () => selectGame('scrabble'));
+    $('cardCAH').addEventListener('click', () => selectGame('cah'));
     $('btnGameDetailBack').addEventListener('click', deselectGame);
 
     // Queue cancel
@@ -4768,6 +4823,22 @@
       if (e.key === 'Enter') $('btnGuestJoin').click();
     });
 
+    // CAH resign
+    $('btnCAHResign').addEventListener('click', () => {
+      if (confirm('Leave this Cards Against Humanity game?')) {
+        socket.emit('cah:resign');
+        showScreen('lobby');
+      }
+    });
+
+    // CAH chat
+    $('cahChatForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = $('cahChatInput');
+      const text = input.value.trim();
+      if (text && socket) { socket.emit('chat:game', text); input.value = ''; }
+    });
+
     // Shop
     bindShopEvents();
 
@@ -4776,6 +4847,404 @@
 
     // Scrabble
     bindScrabbleEvents();
+  }
+
+  /* ================================================
+     CARDS AGAINST HUMANITY
+     ================================================ */
+
+  // CAH state
+  let cahState = null;
+  let cahHand = [];
+  let cahSelectedCards = [];
+  let cahPhase = null;
+  let cahIsCzar = false;
+  let cahPlayerIndex = -1;
+  let cahPlayers = [];
+  let cahMatchCode = null;
+  let cahTimerInterval = null;
+  let cahLobbyCode = null;
+  let isCAHLobbyHost = false;
+  let cahLobbyPackType = 'pg13';
+  let cahLobbyMaxRounds = 10;
+  let cahRoundResultTimeout = null;
+
+  function showCAHPrivateChoice() {
+    const existing = document.querySelector('.private-picker');
+    if (existing) existing.remove();
+
+    const picker = document.createElement('div');
+    picker.className = 'private-picker glass';
+    picker.innerHTML = `
+      <button class="btn btn-primary btn-small" id="btnCAHPrivateCreate">Create Lobby</button>
+      <button class="btn btn-primary btn-small" id="btnCAHPrivateJoin">Join with Code</button>
+      <button class="btn btn-ghost btn-small" id="btnCAHPrivateBack">Cancel</button>
+    `;
+    $('gameDetail').appendChild(picker);
+
+    document.getElementById('btnCAHPrivateCreate').addEventListener('click', () => {
+      picker.remove();
+      socket.emit('cahLobby:create', { packType: 'pg13', maxRounds: 10 });
+    });
+    document.getElementById('btnCAHPrivateJoin').addEventListener('click', () => {
+      picker.remove();
+      showScreen('join');
+    });
+    document.getElementById('btnCAHPrivateBack').addEventListener('click', () => {
+      picker.remove();
+    });
+  }
+
+  function onCAHLobbyCreated(data) {
+    cahLobbyCode = data.code;
+    isCAHLobbyHost = true;
+    cahLobbyPackType = data.packType || 'pg13';
+    cahLobbyMaxRounds = data.maxRounds || 10;
+    $('cahInviteCode').textContent = data.code;
+    $('cahRoundsLabel').textContent = cahLobbyMaxRounds;
+    $('cahRoundsSlider').value = cahLobbyMaxRounds;
+    updateCAHLobbyPlayerList(data.players || []);
+    showScreen('cahHost');
+    setupCAHLobbyControls();
+  }
+
+  function onCAHLobbyUpdated(data) {
+    if (data.packType) cahLobbyPackType = data.packType;
+    if (data.maxRounds) cahLobbyMaxRounds = data.maxRounds;
+    updateCAHLobbyPlayerList(data.players || []);
+    if (currentScreen !== 'cahHost') {
+      cahLobbyCode = data.code;
+      isCAHLobbyHost = false;
+      $('cahInviteCode').textContent = data.code;
+      $('cahRoundsLabel').textContent = cahLobbyMaxRounds;
+      showScreen('cahHost');
+      setupCAHLobbyControls();
+    }
+  }
+
+  function updateCAHLobbyPlayerList(players) {
+    const el = $('cahLobbyPlayerList');
+    if (!el) return;
+    el.innerHTML = players.map((p, i) => `
+      <div class="trouble-lobby-player">${i === 0 ? '\uD83D\uDC51 ' : ''}${p.username}</div>
+    `).join('');
+    const btn = $('btnCAHStartLobby');
+    if (btn) btn.disabled = !isCAHLobbyHost || players.length < 3;
+  }
+
+  function setupCAHLobbyControls() {
+    // Pack toggle
+    document.querySelectorAll('.cah-pack-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.pack === cahLobbyPackType);
+      btn.onclick = () => {
+        cahLobbyPackType = btn.dataset.pack;
+        document.querySelectorAll('.cah-pack-btn').forEach(b => b.classList.toggle('active', b.dataset.pack === cahLobbyPackType));
+      };
+    });
+
+    // Rounds slider
+    const slider = $('cahRoundsSlider');
+    if (slider) {
+      slider.value = cahLobbyMaxRounds;
+      slider.oninput = () => {
+        cahLobbyMaxRounds = parseInt(slider.value);
+        $('cahRoundsLabel').textContent = cahLobbyMaxRounds;
+      };
+    }
+
+    // Copy invite code
+    $('cahInviteCode').onclick = () => {
+      navigator.clipboard?.writeText($('cahInviteCode').textContent);
+      $('cahCopyHint').textContent = 'Copied!';
+    };
+
+    // Copy link
+    $('btnCopyCahLink').onclick = () => {
+      const link = `${window.location.origin}?join=${cahLobbyCode}`;
+      navigator.clipboard?.writeText(link);
+    };
+
+    // Start game
+    $('btnCAHStartLobby').onclick = () => {
+      socket.emit('cahLobby:start', cahLobbyCode);
+    };
+
+    // Cancel
+    $('btnCAHCancelLobby').onclick = () => {
+      socket.emit('cahLobby:leave');
+      showScreen('lobby');
+    };
+  }
+
+  function onCAHStart(data) {
+    cahState = data;
+    cahHand = data.hand || [];
+    cahSelectedCards = [];
+    cahPhase = data.phase;
+    cahIsCzar = data.isCzar;
+    cahPlayerIndex = data.playerIndex;
+    cahPlayers = data.players || [];
+    cahMatchCode = data.matchCode;
+    gameType = 'cah';
+    currentMatchCode = data.matchCode;
+    $('cahMatchCodeValue').textContent = data.matchCode || '------';
+    showScreen('cah');
+    renderCAHGame();
+  }
+
+  function onCAHUpdate(data) {
+    cahState = { ...cahState, ...data };
+    if (data.hand) cahHand = data.hand;
+    cahPhase = data.phase;
+    cahIsCzar = data.isCzar;
+    if (data.shuffledSubmissions) {
+      cahState.shuffledSubmissions = data.shuffledSubmissions;
+    }
+    renderCAHGame();
+  }
+
+  function onCAHRoundResult(data) {
+    // Show round result toast
+    const toast = document.createElement('div');
+    toast.className = 'cah-round-result';
+    const cardsHtml = (data.winningCards || []).map(c => `<div class="cah-white-card mini">${c}</div>`).join('');
+    toast.innerHTML = `
+      <h3>\uD83C\uDFC6 ${data.winnerName} wins this round!</h3>
+      <div class="cah-result-cards">${cardsHtml}</div>
+      <p class="muted">Round ${data.round} | Scores updating...</p>
+    `;
+    document.body.appendChild(toast);
+
+    // Update scores
+    if (data.scores) {
+      cahState.scores = data.scores;
+      renderCAHScoreboard();
+    }
+
+    // Remove toast after delay
+    if (cahRoundResultTimeout) clearTimeout(cahRoundResultTimeout);
+    cahRoundResultTimeout = setTimeout(() => {
+      toast.remove();
+      cahRoundResultTimeout = null;
+    }, 3500);
+  }
+
+  function onCAHOver(data) {
+    // Clear timers
+    if (cahTimerInterval) { clearInterval(cahTimerInterval); cahTimerInterval = null; }
+    if (cahRoundResultTimeout) { clearTimeout(cahRoundResultTimeout); cahRoundResultTimeout = null; }
+    document.querySelectorAll('.cah-round-result').forEach(el => el.remove());
+
+    const isWinner = data.winner === cahPlayerIndex;
+    $('gameOverTitle').textContent = isWinner ? 'You Won!' : 'Game Over';
+    const winnerName = cahPlayers[data.winner]?.username || 'Unknown';
+    $('gameOverReason').textContent = `${winnerName} wins with ${data.scores[data.winner]} point(s)!`;
+
+    // Show all scores
+    const ratingEl = $('gameOverRating');
+    if (ratingEl) {
+      ratingEl.innerHTML = (data.scores || []).map((score, i) => {
+        const name = cahPlayers[i]?.username || `Player ${i + 1}`;
+        const highlight = i === data.winner ? ' style="color:var(--gold);font-weight:bold"' : '';
+        return `<div${highlight}>${name}: ${score} pts</div>`;
+      }).join('');
+    }
+
+    const coinEl = $('gameOverCoins');
+    if (coinEl) coinEl.textContent = isWinner ? '+15 coins' : '+5 coins';
+
+    $('gameOverOverlay').classList.remove('hidden');
+    if (isWinner) {
+      confettiActive = true;
+      spawnConfetti();
+    }
+  }
+
+  function onCAHRejoined(data) {
+    $('reconnectingOverlay')?.classList.add('hidden');
+    $('gamePausedOverlay')?.classList.add('hidden');
+    onCAHStart(data);
+  }
+
+  function renderCAHGame() {
+    renderCAHScoreboard();
+    renderCAHPhaseBanner();
+    renderCAHBlackCard();
+    renderCAHSubmissions();
+    renderCAHHand();
+    renderCAHTimer();
+  }
+
+  function renderCAHScoreboard() {
+    const el = $('cahScoreboard');
+    if (!el) return;
+    const scores = cahState?.scores || [];
+    const czar = cahState?.currentCzar;
+    el.innerHTML = cahPlayers.map((p, i) => {
+      const classes = ['cah-player-chip'];
+      if (i === czar) classes.push('czar');
+      if (i === cahPlayerIndex) classes.push('me');
+      const crown = i === czar ? '<span class="cah-czar-crown">\uD83D\uDC51</span>' : '';
+      return `<div class="${classes.join(' ')}">${crown}<span>${p.username}</span><span class="cah-player-score">${scores[i] || 0}</span></div>`;
+    }).join('');
+  }
+
+  function renderCAHPhaseBanner() {
+    const el = $('cahPhaseBanner');
+    if (!el) return;
+    const czarName = cahPlayers[cahState?.currentCzar]?.username || 'Card Czar';
+    const round = cahState?.round || 0;
+    const maxRounds = cahState?.maxRounds || 10;
+    switch (cahPhase) {
+      case 'submitting':
+        el.textContent = cahIsCzar ? `You are the Card Czar \u2014 Wait for submissions (Round ${round}/${maxRounds})` : `Pick your card(s) and submit! (Round ${round}/${maxRounds})`;
+        break;
+      case 'revealing':
+        el.textContent = cahIsCzar ? `Pick the funniest answer! (Round ${round}/${maxRounds})` : `${czarName} is judging... (Round ${round}/${maxRounds})`;
+        break;
+      case 'roundEnd':
+        el.textContent = `Round ${round} complete!`;
+        break;
+      default:
+        el.textContent = `Round ${round}/${maxRounds}`;
+    }
+  }
+
+  function renderCAHBlackCard() {
+    const card = $('cahBlackCard');
+    if (!card || !cahState?.currentBlack) return;
+    const text = cahState.currentBlack.text.replace(/_/g, '<span class="cah-blank">&nbsp;&nbsp;&nbsp;&nbsp;</span>');
+    card.querySelector('.cah-black-text').innerHTML = text;
+    const badge = $('cahPickBadge');
+    if (badge) {
+      const pick = cahState.currentBlack.pick || 1;
+      badge.textContent = pick > 1 ? `PICK ${pick}` : '';
+      badge.style.display = pick > 1 ? '' : 'none';
+    }
+  }
+
+  function renderCAHSubmissions() {
+    const area = $('cahSubmissionsArea');
+    if (!area) return;
+
+    if (cahPhase === 'submitting') {
+      // Show submission status
+      const submitted = cahState?.submittedPlayers || [];
+      const total = (cahPlayers?.length || 0) - 1; // minus czar
+      area.innerHTML = `<div class="muted" style="text-align:center;width:100%;padding:2rem;">${submitted.length}/${total} players have submitted</div>`;
+      return;
+    }
+
+    if ((cahPhase === 'revealing' || cahPhase === 'judging') && cahState?.shuffledSubmissions) {
+      area.innerHTML = cahState.shuffledSubmissions.map((sub, idx) => {
+        const cardsHtml = sub.cards.map(c => `<div class="cah-white-card mini" style="animation:cardFlip 0.4s ease ${idx * 0.1}s both">${c}</div>`).join('');
+        const selectable = cahIsCzar ? 'selectable' : '';
+        return `<div class="cah-submission-group ${selectable}" data-sub-idx="${idx}">${cardsHtml}</div>`;
+      }).join('');
+
+      // If czar, add click handlers
+      if (cahIsCzar) {
+        area.querySelectorAll('.cah-submission-group').forEach(group => {
+          group.addEventListener('click', () => {
+            const idx = parseInt(group.dataset.subIdx);
+            if (confirm('Pick this answer as the winner?')) {
+              socket.emit('cah:pick', { submissionIdx: idx });
+            }
+          });
+        });
+      }
+      return;
+    }
+
+    area.innerHTML = '';
+  }
+
+  function renderCAHHand() {
+    const section = $('cahHandSection');
+    const handEl = $('cahHand');
+    const submitBtn = $('btnCAHSubmit');
+    if (!section || !handEl) return;
+
+    if (cahIsCzar) {
+      section.classList.add('czar-view');
+      handEl.innerHTML = cahHand.map(c => `<div class="cah-white-card">${c}</div>`).join('');
+      if (submitBtn) submitBtn.disabled = true;
+      return;
+    }
+
+    section.classList.remove('czar-view');
+    const hasSubmitted = cahState?.hasSubmitted;
+    const pickCount = cahState?.currentBlack?.pick || 1;
+
+    if (cahPhase !== 'submitting' || hasSubmitted) {
+      handEl.innerHTML = cahHand.map(c => `<div class="cah-white-card">${c}</div>`).join('');
+      if (submitBtn) submitBtn.disabled = true;
+      return;
+    }
+
+    handEl.innerHTML = cahHand.map((c, i) => {
+      const isSelected = cahSelectedCards.includes(i);
+      const order = isSelected ? cahSelectedCards.indexOf(i) + 1 : '';
+      return `<div class="cah-white-card${isSelected ? ' selected' : ''}" data-card-idx="${i}" data-order="${order}">${c}</div>`;
+    }).join('');
+
+    // Card click handlers
+    handEl.querySelectorAll('.cah-white-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const idx = parseInt(card.dataset.cardIdx);
+        const pos = cahSelectedCards.indexOf(idx);
+        if (pos !== -1) {
+          cahSelectedCards.splice(pos, 1);
+        } else if (cahSelectedCards.length < pickCount) {
+          cahSelectedCards.push(idx);
+        }
+        renderCAHHand();
+      });
+    });
+
+    if (submitBtn) {
+      submitBtn.disabled = cahSelectedCards.length !== pickCount;
+      submitBtn.onclick = () => {
+        if (cahSelectedCards.length === pickCount) {
+          socket.emit('cah:submit', { cardIndices: cahSelectedCards });
+          cahSelectedCards = [];
+          if (submitBtn) submitBtn.disabled = true;
+        }
+      };
+    }
+  }
+
+  function renderCAHTimer() {
+    const bar = $('cahTimerBar');
+    if (!bar) return;
+
+    if (cahTimerInterval) { clearInterval(cahTimerInterval); cahTimerInterval = null; }
+
+    if (cahPhase === 'submitting') {
+      let remaining = 60;
+      bar.style.width = '100%';
+      cahTimerInterval = setInterval(() => {
+        remaining--;
+        bar.style.width = Math.max(0, (remaining / 60) * 100) + '%';
+        if (remaining <= 0) {
+          clearInterval(cahTimerInterval);
+          cahTimerInterval = null;
+        }
+      }, 1000);
+    } else if (cahPhase === 'revealing') {
+      let remaining = 45;
+      bar.style.width = '100%';
+      cahTimerInterval = setInterval(() => {
+        remaining--;
+        bar.style.width = Math.max(0, (remaining / 45) * 100) + '%';
+        if (remaining <= 0) {
+          clearInterval(cahTimerInterval);
+          cahTimerInterval = null;
+        }
+      }, 1000);
+    } else {
+      bar.style.width = '0%';
+    }
   }
 
   /* ================================================
