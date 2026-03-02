@@ -107,6 +107,37 @@ class ScrabbleGame {
     return state;
   }
 
+  serialize() {
+    return {
+      playerCount: this.playerCount,
+      currentTurn: this.currentTurn,
+      phase: this.phase,
+      gameOver: this.gameOver,
+      winner: this.winner,
+      firstMove: this.firstMove,
+      consecutivePasses: this.consecutivePasses,
+      board: this.board.map(row => row.map(cell => cell ? { ...cell } : null)),
+      bag: this.bag.map(t => ({ ...t })),
+      racks: this.racks.map(rack => rack.map(t => ({ ...t }))),
+      scores: [...this.scores]
+    };
+  }
+
+  static deserialize(data, dictionary) {
+    const g = new ScrabbleGame(data.playerCount, dictionary);
+    g.currentTurn = data.currentTurn;
+    g.phase = data.phase;
+    g.gameOver = data.gameOver;
+    g.winner = data.winner;
+    g.firstMove = data.firstMove;
+    g.consecutivePasses = data.consecutivePasses;
+    g.board = data.board;
+    g.bag = data.bag;
+    g.racks = data.racks;
+    g.scores = data.scores;
+    return g;
+  }
+
   /**
    * Place tiles and submit the word.
    * @param {number} playerIndex

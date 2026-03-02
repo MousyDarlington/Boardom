@@ -97,6 +97,51 @@ class CAHGame {
     return state;
   }
 
+  serialize() {
+    return {
+      playerCount: this.playerCount,
+      packType: this.packType,
+      maxRounds: this.maxRounds,
+      round: this.round,
+      currentCzar: this.currentCzar,
+      phase: this.phase,
+      gameOver: this.gameOver,
+      winner: this.winner,
+      scores: [...this.scores],
+      activePlayers: [...this.activePlayers],
+      blackDeck: this.blackDeck.map(c => ({ ...c })),
+      whiteDeck: [...this.whiteDeck],
+      blackDiscard: this.blackDiscard.map(c => ({ ...c })),
+      whiteDiscard: [...this.whiteDiscard],
+      currentBlack: this.currentBlack ? { ...this.currentBlack } : null,
+      hands: this.hands.map(h => [...h]),
+      submissions: [...this.submissions.entries()],
+      shuffledSubmissions: this.shuffledSubmissions.map(s => ({ cards: [...s.cards] })),
+      _shuffleMap: [...this._shuffleMap]
+    };
+  }
+
+  static deserialize(data) {
+    const g = new CAHGame(data.playerCount, data.packType, data.maxRounds);
+    g.round = data.round;
+    g.currentCzar = data.currentCzar;
+    g.phase = data.phase;
+    g.gameOver = data.gameOver;
+    g.winner = data.winner;
+    g.scores = data.scores;
+    g.activePlayers = data.activePlayers;
+    g.blackDeck = data.blackDeck;
+    g.whiteDeck = data.whiteDeck;
+    g.blackDiscard = data.blackDiscard;
+    g.whiteDiscard = data.whiteDiscard;
+    g.currentBlack = data.currentBlack;
+    g.hands = data.hands;
+    g.submissions = new Map(data.submissions);
+    g.shuffledSubmissions = data.shuffledSubmissions;
+    g._shuffleMap = data._shuffleMap;
+    return g;
+  }
+
   /**
    * Start a new round. Draws a black card, sets phase to submitting.
    */

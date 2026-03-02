@@ -31,6 +31,28 @@ class ConnectFourGame {
     };
   }
 
+  serialize() {
+    return {
+      board: this.board.map(row => [...row]),
+      currentTurn: this.currentTurn,
+      gameOver: this.gameOver,
+      winner: this.winner,
+      winLine: this.winLine,
+      moveHistory: [...this.moveHistory]
+    };
+  }
+
+  static deserialize(data) {
+    const g = new ConnectFourGame();
+    g.board = data.board;
+    g.currentTurn = data.currentTurn;
+    g.gameOver = data.gameOver;
+    g.winner = data.winner;
+    g.winLine = data.winLine;
+    g.moveHistory = data.moveHistory || [];
+    return g;
+  }
+
   /**
    * Returns an array of valid column indices (columns that are not full).
    */

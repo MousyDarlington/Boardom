@@ -60,6 +60,26 @@ class MancalaGame {
     };
   }
 
+  serialize() {
+    return {
+      pits: [...this.pits],
+      currentTurn: this.currentTurn,
+      gameOver: this.gameOver,
+      winner: this.winner,
+      moveHistory: [...this.moveHistory]
+    };
+  }
+
+  static deserialize(data) {
+    const g = new MancalaGame();
+    g.pits = data.pits;
+    g.currentTurn = data.currentTurn;
+    g.gameOver = data.gameOver;
+    g.winner = data.winner;
+    g.moveHistory = data.moveHistory || [];
+    return g;
+  }
+
   /**
    * Returns array of valid pit indices for the current player.
    * Player 0 can choose from pits 0-5 (those with stones > 0).

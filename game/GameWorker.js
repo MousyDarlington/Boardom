@@ -60,6 +60,8 @@ parentPort.on('message', (msg) => {
       case 'playerDisconnect':  handlePlayerDisconnect(msg.payload); break;
       case 'playerRejoined':    handlePlayerRejoined(msg.payload); break;
       case 'replaceWithBot':    handleReplaceWithBot(msg.payload); break;
+      case 'serialize':          handleSerialize(); break;
+      case 'initFromState':      handleInitFromState(msg.payload); break;
       case 'destroy':           handleDestroy(); break;
     }
   } catch (err) {
@@ -1580,6 +1582,218 @@ function sendRejoinState(socketId, playerIdx) {
 /* ================================================
    DESTROY
    ================================================ */
+/* ================================================
+   SERIALIZE — snapshot full worker state for persistence
+   ================================================ */
+function handleSerialize() {
+  const snapshot = {
+    gameId,
+    matchCode,
+    gameType,
+    gameTypeStr,
+    players: players.map(p => ({
+      id: p.id,
+      username: p.username,
+      isBot: p.isBot,
+      playerIndex: p.playerIndex,
+      color: p.color,
+      rating: p.rating,
+      cosmetics: p.cosmetics,
+      botRating: p.botRating,
+      botName: p.botName
+    })),
+    gameState: game ? game.serialize() : null,
+    chatLog: [...chatLog],
+    disconnectedPlayers: [...disconnectedPlayers],
+    gameConfig: {}
+  };
+
+  if (gameType === 'cah' && game) {
+    snapshot.gameConfig.packType = game.packType;
+    snapshot.gameConfig.maxRounds = game.maxRounds;
+  }
+
+  parentPort.postMessage({ type: 'serialized', payload: snapshot });
+}
+
+/* ================================================
+   INIT FROM STATE — restore worker from saved snapshot
+   ================================================ */
+function handleInitFromState(payload) {
+  gameId = payload.gameId;
+  matchCode = payload.matchCode;
+  gameType = payload.gameType;
+  gameTypeStr = payload.gameTypeStr;
+  chatLog = payload.chatLog || [];
+
+  players = payload.players.map((p, idx) => ({ ...p, playerIndex: idx }));
+  for (const p of players) {
+    socketToIndex.set(p.id, p.playerIndex);
+  }
+
+  // Restore game from serialized state
+  const state = payload.gameState;
+  switch (gameType) {
+    case 'checkers':
+      game = CheckersGame.deserialize(state);
+      break;
+    case 'trouble':
+      game = TroubleGame.deserialize(state);
+      break;
+    case 'scrabble': {
+      const dictPath = payload.gameConfig.dictionaryPath;
+      const words = fs.readFileSync(dictPath, 'utf-8').split(/\r?\n/).filter(w => w.length > 0);
+      dictionary = new Set(words.map(w => w.toUpperCase()));
+      game = ScrabbleGame.deserialize(state, dictionary);
+      break;
+    }
+    case 'cah':
+      game = CAHGame.deserialize(state);
+      break;
+    case 'c4':
+      game = ConnectFourGame.deserialize(state);
+      break;
+    case 'battleship':
+      game = BattleshipGame.deserialize(state);
+      break;
+    case 'mancala':
+      game = MancalaGame.deserialize(state);
+      break;
+  }
+
+  // Mark all human players as disconnected (they'll rejoin via attemptRejoin)
+  for (const p of players) {
+    if (!p.isBot) {
+      disconnectedPlayers.add(p.username);
+    }
+  }
+
+  // Recreate bots (paused — they'll resume when humans rejoin)
+  const adapter = buildLocalAdapter();
+  for (const p of players) {
+    if (!p.isBot) continue;
+    let bot;
+    switch (gameType) {
+      case 'checkers':
+        bot = new BotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.id = p.id;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        break;
+      case 'trouble':
+        bot = new TroubleBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'scrabble':
+        bot = new ScrabbleBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.dictionary = dictionary;
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'cah':
+        bot = new CAHBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'c4':
+        bot = new ConnectFourBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'battleship':
+        bot = new BattleshipBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'mancala':
+        bot = new MancalaBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+    }
+    if (bot) {
+      bot._paused = true;
+      bots.push(bot);
+    }
+  }
+
+  // Set up bot watchdog (same as handleInit)
+  if (bots.length > 0) {
+    setInterval(() => {
+      if (!game) return;
+      if (gameType === 'trouble') {
+        ensureTroubleBotTurn();
+      } else if (gameType === 'checkers') {
+        const go = game.checkGameOver();
+        if (go && go.over) return;
+        const currentBot = bots.find(b => b.color === game.currentTurn);
+        if (currentBot && currentBot.active && !currentBot._paused && !currentBot.moveTimer) {
+          currentBot._scheduleMove();
+        }
+      } else if (gameType === 'scrabble') {
+        if (game.gameOver) return;
+        const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
+        if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
+          currentBot._scheduleTurn();
+        }
+      } else if (gameType === 'cah') {
+        ensureCAHBotAction();
+      } else if (gameType === 'c4') {
+        if (game.gameOver) return;
+        const playerConst = game.currentTurn;
+        const botIdx = playerConst - 1;
+        const currentBot = bots.find(b => b.playerIndex === botIdx);
+        if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
+          currentBot._scheduleMove();
+        }
+      } else if (gameType === 'battleship') {
+        if (game.phase === 'over') return;
+        for (const bot of bots) {
+          if (bot.destroyed || bot._paused) continue;
+          if (game.phase === 'playing' && game.currentTurn === bot.playerIndex && !bot._timer) {
+            bot._scheduleShot();
+          }
+        }
+      } else if (gameType === 'mancala') {
+        if (game.gameOver) return;
+        const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
+        if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
+          currentBot._scheduleMove();
+        }
+      }
+    }, 3000);
+  }
+
+  parentPort.postMessage({ type: 'restored', payload: { gameId } });
+}
+
 function handleDestroy() {
   for (const bot of bots) bot.destroy();
   bots = [];

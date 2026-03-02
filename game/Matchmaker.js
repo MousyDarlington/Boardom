@@ -164,6 +164,18 @@ class Matchmaker {
           if (sock) sock.emit('chat:game', msg.payload.msg);
         }
         break;
+
+      case 'serialized':
+        if (this._serializeCallbacks && this._serializeCallbacks.has(gameId)) {
+          const cb = this._serializeCallbacks.get(gameId);
+          this._serializeCallbacks.delete(gameId);
+          cb(msg.payload);
+        }
+        break;
+
+      case 'restored':
+        console.log(`Game ${msg.payload.gameId} worker restored`);
+        break;
     }
   }
 
@@ -739,6 +751,9 @@ class Matchmaker {
     const eventName = gd.gameType === 'scrabble' ? 'scrabble:paused'
                     : gd.gameType === 'trouble' ? 'trouble:paused'
                     : gd.gameType === 'cah' ? 'cah:paused'
+                    : gd.gameType === 'c4' ? 'c4:paused'
+                    : gd.gameType === 'battleship' ? 'bs:paused'
+                    : gd.gameType === 'mancala' ? 'mancala:paused'
                     : 'game:paused';
 
     for (const p of gd.players) {
@@ -820,6 +835,9 @@ class Matchmaker {
         const eventName = gd.gameType === 'scrabble' ? 'scrabble:resumed'
                         : gd.gameType === 'trouble' ? 'trouble:resumed'
                         : gd.gameType === 'cah' ? 'cah:resumed'
+                        : gd.gameType === 'c4' ? 'c4:resumed'
+                        : gd.gameType === 'battleship' ? 'bs:resumed'
+                        : gd.gameType === 'mancala' ? 'mancala:resumed'
                         : 'game:resumed';
         for (const p of gd.players) {
           if (p.username !== username && !p.isBot) {
@@ -1668,6 +1686,133 @@ class Matchmaker {
 
   getActiveGameCount() {
     return this.games.size;
+  }
+
+  /* ========== PERSISTENCE: Save / Restore ========== */
+
+  async saveActiveGames() {
+    const snapshots = [];
+    const promises = [];
+
+    if (!this._serializeCallbacks) this._serializeCallbacks = new Map();
+
+    for (const [gid, worker] of this.workers) {
+      const gd = this.games.get(gid);
+      if (!gd) continue;
+
+      promises.push(new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          this._serializeCallbacks.delete(gid);
+          resolve(null);
+        }, 3000);
+
+        this._serializeCallbacks.set(gid, (snapshot) => {
+          clearTimeout(timeout);
+          snapshot.matchmakerData = {
+            id: gd.id || gid,
+            matchCode: gd.matchCode,
+            gameType: gd.gameType,
+            type: gd.type,
+            players: gd.players,
+            startedAt: gd.startedAt
+          };
+          snapshots.push(snapshot);
+          resolve(snapshot);
+        });
+
+        worker.postMessage({ type: 'serialize' });
+      }));
+    }
+
+    await Promise.all(promises);
+    return snapshots;
+  }
+
+  restoreGames(snapshots) {
+    for (const snapshot of snapshots) {
+      const md = snapshot.matchmakerData;
+      if (!md) continue;
+
+      // Skip games that were already over
+      if (snapshot.gameState && snapshot.gameState.gameOver) continue;
+
+      // Rebuild Matchmaker-level maps
+      const gameData = {
+        id: md.id,
+        matchCode: md.matchCode,
+        gameType: md.gameType,
+        type: md.type,
+        players: md.players,
+        startedAt: md.startedAt
+      };
+      this.games.set(md.id, gameData);
+      if (md.matchCode) this.matchCodes.set(md.matchCode, md.id);
+
+      // Map usernames to games (but NOT socket IDs — those are stale)
+      for (const p of md.players) {
+        if (p.username) this.usernameToGame.set(p.username, md.id);
+      }
+
+      // Mark all human players as paused/disconnected
+      const pause = {
+        pausedAt: Date.now(),
+        timers: new Map(),
+        disconnectedPlayers: new Set()
+      };
+      for (const p of md.players) {
+        if (!p.isBot) {
+          pause.disconnectedPlayers.add(p.username);
+          // Extended timeout for server restart (4 min instead of 2)
+          const timerId = setTimeout(
+            () => this._onReconnectTimeout(md.id, p.username),
+            RECONNECT_TIMEOUT_MS * 2
+          );
+          pause.timers.set(p.username, timerId);
+        }
+      }
+      this.pausedGames.set(md.id, pause);
+
+      // Spawn worker from saved state
+      const initPayload = {
+        gameId: snapshot.gameId,
+        matchCode: snapshot.matchCode,
+        gameType: snapshot.gameType,
+        gameTypeStr: snapshot.gameTypeStr,
+        players: snapshot.players,
+        gameState: snapshot.gameState,
+        chatLog: snapshot.chatLog,
+        gameConfig: snapshot.gameConfig || {}
+      };
+      if (snapshot.gameType === 'scrabble') {
+        initPayload.gameConfig.dictionaryPath = this.scrabbleDictionaryPath;
+      }
+
+      this._spawnWorkerFromState(md.id, initPayload);
+    }
+
+    if (snapshots.length > 0) {
+      console.log(`Restored ${this.games.size} active game(s)`);
+    }
+  }
+
+  _spawnWorkerFromState(gameId, initPayload) {
+    const worker = new Worker(WORKER_SCRIPT);
+    this.workers.set(gameId, worker);
+
+    worker.on('message', (msg) => this._handleWorkerMessage(gameId, msg));
+    worker.on('error', (err) => {
+      console.error(`Worker error for game ${gameId}:`, err.message, err.stack);
+      this._handleWorkerCrash(gameId);
+    });
+    worker.on('exit', (code) => {
+      this.workers.delete(gameId);
+      if (code !== 0 && this.games.has(gameId)) {
+        console.error(`Worker exited with code ${code} for game ${gameId}`);
+        this._handleWorkerCrash(gameId);
+      }
+    });
+
+    worker.postMessage({ type: 'initFromState', payload: initPayload });
   }
 }
 

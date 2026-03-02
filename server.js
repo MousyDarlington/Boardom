@@ -4,12 +4,14 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 const Matchmaker = require('./game/Matchmaker');
 const { DEFAULT_RATING } = require('./game/EloRating');
 const { SHOP_ITEMS } = require('./game/ShopCatalog');
+const { saveGames, loadGames } = require('./game/GamePersistence');
 
 /* ========== User Store (JSON file persistence) ========== */
 
@@ -90,6 +92,12 @@ const app = express();
 const server = http.createServer(app);
 
 const sessionMiddleware = session({
+  store: new FileStore({
+    path: path.join(__dirname, 'data', 'sessions'),
+    ttl: 7 * 24 * 60 * 60,      // 7 days (seconds)
+    retries: 0,
+    reapInterval: 3600           // clean expired sessions every hour
+  }),
   secret: 'checkers-game-secret-' + (process.env.SESSION_SECRET || 'dev-key-change-me'),
   resave: false,
   saveUninitialized: false,
@@ -344,6 +352,20 @@ io.engine.use(sessionMiddleware);
 
 const matchmaker = new Matchmaker(io, userStore);
 matchmaker.setScrabbleDictionaryPath(DICT_FILE);
+
+// Restore any saved games from previous shutdown
+const savedGames = loadGames();
+if (savedGames.length > 0) {
+  matchmaker.restoreGames(savedGames);
+}
+
+// Periodic game state autosave (crash insurance — at most 60s of progress lost)
+setInterval(async () => {
+  if (matchmaker.getActiveGameCount() > 0) {
+    const snapshots = await matchmaker.saveActiveGames();
+    saveGames(snapshots);
+  }
+}, 60 * 1000);
 
 // Lobby chat (last 50 messages kept in memory)
 const lobbyChatHistory = [];
@@ -660,6 +682,13 @@ server.listen(PORT, () => {
   console.log(`\n  Checkers server running on http://localhost:${PORT}\n`);
 });
 
-// Save users on shutdown
-process.on('SIGINT', () => { saveUsers(); process.exit(); });
-process.on('SIGTERM', () => { saveUsers(); process.exit(); });
+// Graceful shutdown: save users + active games
+async function gracefulShutdown() {
+  console.log('\nGraceful shutdown...');
+  const snapshots = await matchmaker.saveActiveGames();
+  saveGames(snapshots);
+  saveUsers();
+  process.exit(0);
+}
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);

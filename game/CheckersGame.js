@@ -236,6 +236,28 @@ class CheckersGame {
       blackCount: this.blackCount
     };
   }
+
+  serialize() {
+    return {
+      board: this.board.map(row => [...row]),
+      currentTurn: this.currentTurn,
+      jumpingPiece: this.jumpingPiece ? { ...this.jumpingPiece } : null,
+      moveHistory: [...this.moveHistory],
+      redCount: this.redCount,
+      blackCount: this.blackCount
+    };
+  }
+
+  static deserialize(data) {
+    const g = new CheckersGame();
+    g.board = data.board;
+    g.currentTurn = data.currentTurn;
+    g.jumpingPiece = data.jumpingPiece;
+    g.moveHistory = data.moveHistory || [];
+    g.redCount = data.redCount;
+    g.blackCount = data.blackCount;
+    return g;
+  }
 }
 
 // Export constants alongside the class

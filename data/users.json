@@ -55,5 +55,23 @@
     "adFree": false,
     "adFreeUntil": 0,
     "trials": {}
+  },
+  {
+    "username": "persist_test_user",
+    "passwordHash": "$2a$10$NLy5qHjYhkgbXM9lJauJben6AyuLFC8AmO9kL0LrTkd..b93VFtP2",
+    "rating": 1200,
+    "wins": 0,
+    "losses": 0,
+    "created": 1772489233436,
+    "coins": 0,
+    "gems": 0,
+    "ownedItems": [],
+    "equippedBoard": "default",
+    "equippedPieces": "default",
+    "equippedBadge": null,
+    "equippedSiteTheme": "default",
+    "adFree": false,
+    "adFreeUntil": 0,
+    "trials": {}
   }
 ]

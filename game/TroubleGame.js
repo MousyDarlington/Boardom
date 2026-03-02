@@ -55,6 +55,33 @@ class TroubleGame {
     };
   }
 
+  serialize() {
+    return {
+      playerCount: this.playerCount,
+      currentTurn: this.currentTurn,
+      diceResult: this.diceResult,
+      phase: this.phase,
+      gameOver: this.gameOver,
+      winner: this.winner,
+      placements: [...this.placements],
+      tokens: this.tokens.map(t => [...t]),
+      finished: [...this.finished]
+    };
+  }
+
+  static deserialize(data) {
+    const g = new TroubleGame(data.playerCount);
+    g.currentTurn = data.currentTurn;
+    g.diceResult = data.diceResult;
+    g.phase = data.phase;
+    g.gameOver = data.gameOver;
+    g.winner = data.winner;
+    g.placements = data.placements || [];
+    g.tokens = data.tokens;
+    g.finished = data.finished;
+    return g;
+  }
+
   rollDice() {
     if (this.phase !== 'roll' || this.gameOver) return { valid: false };
 

@@ -380,6 +380,33 @@ class BattleshipGame {
       }))
     };
   }
+
+  serialize() {
+    return {
+      phase: this.phase,
+      currentTurn: this.currentTurn,
+      winner: this.winner,
+      players: this.players.map(p => ({
+        grid: p.grid.map(row => [...row]),
+        ships: p.ships.map(s => ({
+          name: s.name, size: s.size,
+          cells: s.cells ? s.cells.map(c => ({ ...c })) : [],
+          hits: s.hits, sunk: s.sunk
+        })),
+        shots: p.shots.map(row => [...row]),
+        ready: p.ready
+      }))
+    };
+  }
+
+  static deserialize(data) {
+    const g = new BattleshipGame();
+    g.phase = data.phase;
+    g.currentTurn = data.currentTurn;
+    g.winner = data.winner;
+    g.players = data.players;
+    return g;
+  }
 }
 
 // Static constants
