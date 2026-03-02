@@ -1281,7 +1281,14 @@
 
     s.on('troubleLobby:updated', (data) => {
       troubleLobbyPlayers = data.players;
-      updateTroubleHostScreen();
+      troubleLobbyCode = data.code || troubleLobbyCode;
+      if (currentScreen !== 'troubleHost') {
+        // Non-host joining — show the lobby screen
+        isTroubleLobbyHost = false;
+        showTroubleHostScreen();
+      } else {
+        updateTroubleHostScreen();
+      }
     });
 
     s.on('troubleLobby:error', (data) => {
