@@ -2950,18 +2950,37 @@
   }
 
   function onTroubleOver(data) {
-    const isWin = troubleIsLocal
-      ? true
-      : (data.winner === troublePlayerIndex);
+    const placements = data.placements || [data.winner];
+    const placementNames = data.placementNames || placements.map(i => TROUBLE_COLOR_NAMES[i]);
+    const myPlace = placements.indexOf(troublePlayerIndex);
+    const isWin = troubleIsLocal ? true : (myPlace === 0);
+
     const title = $('gameOverTitle');
     if (troubleIsLocal) {
       title.textContent = `${TROUBLE_COLOR_NAMES[data.winner]} Wins!`;
       title.className = '';
+    } else if (isWin) {
+      title.textContent = 'Victory!';
+      title.className = 'win';
     } else {
-      title.textContent = isWin ? 'Victory!' : 'Defeat';
-      title.className = isWin ? 'win' : 'lose';
+      const ordinals = ['1st', '2nd', '3rd', '4th'];
+      title.textContent = myPlace >= 0 ? `${ordinals[myPlace]} Place` : 'Game Over';
+      title.className = myPlace <= 1 ? 'win' : 'lose';
     }
-    $('gameOverReason').textContent = 'All tokens home!';
+
+    // Build standings text
+    const ordinals = ['1st', '2nd', '3rd', '4th'];
+    let standingsHtml = '';
+    for (let r = 0; r < placements.length; r++) {
+      const pIdx = placements[r];
+      const pc = TROUBLE_PLAYER_COLORS[pIdx];
+      const name = placementNames[r] || TROUBLE_COLOR_NAMES[pIdx];
+      const displayName = name.startsWith('trouble_bot_') ? `Bot ${TROUBLE_COLOR_NAMES[pIdx]}` : name;
+      const isMe = !troubleIsLocal && pIdx === troublePlayerIndex;
+      standingsHtml += `<span style="color:${pc.highlight}">${ordinals[r]}</span> ${escapeHtml(displayName)}${isMe ? ' (You)' : ''}`;
+      if (r < placements.length - 1) standingsHtml += '  ·  ';
+    }
+    $('gameOverReason').innerHTML = standingsHtml;
 
     // Rating change (Trouble is unranked for now)
     $('gameOverRating').innerHTML = '';
@@ -2993,6 +3012,8 @@
     if (isWin || troubleIsLocal) {
       sfxWin();
       startConfetti();
+    } else if (myPlace <= 1) {
+      sfxWin(); // 2nd place also gets a win sound
     } else {
       sfxLose();
     }
