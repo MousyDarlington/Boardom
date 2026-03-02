@@ -545,6 +545,9 @@ class Matchmaker {
 
   leaveQueue(socket) {
     this._removeFromQueues(socket);
+    this.c4Queue = this.c4Queue.filter(s => s.id !== socket.id);
+    this.battleshipQueue = this.battleshipQueue.filter(s => s.id !== socket.id);
+    this.mancalaQueue = this.mancalaQueue.filter(s => s.id !== socket.id);
     socket.emit('queue:left');
   }
 
@@ -645,6 +648,9 @@ class Matchmaker {
     this.troubleQueue = this.troubleQueue.filter(s => s.id !== socket.id);
     this.scrabbleQueue = this.scrabbleQueue.filter(s => s.id !== socket.id);
     this.cahQueue = this.cahQueue.filter(s => s.id !== socket.id);
+    this.c4Queue = this.c4Queue.filter(s => s.id !== socket.id);
+    this.battleshipQueue = this.battleshipQueue.filter(s => s.id !== socket.id);
+    this.mancalaQueue = this.mancalaQueue.filter(s => s.id !== socket.id);
 
     // Clean up lobbies
     for (const [code, lobby] of this.lobbies) {
@@ -1332,6 +1338,277 @@ class Matchmaker {
     const worker = gameId && this.workers.get(gameId);
     if (worker) worker.postMessage({ type: 'resign', payload: { socketId: socket.id } });
   }
+
+  /* ========== CONNECT FOUR GAME ========== */
+
+  /* ---- Connect Four Queue ---- */
+  joinC4Queue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.c4Queue = this.c4Queue.filter(s => s.id !== socket.id);
+    this.c4Queue.push(socket);
+    socket.emit('queue:joined', { game: 'c4' });
+    this._matchC4();
+    this._setQueueTimer(socket, () => this.playC4Bot(socket));
+  }
+
+  _matchC4() {
+    while (this.c4Queue.length >= 2) {
+      const p1 = this.c4Queue.shift();
+      const p2 = this.c4Queue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startC4Game([p1, p2], 'casual');
+    }
+  }
+
+  playC4Bot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.c4Queue = this.c4Queue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startC4Game([socket], 'bot');
+  }
+
+  _startC4Game(sockets, type) {
+    const gameId = 'c4_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+
+    const playerData = sockets.map((s, i) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+
+    // Add bot if solo
+    if (playerData.length < 2) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_c4_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const botNames = ['DropMaster','FourSight','GridBot','ConnectAI','ColumnKing','DiscDrop'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+
+    const gd = { gameId, matchCode, type, gameType: 'c4', players: playerData, c4Game: null };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'c4', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  /* ---- Connect Four Actions ---- */
+  c4MakeMove(socket, col) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'c4Move', payload: { socketId: socket.id, col } });
+  }
+
+  c4Resign(socket) { this.resign(socket); }
+
+  /* ========== BATTLESHIP GAME ========== */
+
+  /* ---- Battleship Queue ---- */
+  joinBattleshipQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.battleshipQueue = this.battleshipQueue.filter(s => s.id !== socket.id);
+    this.battleshipQueue.push(socket);
+    socket.emit('queue:joined', { game: 'battleship' });
+    this._matchBattleship();
+    this._setQueueTimer(socket, () => this.playBattleshipBot(socket));
+  }
+
+  _matchBattleship() {
+    while (this.battleshipQueue.length >= 2) {
+      const p1 = this.battleshipQueue.shift();
+      const p2 = this.battleshipQueue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startBattleshipGame([p1, p2], 'casual');
+    }
+  }
+
+  playBattleshipBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.battleshipQueue = this.battleshipQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startBattleshipGame([socket], 'bot');
+  }
+
+  _startBattleshipGame(sockets, type) {
+    const gameId = 'bs_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+
+    const playerData = sockets.map((s, i) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+
+    if (playerData.length < 2) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_bs_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const botNames = ['Admiral','Captain','Commander','Ensign','Navigator','Helmsman'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+
+    const gd = { gameId, matchCode, type, gameType: 'battleship', players: playerData, bsGame: null };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'battleship', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  /* ---- Battleship Actions ---- */
+  bsPlaceShip(socket, shipName, row, col, horizontal) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'bsPlaceShip', payload: { socketId: socket.id, shipName, row, col, horizontal } });
+  }
+
+  bsAutoPlace(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'bsAutoPlace', payload: { socketId: socket.id } });
+  }
+
+  bsSetReady(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'bsSetReady', payload: { socketId: socket.id } });
+  }
+
+  bsFireShot(socket, row, col) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'bsFireShot', payload: { socketId: socket.id, row, col } });
+  }
+
+  battleshipResign(socket) { this.resign(socket); }
+
+  /* ========== MANCALA GAME ========== */
+
+  /* ---- Mancala Queue ---- */
+  joinMancalaQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.mancalaQueue = this.mancalaQueue.filter(s => s.id !== socket.id);
+    this.mancalaQueue.push(socket);
+    socket.emit('queue:joined', { game: 'mancala' });
+    this._matchMancala();
+    this._setQueueTimer(socket, () => this.playMancalaBot(socket));
+  }
+
+  _matchMancala() {
+    while (this.mancalaQueue.length >= 2) {
+      const p1 = this.mancalaQueue.shift();
+      const p2 = this.mancalaQueue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startMancalaGame([p1, p2], 'casual');
+    }
+  }
+
+  playMancalaBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.mancalaQueue = this.mancalaQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startMancalaGame([socket], 'bot');
+  }
+
+  _startMancalaGame(sockets, type) {
+    const gameId = 'mn_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+
+    const playerData = sockets.map((s, i) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+
+    if (playerData.length < 2) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_mn_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const botNames = ['SeedSower','StoneKing','PitMaster','MancalaMind','SowBot','HarvestAI'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+
+    const gd = { gameId, matchCode, type, gameType: 'mancala', players: playerData, mancalaGame: null };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'mancala', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  /* ---- Mancala Actions ---- */
+  mancalaMakeMove(socket, pitIdx) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'mancalaMove', payload: { socketId: socket.id, pitIdx } });
+  }
+
+  mancalaResign(socket) { this.resign(socket); }
 
   /* ---------- Stats ---------- */
 
