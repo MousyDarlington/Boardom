@@ -1096,7 +1096,22 @@
   function onLoggedIn() {
     updateProfileCard();
     connectSocket();
-    showScreen('lobby');
+    if (pendingJoinCode) {
+      const code = pendingJoinCode;
+      pendingJoinCode = null;
+      showScreen('lobby');
+      // Wait for socket connect, then resolve the code
+      const tryJoin = () => {
+        if (socket && socket.connected) {
+          processUrlJoin(code);
+        } else if (socket) {
+          socket.once('connect', () => processUrlJoin(code));
+        }
+      };
+      tryJoin();
+    } else {
+      showScreen('lobby');
+    }
   }
 
   function updateProfileCard() {
