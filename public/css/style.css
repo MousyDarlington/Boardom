@@ -400,11 +400,12 @@ input:focus {
 
 /* --- Game Card Row --- */
 .game-card-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   padding: 0.25rem;
   transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
-  max-height: 300px;
+  max-height: 600px;
   overflow: visible;
 }
 
@@ -419,8 +420,6 @@ input:focus {
 
 /* --- Game Card --- */
 .game-card {
-  flex: 1;
-  min-width: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
