@@ -59,17 +59,21 @@ class TroubleBotPlayer {
   }
 
   _scheduleRoll() {
-    if (this.destroyed) return;
+    if (this.destroyed || this._paused) return;
+    if (this._timer) clearTimeout(this._timer);
     this._timer = setTimeout(() => {
-      if (this.destroyed) return;
+      this._timer = null;
+      if (this.destroyed || this._paused) return;
       this.matchmaker.troubleRollDice(this.socket);
     }, this._thinkMs());
   }
 
   _scheduleMove(validMoves) {
-    if (this.destroyed) return;
+    if (this.destroyed || this._paused) return;
+    if (this._timer) clearTimeout(this._timer);
     this._timer = setTimeout(() => {
-      if (this.destroyed) return;
+      this._timer = null;
+      if (this.destroyed || this._paused) return;
       const move = this.skill === 1 ? this._pickBestMove(validMoves) : this._pickRandom(validMoves);
       this.matchmaker.troubleMakeMove(this.socket, move.tokenIdx);
     }, this._thinkMs() * 0.6);

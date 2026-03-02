@@ -606,11 +606,10 @@ class Matchmaker {
       for (const b of tBots) {
         if (b._paused) {
           b._paused = false;
-          if (gd.troubleGame && gd.troubleGame.currentTurn === b.playerIndex && gd.troubleGame.phase === 'roll') {
-            b._scheduleRoll();
-          }
         }
       }
+      // Use the safety-net to restart the correct bot
+      if (gd.troubleGame) this._ensureTroubleBotTurn(gd);
     }
     const sBots = this.scrabbleBots.get(gd.id);
     if (sBots) {
@@ -936,6 +935,9 @@ class Matchmaker {
         phase: gd.troubleGame.phase
       });
     }
+
+    // Ensure next bot acts if turn changed (e.g. skip)
+    this._ensureTroubleBotTurn(gd);
   }
 
   troubleMakeMove(socket, tokenIdx) {
@@ -967,6 +969,32 @@ class Matchmaker {
 
     if (result.gameOver.over) {
       this._endTroubleGame(gd.id, result.gameOver.winner);
+    } else {
+      // Ensure next bot acts
+      this._ensureTroubleBotTurn(gd);
+    }
+  }
+
+  /** Safety net: if it's a bot's turn, make sure it has a timer scheduled. */
+  _ensureTroubleBotTurn(gd) {
+    const game = gd.troubleGame;
+    if (!game || game.gameOver) return;
+    const tBots = this.troubleBots.get(gd.id);
+    if (!tBots) return;
+
+    const currentBot = tBots.find(b => b.playerIndex === game.currentTurn);
+    if (!currentBot || currentBot.destroyed || currentBot._paused) return;
+
+    // If the bot already has a pending timer, don't double-schedule
+    if (currentBot._timer) return;
+
+    if (game.phase === 'roll') {
+      currentBot._scheduleRoll();
+    } else if (game.phase === 'move') {
+      const validMoves = game.getValidMoves();
+      if (validMoves.length > 0) {
+        currentBot._scheduleMove(validMoves);
+      }
     }
   }
 
