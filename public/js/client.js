@@ -1124,7 +1124,12 @@
      SOCKET CONNECTION
      ================================================ */
   function connectSocket() {
-    if (socket?.connected) return;
+    if (socket) {
+      // Force reconnect so server picks up the current session
+      if (socket.connected) socket.disconnect();
+      socket.connect();
+      return;
+    }
     socket = io();
 
     socket.on('connect', () => {
