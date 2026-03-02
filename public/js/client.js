@@ -1245,6 +1245,15 @@
         updateTroubleHUD();
       }
     });
+    socket.on('trouble:placed', (data) => {
+      if (troubleState) {
+        if (!troubleState.placements) troubleState.placements = [];
+        if (!troubleState.placements.includes(data.playerIdx)) {
+          troubleState.placements.push(data.playerIdx);
+        }
+        updateTroubleHUD();
+      }
+    });
 
     // Scrabble events
     socket.on('scrabble:start', onScrabbleStart);
