@@ -153,15 +153,7 @@
         </div>
       </div>
 
-      <!-- Right: Global Chat -->
-      <div class="lobby-chat glass">
-        <div class="chat-header">Global Chat</div>
-        <div class="chat-messages" id="lobbyChatMessages"></div>
-        <form class="chat-input-row" id="lobbyChatForm">
-          <input type="text" id="lobbyChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
-          <button type="submit" class="btn btn-small btn-primary">Send</button>
-        </form>
-      </div>
+      <!-- Chat removed — uses global popout modal -->
     </div>
   </div>
 
@@ -298,15 +290,7 @@
         </div>
       </div>
 
-      <!-- In-game chat -->
-      <div class="game-chat glass" id="gameChatPanel">
-        <div class="chat-header">Game Chat</div>
-        <div class="chat-messages" id="gameChatMessages"></div>
-        <form class="chat-input-row" id="gameChatForm">
-          <input type="text" id="gameChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
-          <button type="submit" class="btn btn-small btn-primary">Send</button>
-        </form>
-      </div>
+      <!-- Chat removed — uses global popout modal -->
     </div>
   </div>
 
@@ -327,14 +311,7 @@
           <button class="btn btn-small btn-danger" id="btnTroubleResign">Resign</button>
         </div>
       </div>
-      <div class="game-chat glass" id="troubleChatPanel">
-        <div class="chat-header">Game Chat</div>
-        <div class="chat-messages" id="troubleChatMessages"></div>
-        <form class="chat-input-row" id="troubleChatForm">
-          <input type="text" id="troubleChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
-          <button type="submit" class="btn btn-small btn-primary">Send</button>
-        </form>
-      </div>
+      <!-- Chat removed — uses global popout modal -->
     </div>
   </div>
 
@@ -373,14 +350,7 @@
           </div>
           <div class="scrabble-error" id="scrabbleError"></div>
         </div>
-        <div class="game-chat glass" id="scrabbleChatPanel">
-          <div class="chat-header">Game Chat</div>
-          <div class="chat-messages" id="scrabbleChatMessages"></div>
-          <form class="chat-input-row" id="scrabbleChatForm">
-            <input type="text" id="scrabbleChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
-            <button type="submit" class="btn btn-small btn-primary">Send</button>
-          </form>
-        </div>
+        <!-- Chat removed — uses global popout modal -->
         <div class="match-code-display">
           <span class="match-code-label">Code:</span>
           <span class="match-code-value" id="scrabbleMatchCodeValue">------</span>
@@ -501,26 +471,7 @@
 
     </div>
 
-    <!-- Chat toggle button -->
-    <button class="cah-chat-toggle" id="btnCAHChatToggle" title="Game Chat">
-      <span class="cah-chat-toggle-icon">&#x1F4AC;</span>
-      <span class="cah-chat-badge hidden" id="cahChatBadge">0</span>
-    </button>
-
-    <!-- Chat popout modal -->
-    <div class="cah-chat-modal hidden" id="cahChatModal">
-      <div class="cah-chat-modal-inner glass">
-        <div class="cah-chat-modal-header">
-          <span>Game Chat</span>
-          <button class="cah-chat-close" id="btnCAHChatClose" title="Close">&times;</button>
-        </div>
-        <div class="chat-messages" id="cahChatMessages"></div>
-        <form class="chat-input-row" id="cahChatForm">
-          <input type="text" id="cahChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
-          <button type="submit" class="btn btn-small btn-primary">Send</button>
-        </form>
-      </div>
-    </div>
+    <!-- Chat removed — uses global popout modal -->
   </div>
 
   <!-- ===== GAME OVER OVERLAY ===== -->
@@ -568,6 +519,26 @@
     </div>
   </div>
 
+</div>
+
+<!-- ===== GLOBAL CHAT POPOUT ===== -->
+<button class="chat-fab hidden" id="chatFab" title="Chat">
+  <span class="chat-fab-icon">&#x1F4AC;</span>
+  <span class="chat-fab-badge hidden" id="chatFabBadge">0</span>
+</button>
+
+<div class="chat-modal hidden" id="chatModal">
+  <div class="chat-modal-inner glass">
+    <div class="chat-modal-header">
+      <span id="chatModalTitle">Chat</span>
+      <button class="chat-modal-close" id="btnChatClose" title="Close">&times;</button>
+    </div>
+    <div class="chat-messages" id="chatModalMessages"></div>
+    <form class="chat-input-row" id="chatModalForm">
+      <input type="text" id="chatModalInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
+      <button type="submit" class="btn btn-small btn-primary">Send</button>
+    </form>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
