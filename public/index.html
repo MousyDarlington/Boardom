@@ -202,6 +202,38 @@
     </div>
   </div>
 
+  <!-- ===== TROUBLE PRIVATE LOBBY ===== -->
+  <div id="troubleHostScreen" class="screen">
+    <div class="card glass center-card">
+      <h2>Trouble Private Lobby</h2>
+      <p class="muted">Share this code or link with friends:</p>
+      <div class="invite-code" id="troubleInviteCode">------</div>
+      <p class="copy-hint" id="troubleCopyHint">Click to copy</p>
+      <button class="btn btn-small btn-ghost" id="btnCopyTroubleLink">Copy Invite Link</button>
+      <div class="trouble-lobby-player-list" id="troubleLobbyPlayerList"></div>
+      <p class="auth-error" id="troubleHostError"></p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnTroubleStartLobby" disabled>Start Game</button>
+        <button class="btn btn-ghost" id="btnTroubleCancelLobby">Cancel</button>
+      </div>
+      <p class="muted" style="font-size:0.75rem;margin-top:0.5rem">Host can start with 2+ players. Empty slots fill with bots.</p>
+    </div>
+  </div>
+
+  <!-- ===== GUEST JOIN SCREEN ===== -->
+  <div id="guestJoinScreen" class="screen">
+    <div class="card glass center-card">
+      <h2>Join Game</h2>
+      <p class="muted">Enter a display name to play as guest:</p>
+      <input type="text" id="guestNameInput" class="code-input" placeholder="Your Name" maxlength="20" autocomplete="off">
+      <p class="auth-error" id="guestError"></p>
+      <button class="btn btn-primary" id="btnGuestJoin">Join as Guest</button>
+      <div class="guest-divider"><span>or</span></div>
+      <p class="muted">Save your stats and earn coins:</p>
+      <button class="btn btn-ghost" id="btnGuestSignup">Sign Up / Log In</button>
+    </div>
+  </div>
+
   <!-- ===== SHOP SCREEN ===== -->
   <div id="shopScreen" class="screen">
     <div class="shop-layout">

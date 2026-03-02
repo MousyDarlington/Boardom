@@ -405,6 +405,40 @@ io.on('connection', (socket) => {
     matchmaker.leaveLobby(socket);
   });
 
+  socket.on('lobby:resolve', (code) => {
+    const result = matchmaker.resolveCodeType(code);
+    if (!result) return socket.emit('lobby:resolveResult', { found: false, code });
+    socket.emit('lobby:resolveResult', { found: true, ...result });
+  });
+
+  /* ---- Guest joining ---- */
+  socket.on('guest:setName', (name) => {
+    const clean = String(name || '').trim().replace(/[<>"'&]/g, '').slice(0, 20);
+    if (clean.length < 1) return socket.emit('guest:error', { message: 'Name required' });
+    socket.guestName = clean;
+    socket.emit('guest:ready', { guestName: clean });
+  });
+
+  /* ---- Trouble Lobby ---- */
+  socket.on('troubleLobby:create', () => {
+    if (!socket.username && !socket.guestName) return socket.emit('auth:required');
+    matchmaker.createTroubleLobby(socket);
+  });
+
+  socket.on('troubleLobby:join', (code) => {
+    if (!socket.username && !socket.guestName) return socket.emit('auth:required');
+    matchmaker.joinTroubleLobby(socket, code);
+  });
+
+  socket.on('troubleLobby:start', (code) => {
+    if (!socket.username && !socket.guestName) return socket.emit('auth:required');
+    matchmaker.startTroubleLobby(socket, code);
+  });
+
+  socket.on('troubleLobby:leave', () => {
+    matchmaker.leaveTroubleLobby(socket);
+  });
+
   /* ---- Rejoin ---- */
   socket.on('game:rejoin', (matchCode) => {
     if (!socket.username) return socket.emit('auth:required');
