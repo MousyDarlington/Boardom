@@ -19,5 +19,41 @@
     "losses": 2,
     "created": 1772359782056,
     "coins": 6
+  },
+  {
+    "username": "testbot1",
+    "passwordHash": "$2a$10$Sdt2/OA7x4bf/lqkgUjSCOk7hXfzbQFfurVlv8lFgrO1I/wcoZDYq",
+    "rating": 1200,
+    "wins": 0,
+    "losses": 0,
+    "created": 1772487675534,
+    "coins": 0,
+    "gems": 0,
+    "ownedItems": [],
+    "equippedBoard": "default",
+    "equippedPieces": "default",
+    "equippedBadge": null,
+    "equippedSiteTheme": "default",
+    "adFree": false,
+    "adFreeUntil": 0,
+    "trials": {}
+  },
+  {
+    "username": "testbot2",
+    "passwordHash": "$2a$10$FQMuS3oSSpX2iPTOgY7JC.t5GQLQdhjD4vipUR0DXDs8vixHKuzgq",
+    "rating": 1200,
+    "wins": 0,
+    "losses": 0,
+    "created": 1772487753308,
+    "coins": 0,
+    "gems": 0,
+    "ownedItems": [],
+    "equippedBoard": "default",
+    "equippedPieces": "default",
+    "equippedBadge": null,
+    "equippedSiteTheme": "default",
+    "adFree": false,
+    "adFreeUntil": 0,
+    "trials": {}
   }
 ]

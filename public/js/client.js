@@ -5659,6 +5659,78 @@
     return { over:false };
   }
 
+  // Shared game-over overlay for C4, Battleship, Mancala (and local modes)
+  function showGameOverOverlay(data) {
+    const title = $('gameOverTitle');
+    const reason = $('gameOverReason');
+    const ratingDiv = $('gameOverRating');
+    const coinDiv = $('gameOverCoins');
+
+    // Determine if current player won
+    let isWin = false;
+    let isLocal = false;
+    if (data.winnerUsername) {
+      // Local game — show winner name
+      isLocal = true;
+      title.textContent = data.winnerUsername + ' Wins!';
+      title.className = '';
+    } else if (data.winner === null || data.winner === undefined) {
+      title.textContent = 'Draw!';
+      title.className = '';
+    } else {
+      // Determine which game to check player index
+      const myIdx = currentScreen === 'c4' ? c4MyIndex
+                  : currentScreen === 'battleship' ? bsMyIndex
+                  : currentScreen === 'mancala' ? mnMyIndex
+                  : -1;
+      isWin = data.winner === myIdx;
+      title.textContent = isWin ? 'Victory!' : 'Defeat';
+      title.className = isWin ? 'win' : 'lose';
+    }
+
+    if (reason) reason.textContent = data.reason || '';
+
+    // Rating change
+    if (ratingDiv) {
+      ratingDiv.innerHTML = '';
+      if (data.ratingChange && user) {
+        const delta = data.ratingChange[user.username];
+        if (delta != null) {
+          const cls = delta >= 0 ? 'positive' : 'negative';
+          const sign = delta >= 0 ? '+' : '';
+          ratingDiv.innerHTML = `Rating: <span class="${cls}">${sign}${delta}</span>`;
+          user.rating = (user.rating || 1200) + delta;
+          if (isWin) user.wins = (user.wins || 0) + 1;
+          else if (!isLocal && data.winner !== null) user.losses = (user.losses || 0) + 1;
+          updateProfileCard();
+        }
+      }
+    }
+
+    // Show coin reward
+    if (coinDiv) {
+      coinDiv.textContent = '';
+      if (data.coinRewards && user) {
+        const coins = data.coinRewards[user.username];
+        if (coins) {
+          coinDiv.textContent = `+${coins} coins`;
+          user.coins = (user.coins || 0) + coins;
+        }
+      }
+    }
+
+    gamesPlayedThisSession++;
+    const adEl = $('adGameOver');
+    if (adEl) {
+      const showAd = !adFreeUser && gamesPlayedThisSession % 2 === 0;
+      adEl.classList.toggle('hidden', !showAd);
+      if (showAd && typeof refreshAds === 'function') refreshAds();
+    }
+
+    $('gameOverOverlay').classList.remove('hidden');
+    if (isWin || isLocal) { sfxWin(); startConfetti(); } else { sfxLose(); }
+  }
+
   // Socket events for Connect Four
   function bindC4SocketEvents() {
     if (!socket) return;
