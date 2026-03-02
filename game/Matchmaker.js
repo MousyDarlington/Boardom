@@ -66,6 +66,204 @@ class Matchmaker {
     this._cancelQueueTimer(socket.id);
   }
 
+  /* ---------- Socket lookup (replaces direct socket storage) ---------- */
+
+  _getSocket(socketId) {
+    return this.io.sockets.sockets.get(socketId) || null;
+  }
+
+  /* ---------- Worker lifecycle ---------- */
+
+  _spawnWorker(gameId, initPayload) {
+    const worker = new Worker(WORKER_SCRIPT);
+    this.workers.set(gameId, worker);
+
+    worker.on('message', (msg) => this._handleWorkerMessage(gameId, msg));
+    worker.on('error', (err) => {
+      console.error(`Worker error for game ${gameId}:`, err);
+      this._handleWorkerCrash(gameId);
+    });
+    worker.on('exit', (code) => {
+      this.workers.delete(gameId);
+      if (code !== 0 && this.games.has(gameId)) {
+        console.error(`Worker exited with code ${code} for game ${gameId}`);
+        this._handleWorkerCrash(gameId);
+      }
+    });
+
+    worker.postMessage({ type: 'init', payload: initPayload });
+  }
+
+  _handleWorkerMessage(gameId, msg) {
+    switch (msg.type) {
+      case 'started':
+        for (const psd of msg.payload.playerStartData) {
+          const sock = this._getSocket(psd.socketId);
+          if (sock) sock.emit(psd.event, psd.data);
+        }
+        break;
+
+      case 'emit':
+        for (const target of msg.payload.targets) {
+          const sock = this._getSocket(target.socketId);
+          if (sock) sock.emit(target.event, target.data);
+        }
+        break;
+
+      case 'gameOver': {
+        // 1. Relay game-over events to human players
+        for (const target of msg.payload.overTargets) {
+          const sock = this._getSocket(target.socketId);
+          if (sock) sock.emit(target.event, target.data);
+        }
+        // 2. Process rewards on main thread
+        const gd = this.games.get(gameId);
+        if (gd) this._processGameOverRewards(gd, msg.payload);
+        // 3. Clean up
+        this._cleanupGameMaps(gameId);
+        this._terminateWorker(gameId);
+        break;
+      }
+
+      case 'rejoinState': {
+        const sock = this._getSocket(msg.payload.socketId);
+        if (sock) sock.emit(msg.payload.event, msg.payload.data);
+        break;
+      }
+
+      case 'chatBroadcast':
+        for (const sid of msg.payload.targets) {
+          const sock = this._getSocket(sid);
+          if (sock) sock.emit('chat:game', msg.payload.msg);
+        }
+        break;
+
+      case 'error':
+        if (msg.payload.socketId) {
+          const sock = this._getSocket(msg.payload.socketId);
+          if (sock) sock.emit(msg.payload.event, msg.payload.data);
+        }
+        break;
+    }
+  }
+
+  _handleWorkerCrash(gameId) {
+    const gd = this.games.get(gameId);
+    if (!gd) return;
+    const reason = 'Game ended due to server error';
+    const event = gd.gameType === 'scrabble' ? 'scrabble:over'
+                : gd.gameType === 'trouble' ? 'trouble:over'
+                : 'game:over';
+    for (const p of gd.players) {
+      if (!p.isBot) {
+        const sock = this._getSocket(p.socketId);
+        if (sock) sock.emit(event, { winner: null, reason });
+      }
+    }
+    this._cleanupGameMaps(gameId);
+  }
+
+  _terminateWorker(gameId) {
+    const worker = this.workers.get(gameId);
+    if (worker) {
+      worker.postMessage({ type: 'destroy' });
+      setTimeout(() => {
+        if (this.workers.has(gameId)) {
+          worker.terminate();
+          this.workers.delete(gameId);
+        }
+      }, 1000);
+    }
+  }
+
+  _cleanupGameMaps(gameId) {
+    const gd = this.games.get(gameId);
+    if (!gd) return;
+    if (gd.matchCode) this.matchCodes.delete(gd.matchCode);
+    for (const p of gd.players) {
+      if (p.username) this.usernameToGame.delete(p.username);
+      this.playerToGame.delete(p.socketId);
+      if (!p.isBot) {
+        const sock = this._getSocket(p.socketId);
+        if (sock) sock.leave(gameId);
+      }
+    }
+    this._clearPauseState(gameId);
+    this.games.delete(gameId);
+  }
+
+  /* ---------- Post-game rewards (main thread) ---------- */
+
+  _processGameOverRewards(gd, overPayload) {
+    if (gd.gameType === 'checkers') {
+      const { winner, reason } = overPayload;
+      const redPlayer = gd.players.find(p => p.color === CheckersGame.RED);
+      const blackPlayer = gd.players.find(p => p.color === CheckersGame.BLACK);
+      if (!redPlayer || !blackPlayer) return;
+
+      if (gd.type === 'ranked' && winner) {
+        const winnerUsername = winner === CheckersGame.RED ? redPlayer.username : blackPlayer.username;
+        const loserUsername = winner === CheckersGame.RED ? blackPlayer.username : redPlayer.username;
+        const winnerUser = this.userStore.getUser(winnerUsername);
+        const loserUser = this.userStore.getUser(loserUsername);
+        if (winnerUser && loserUser) {
+          const result = calculateNewRatings(
+            winnerUser.rating, loserUser.rating,
+            winnerUser.wins + winnerUser.losses,
+            loserUser.wins + loserUser.losses
+          );
+          this.userStore.updateUser(winnerUsername, { rating: result.winnerNew, wins: winnerUser.wins + 1 });
+          this.userStore.updateUser(loserUsername, { rating: result.loserNew, losses: loserUser.losses + 1 });
+          // Patch ratingChange into overTargets data (already emitted, so this is for consistency)
+        }
+      } else if (gd.type === 'casual' && winner) {
+        const wName = winner === CheckersGame.RED ? redPlayer.username : blackPlayer.username;
+        const lName = winner === CheckersGame.RED ? blackPlayer.username : redPlayer.username;
+        const wu = this.userStore.getUser(wName);
+        const lu = this.userStore.getUser(lName);
+        if (wu) this.userStore.updateUser(wName, { wins: wu.wins + 1 });
+        if (lu) this.userStore.updateUser(lName, { losses: lu.losses + 1 });
+      }
+
+      // Award coins
+      if (winner) {
+        const wName = winner === CheckersGame.RED ? redPlayer.username : blackPlayer.username;
+        const lName = winner === CheckersGame.RED ? blackPlayer.username : redPlayer.username;
+        const wUser = this.userStore.getUser(wName);
+        const lUser = this.userStore.getUser(lName);
+        if (wUser && !wUser.isBot) this.userStore.updateUser(wName, { coins: (wUser.coins || 0) + 10 });
+        if (lUser && !lUser.isBot) this.userStore.updateUser(lName, { coins: (lUser.coins || 0) + 3 });
+      }
+
+      this._decrementTrials(redPlayer.username);
+      this._decrementTrials(blackPlayer.username);
+
+    } else if (gd.gameType === 'trouble') {
+      const { placements } = overPayload;
+      const placementRewards = [20, 12, 6, 3];
+      for (let rank = 0; rank < placements.length; rank++) {
+        const playerIdx = placements[rank];
+        const username = gd.players[playerIdx]?.username;
+        const user = this.userStore.getUser(username);
+        if (!user || user.isBot) continue;
+        const reward = placementRewards[rank] || 3;
+        this.userStore.updateUser(username, { coins: (user.coins || 0) + reward });
+      }
+      for (const p of gd.players) this._decrementTrials(p.username);
+
+    } else if (gd.gameType === 'scrabble') {
+      const { winnerIdx } = overPayload;
+      for (let i = 0; i < gd.players.length; i++) {
+        const username = gd.players[i].username;
+        const user = this.userStore.getUser(username);
+        if (!user || user.isBot) continue;
+        const reward = i === winnerIdx ? 20 : 5;
+        this.userStore.updateUser(username, { coins: (user.coins || 0) + reward });
+      }
+      for (const p of gd.players) this._decrementTrials(p.username);
+    }
+  }
+
   /* ---------- Queue‐timeout → bot matching ---------- */
 
   _startQueueTimer(socket, type) {
