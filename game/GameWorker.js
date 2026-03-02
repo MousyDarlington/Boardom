@@ -194,6 +194,29 @@ function handleInit(payload) {
 
   // Send start data
   sendStartData(payload);
+
+  // Watchdog: periodically ensure bots aren't stuck (safety net)
+  if (bots.length > 0) {
+    setInterval(() => {
+      if (!game) return;
+      if (gameType === 'trouble') {
+        ensureTroubleBotTurn();
+      } else if (gameType === 'checkers') {
+        const go = game.checkGameOver();
+        if (go && go.over) return;
+        const currentBot = bots.find(b => b.color === game.currentTurn);
+        if (currentBot && currentBot.active && !currentBot._paused && !currentBot.moveTimer) {
+          currentBot._scheduleMove();
+        }
+      } else if (gameType === 'scrabble') {
+        if (game.gameOver) return;
+        const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
+        if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
+          currentBot._scheduleTurn();
+        }
+      }
+    }, 3000);
+  }
 }
 
 function sendStartData(payload) {
@@ -363,7 +386,11 @@ function handleTroubleRoll({ socketId }) {
   if (idx !== game.currentTurn) return;
 
   const result = game.rollDice();
-  if (!result.valid) return;
+  if (!result.valid) {
+    // Safety net: re-check if a bot should act (timer was consumed)
+    ensureTroubleBotTurn();
+    return;
+  }
 
   const rollData = {
     player: idx,
@@ -385,7 +412,11 @@ function handleTroubleMove({ socketId, tokenIdx }) {
   if (idx !== game.currentTurn) return;
 
   const result = game.makeMove(tokenIdx);
-  if (!result.valid) return;
+  if (!result.valid) {
+    // Safety net: re-check if a bot should act (timer was consumed)
+    ensureTroubleBotTurn();
+    return;
+  }
 
   const updateData = {
     player: result.player,
