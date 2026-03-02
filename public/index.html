@@ -499,9 +499,21 @@
         </div>
       </div>
 
-      <!-- Chat -->
-      <div class="game-chat glass" id="cahChatPanel">
-        <div class="chat-header">Game Chat</div>
+    </div>
+
+    <!-- Chat toggle button -->
+    <button class="cah-chat-toggle" id="btnCAHChatToggle" title="Game Chat">
+      <span class="cah-chat-toggle-icon">&#x1F4AC;</span>
+      <span class="cah-chat-badge hidden" id="cahChatBadge">0</span>
+    </button>
+
+    <!-- Chat popout modal -->
+    <div class="cah-chat-modal hidden" id="cahChatModal">
+      <div class="cah-chat-modal-inner glass">
+        <div class="cah-chat-modal-header">
+          <span>Game Chat</span>
+          <button class="cah-chat-close" id="btnCAHChatClose" title="Close">&times;</button>
+        </div>
         <div class="chat-messages" id="cahChatMessages"></div>
         <form class="chat-input-row" id="cahChatForm">
           <input type="text" id="cahChatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
