@@ -4837,6 +4837,9 @@
     $('cardTrouble').addEventListener('click', () => selectGame('trouble'));
     $('cardScrabble').addEventListener('click', () => selectGame('scrabble'));
     $('cardCAH').addEventListener('click', () => selectGame('cah'));
+    $('cardC4').addEventListener('click', () => selectGame('c4'));
+    $('cardBattleship').addEventListener('click', () => selectGame('battleship'));
+    $('cardMancala').addEventListener('click', () => selectGame('mancala'));
     $('btnGameDetailBack').addEventListener('click', deselectGame);
 
     // Queue cancel
