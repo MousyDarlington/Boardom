@@ -107,7 +107,7 @@ class Matchmaker {
 
     worker.on('message', (msg) => this._handleWorkerMessage(gameId, msg));
     worker.on('error', (err) => {
-      console.error(`Worker error for game ${gameId}:`, err);
+      console.error(`Worker error for game ${gameId}:`, err.message, err.stack);
       this._handleWorkerCrash(gameId);
     });
     worker.on('exit', (code) => {
@@ -126,6 +126,7 @@ class Matchmaker {
       case 'started':
         for (const psd of msg.payload.playerStartData) {
           const sock = this._getSocket(psd.socketId);
+          console.log(`[started] game=${gameId} event=${psd.event} socketId=${psd.socketId} sockFound=${!!sock}`);
           if (sock) sock.emit(psd.event, psd.data);
         }
         break;
@@ -1362,6 +1363,7 @@ class Matchmaker {
   }
 
   playC4Bot(socket) {
+    console.log(`[playC4Bot] socketId=${socket.id} username=${socket.username} inGame=${this.playerToGame.has(socket.id)}`);
     if (this.playerToGame.has(socket.id)) return;
     this.c4Queue = this.c4Queue.filter(s => s.id !== socket.id);
     this._clearQueueTimer(socket);
