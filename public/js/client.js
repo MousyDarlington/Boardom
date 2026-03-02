@@ -2849,7 +2849,9 @@
       finished: data.finished,
       diceResult: data.diceResult,
       phase: data.phase,
-      players: data.players
+      players: data.players,
+      placements: data.placements || [],
+      gameOver: false
     };
     currentMatchCode = data.matchCode || null;
     isPaused = false;
