@@ -2299,6 +2299,7 @@
 
     drawTroubleBoard();
     drawTroubleTrack();
+    drawTroubleTurnIndicator();
     drawTroubleHomes();
     drawTroubleFinishLanes();
     drawTroubleTokens();
@@ -2422,6 +2423,38 @@
         c.stroke();
       }
     }
+  }
+
+  function drawTroubleTurnIndicator() {
+    if (!troubleState || troubleState.gameOver) return;
+    const c = troubleCtx;
+    const t = performance.now();
+    const cp = troubleState.currentTurn;
+    const pc = TROUBLE_PLAYER_COLORS[cp];
+    const entryPt = TROUBLE_TRACK[TROUBLE_ENTRY[cp]];
+    const pulse = 0.4 + Math.sin(t / 400) * 0.3;
+
+    // Pulsing glow ring around current player's entry point
+    c.save();
+    c.beginPath();
+    c.arc(entryPt.x, entryPt.y, 28 + Math.sin(t / 300) * 3, 0, Math.PI * 2);
+    c.strokeStyle = pc.highlight;
+    c.lineWidth = 3;
+    c.globalAlpha = pulse;
+    c.stroke();
+    c.restore();
+
+    // Arrow/text near center showing whose turn
+    const isMyTurn = !troubleIsLocal && cp === troublePlayerIndex;
+    const label = isMyTurn ? 'YOUR TURN' : `${TROUBLE_COLOR_NAMES[cp].toUpperCase()}'S TURN`;
+    c.save();
+    c.font = 'bold 11px sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillStyle = pc.highlight;
+    c.globalAlpha = 0.7 + Math.sin(t / 500) * 0.2;
+    c.fillText(label, CENTER, CENTER + 52);
+    c.restore();
   }
 
   function drawTroubleHomes() {
