@@ -6635,6 +6635,7 @@
   const POOL_STOP = 0.1;
   const POOL_DT = 1 / 120;
   const POOL_MAX_POWER = 20;
+  const POOL_POWER_SCALE = 40;
   const MAX_STEPS_LOCAL = 10000;
   const POOL_POCKETS = [
     { x: 0, y: 0 }, { x: PT_W / 2, y: 0 }, { x: PT_W, y: 0 },
@@ -7056,8 +7057,8 @@
     // Apply shot to animation balls
     const cue = preBalls.find(b => b.id === 0 && !b.pocketed);
     if (cue && data.shotAngle !== undefined) {
-      cue.vx = Math.cos(data.shotAngle) * data.shotPower;
-      cue.vy = Math.sin(data.shotAngle) * data.shotPower;
+      cue.vx = Math.cos(data.shotAngle) * data.shotPower * POOL_POWER_SCALE;
+      cue.vy = Math.sin(data.shotAngle) * data.shotPower * POOL_POWER_SCALE;
       poolAnimBalls = preBalls;
       poolAnimating = true;
       poolAnimStepsLeft = 600; // max frames
@@ -7275,8 +7276,8 @@
     const preBalls = st.balls.map(b => ({ ...b }));
 
     const cue = st.balls.find(b => b.id === 0);
-    cue.vx = Math.cos(angle) * power;
-    cue.vy = Math.sin(angle) * power;
+    cue.vx = Math.cos(angle) * power * POOL_POWER_SCALE;
+    cue.vy = Math.sin(angle) * power * POOL_POWER_SCALE;
 
     // Simulate
     const simResult = poolLocalSimulate(st.balls);

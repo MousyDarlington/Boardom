@@ -12,6 +12,7 @@ const STOP_SPEED = 0.1;
 const DT = 1 / 120;
 const MAX_STEPS = 10000;
 const MAX_POWER = 20;
+const POWER_SCALE = 40; // Multiply power to get meaningful velocity on 800px table
 
 // 6 pocket positions (relative to table origin 0,0)
 const POCKETS = [
@@ -219,8 +220,8 @@ class PoolGame {
     if (power <= 0 || power > MAX_POWER) return { valid: false, error: 'Invalid power' };
 
     const cue = this.balls.find(b => b.id === 0);
-    cue.vx = Math.cos(angle) * power;
-    cue.vy = Math.sin(angle) * power;
+    cue.vx = Math.cos(angle) * power * POWER_SCALE;
+    cue.vy = Math.sin(angle) * power * POWER_SCALE;
 
     // Run simulation
     const simResult = this._simulate();
