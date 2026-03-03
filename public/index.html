@@ -175,6 +175,93 @@
               </div>
             </div>
 
+            <!-- Card Games -->
+            <div class="game-category">
+              <h3 class="game-category-heading">Card Games</h3>
+              <div class="game-card-row">
+                <div class="game-card glass" data-game="solitaire">
+                  <div class="game-card-icon">&#127183;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Solitaire</h3>
+                    <p class="game-card-desc">Classic Klondike</p>
+                  </div>
+                  <div class="game-card-badge">1 mode</div>
+                </div>
+                <div class="game-card glass" data-game="blackjack">
+                  <div class="game-card-icon">&#127183;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Blackjack</h3>
+                    <p class="game-card-desc">Beat the dealer!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" data-game="poker">
+                  <div class="game-card-icon">&#127183;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Poker</h3>
+                    <p class="game-card-desc">Texas Hold'em!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" data-game="hearts">
+                  <div class="game-card-icon">&#9829;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Hearts</h3>
+                    <p class="game-card-desc">Avoid the Queen!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" data-game="spades">
+                  <div class="game-card-icon">&#9824;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Spades</h3>
+                    <p class="game-card-desc">Bid &amp; trick-take!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" data-game="ginrummy">
+                  <div class="game-card-icon">&#127183;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Gin Rummy</h3>
+                    <p class="game-card-desc">Meld &amp; knock!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" data-game="war">
+                  <div class="game-card-icon">&#9876;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">War</h3>
+                    <p class="game-card-desc">Flip &amp; fight!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" data-game="crazy8">
+                  <div class="game-card-icon">&#9824;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Crazy Eights</h3>
+                    <p class="game-card-desc">Match suit or rank!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" data-game="gofish">
+                  <div class="game-card-icon">&#128031;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Go Fish</h3>
+                    <p class="game-card-desc">Collect sets of 4!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" data-game="higherlower">
+                  <div class="game-card-icon">&#8593;&#8595;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Higher or Lower</h3>
+                    <p class="game-card-desc">Guess the next card!</p>
+                  </div>
+                  <div class="game-card-badge">2 modes</div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <div class="game-detail" id="gameDetail">
@@ -651,6 +738,51 @@
           <button class="btn btn-small btn-ghost" id="btnMahjongShuffle">Shuffle</button>
           <button class="btn btn-small btn-ghost" id="btnMahjongNewGame">New Game</button>
           <button class="btn btn-small btn-ghost" id="btnMahjongQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SOLITAIRE GAME ===== -->
+  <div id="solitaireGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="card-game-hud glass" id="solitaireHud">
+          <span class="hud-stat">Moves: <b id="solMoves">0</b></span>
+          <span class="hud-stat">Score: <b id="solScore">0</b></span>
+          <span class="hud-stat">Time: <b id="solTime">0:00</b></span>
+        </div>
+        <canvas id="solitaireCanvas"></canvas>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnSolUndo">Undo</button>
+          <button class="btn btn-small btn-ghost" id="btnSolNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnSolQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CARD GAME SCREEN (shared for all online card games) ===== -->
+  <div id="cardGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="card-game-hud glass" id="cardGameHud">
+          <span class="hud-stat" id="cgHudLeft"></span>
+          <span class="hud-stat" id="cgHudCenter"></span>
+          <span class="hud-stat" id="cgHudRight"></span>
+        </div>
+        <canvas id="cardGameCanvas"></canvas>
+        <div class="card-game-info" id="cardGameInfo"></div>
+        <div class="card-game-actions" id="cardGameActions"></div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnCardGameResign">Resign</button>
+        </div>
+      </div>
+      <div class="chat-box glass" id="cardGameChat">
+        <div class="chat-messages" id="cardGameChatMessages"></div>
+        <div class="chat-input-row">
+          <input class="chat-input" id="cardGameChatInput" placeholder="Chat..." maxlength="200">
+          <button class="btn btn-small btn-primary" id="btnCardGameChatSend">Send</button>
         </div>
       </div>
     </div>

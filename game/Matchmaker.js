@@ -34,6 +34,15 @@ class Matchmaker {
     this.c4Queue = [];              // Connect Four queue
     this.battleshipQueue = [];      // Battleship queue
     this.mancalaQueue = [];         // Mancala queue
+    this.warQueue = [];
+    this.c8Queue = [];
+    this.gfQueue = [];
+    this.bjQueue = [];
+    this.grQueue = [];
+    this.htQueue = [];
+    this.spQueue = [];
+    this.pkQueue = [];
+    this.hlQueue = [];
   }
 
   /* ---------- helpers ---------- */
@@ -69,6 +78,15 @@ class Matchmaker {
     this.rankedQueue = this.rankedQueue.filter(s => s.id !== socket.id);
     this.scrabbleQueue = this.scrabbleQueue.filter(s => s.id !== socket.id);
     this.cahQueue = this.cahQueue.filter(s => s.id !== socket.id);
+    this.warQueue = this.warQueue.filter(s => s.id !== socket.id);
+    this.c8Queue = this.c8Queue.filter(s => s.id !== socket.id);
+    this.gfQueue = this.gfQueue.filter(s => s.id !== socket.id);
+    this.bjQueue = this.bjQueue.filter(s => s.id !== socket.id);
+    this.grQueue = this.grQueue.filter(s => s.id !== socket.id);
+    this.htQueue = this.htQueue.filter(s => s.id !== socket.id);
+    this.spQueue = this.spQueue.filter(s => s.id !== socket.id);
+    this.pkQueue = this.pkQueue.filter(s => s.id !== socket.id);
+    this.hlQueue = this.hlQueue.filter(s => s.id !== socket.id);
     this._cancelQueueTimer(socket.id);
   }
 
@@ -189,6 +207,15 @@ class Matchmaker {
                 : gd.gameType === 'c4' ? 'c4:over'
                 : gd.gameType === 'battleship' ? 'bs:over'
                 : gd.gameType === 'mancala' ? 'mancala:over'
+                : gd.gameType === 'war' ? 'war:over'
+                : gd.gameType === 'crazy8' ? 'c8:over'
+                : gd.gameType === 'gofish' ? 'gf:over'
+                : gd.gameType === 'blackjack' ? 'bj:over'
+                : gd.gameType === 'ginrummy' ? 'gr:over'
+                : gd.gameType === 'hearts' ? 'ht:over'
+                : gd.gameType === 'spades' ? 'sp:over'
+                : gd.gameType === 'poker' ? 'pk:over'
+                : gd.gameType === 'higherlower' ? 'hl:over'
                 : 'game:over';
     for (const p of gd.players) {
       if (!p.isBot) {
@@ -307,6 +334,27 @@ class Matchmaker {
         this.userStore.updateUser(username, { coins: (user.coins || 0) + reward });
       }
       for (const p of gd.players) this._decrementTrials(p.username);
+
+    } else if (['war', 'crazy8', 'gofish', 'blackjack', 'ginrummy', 'hearts', 'spades', 'poker', 'higherlower'].includes(gd.gameType)) {
+      // Card games: give winner coins
+      const { winner } = overPayload;
+      if (typeof winner === 'number' && gd.players[winner]) {
+        const winnerUser = this.userStore.getUser(gd.players[winner].username);
+        if (winnerUser && !gd.players[winner].isBot) {
+          winnerUser.coins = (winnerUser.coins || 0) + 10;
+          winnerUser.wins = (winnerUser.wins || 0) + 1;
+          this.userStore.updateUser(gd.players[winner].username, winnerUser);
+        }
+      }
+      for (const p of gd.players) {
+        if (p.isBot || (typeof winner === 'number' && p.playerIndex === winner)) continue;
+        const u = this.userStore.getUser(p.username);
+        if (u) {
+          u.coins = (u.coins || 0) + 3;
+          u.losses = (u.losses || 0) + 1;
+          this.userStore.updateUser(p.username, u);
+        }
+      }
     }
   }
 
@@ -573,6 +621,15 @@ class Matchmaker {
     this.c4Queue = this.c4Queue.filter(s => s.id !== socket.id);
     this.battleshipQueue = this.battleshipQueue.filter(s => s.id !== socket.id);
     this.mancalaQueue = this.mancalaQueue.filter(s => s.id !== socket.id);
+    this.warQueue = this.warQueue.filter(s => s.id !== socket.id);
+    this.c8Queue = this.c8Queue.filter(s => s.id !== socket.id);
+    this.gfQueue = this.gfQueue.filter(s => s.id !== socket.id);
+    this.bjQueue = this.bjQueue.filter(s => s.id !== socket.id);
+    this.grQueue = this.grQueue.filter(s => s.id !== socket.id);
+    this.htQueue = this.htQueue.filter(s => s.id !== socket.id);
+    this.spQueue = this.spQueue.filter(s => s.id !== socket.id);
+    this.pkQueue = this.pkQueue.filter(s => s.id !== socket.id);
+    this.hlQueue = this.hlQueue.filter(s => s.id !== socket.id);
     socket.emit('queue:left');
   }
 
@@ -676,6 +733,15 @@ class Matchmaker {
     this.c4Queue = this.c4Queue.filter(s => s.id !== socket.id);
     this.battleshipQueue = this.battleshipQueue.filter(s => s.id !== socket.id);
     this.mancalaQueue = this.mancalaQueue.filter(s => s.id !== socket.id);
+    this.warQueue = this.warQueue.filter(s => s.id !== socket.id);
+    this.c8Queue = this.c8Queue.filter(s => s.id !== socket.id);
+    this.gfQueue = this.gfQueue.filter(s => s.id !== socket.id);
+    this.bjQueue = this.bjQueue.filter(s => s.id !== socket.id);
+    this.grQueue = this.grQueue.filter(s => s.id !== socket.id);
+    this.htQueue = this.htQueue.filter(s => s.id !== socket.id);
+    this.spQueue = this.spQueue.filter(s => s.id !== socket.id);
+    this.pkQueue = this.pkQueue.filter(s => s.id !== socket.id);
+    this.hlQueue = this.hlQueue.filter(s => s.id !== socket.id);
 
     // Clean up lobbies
     for (const [code, lobby] of this.lobbies) {
@@ -754,6 +820,15 @@ class Matchmaker {
                     : gd.gameType === 'c4' ? 'c4:paused'
                     : gd.gameType === 'battleship' ? 'bs:paused'
                     : gd.gameType === 'mancala' ? 'mancala:paused'
+                    : gd.gameType === 'war' ? 'war:paused'
+                    : gd.gameType === 'crazy8' ? 'c8:paused'
+                    : gd.gameType === 'gofish' ? 'gf:paused'
+                    : gd.gameType === 'blackjack' ? 'bj:paused'
+                    : gd.gameType === 'ginrummy' ? 'gr:paused'
+                    : gd.gameType === 'hearts' ? 'ht:paused'
+                    : gd.gameType === 'spades' ? 'sp:paused'
+                    : gd.gameType === 'poker' ? 'pk:paused'
+                    : gd.gameType === 'higherlower' ? 'hl:paused'
                     : 'game:paused';
 
     for (const p of gd.players) {
@@ -838,6 +913,15 @@ class Matchmaker {
                         : gd.gameType === 'c4' ? 'c4:resumed'
                         : gd.gameType === 'battleship' ? 'bs:resumed'
                         : gd.gameType === 'mancala' ? 'mancala:resumed'
+                        : gd.gameType === 'war' ? 'war:resumed'
+                        : gd.gameType === 'crazy8' ? 'c8:resumed'
+                        : gd.gameType === 'gofish' ? 'gf:resumed'
+                        : gd.gameType === 'blackjack' ? 'bj:resumed'
+                        : gd.gameType === 'ginrummy' ? 'gr:resumed'
+                        : gd.gameType === 'hearts' ? 'ht:resumed'
+                        : gd.gameType === 'spades' ? 'sp:resumed'
+                        : gd.gameType === 'poker' ? 'pk:resumed'
+                        : gd.gameType === 'higherlower' ? 'hl:resumed'
                         : 'game:resumed';
         for (const p of gd.players) {
           if (p.username !== username && !p.isBot) {
@@ -1665,6 +1749,823 @@ class Matchmaker {
 
   mancalaResign(socket) { this.resign(socket); }
 
+  /* ========== WAR ========== */
+  joinWarQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.warQueue = this.warQueue.filter(s => s.id !== socket.id);
+    this.warQueue.push(socket);
+    socket.emit('queue:joined', { game: 'war' });
+    this._matchWar();
+    this._setQueueTimer(socket, () => this.playWarBot(socket));
+  }
+
+  _matchWar() {
+    while (this.warQueue.length >= 2) {
+      const p1 = this.warQueue.shift();
+      const p2 = this.warQueue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startWarGame([p1, p2], 'casual');
+    }
+  }
+
+  playWarBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.warQueue = this.warQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startWarGame([socket], 'bot');
+  }
+
+  _startWarGame(sockets, type) {
+    const gameId = 'wr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+    const playerData = sockets.map((s) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+    if (playerData.length < 2) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_wr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const botNames = ['WarLord','BattleBot','CardGeneral','WarMachine','DeckCommander','CardSoldier'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+    const gd = { gameId, matchCode, type, gameType: 'war', players: playerData };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'war', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  warPlayRound(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'warPlay', payload: { socketId: socket.id } });
+  }
+
+  warResign(socket) { this.resign(socket); }
+
+  /* ========== CRAZY EIGHTS ========== */
+  joinC8Queue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.c8Queue = this.c8Queue.filter(s => s.id !== socket.id);
+    this.c8Queue.push(socket);
+    socket.emit('queue:joined', { game: 'crazy8' });
+    this._matchC8();
+    this._setQueueTimer(socket, () => this.playC8Bot(socket));
+  }
+
+  _matchC8() {
+    while (this.c8Queue.length >= 2) {
+      const p1 = this.c8Queue.shift();
+      const p2 = this.c8Queue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startC8Game([p1, p2], 'casual');
+    }
+  }
+
+  playC8Bot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.c8Queue = this.c8Queue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startC8Game([socket], 'bot');
+  }
+
+  _startC8Game(sockets, type) {
+    const gameId = 'c8_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+    const playerData = sockets.map((s) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+    if (playerData.length < 2) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_c8_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const botNames = ['CrazyBot','EightBall','WildCard','SuitSwapper','CrazyAce','CardCrazy'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+    const gd = { gameId, matchCode, type, gameType: 'crazy8', players: playerData };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'crazy8', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  c8PlayCard(socket, cardIndex, chosenSuit) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'c8Play', payload: { socketId: socket.id, cardIndex, chosenSuit } });
+  }
+
+  c8DrawCard(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'c8Draw', payload: { socketId: socket.id } });
+  }
+
+  c8Resign(socket) { this.resign(socket); }
+
+  /* ========== GO FISH ========== */
+  joinGfQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.gfQueue = this.gfQueue.filter(s => s.id !== socket.id);
+    this.gfQueue.push(socket);
+    socket.emit('queue:joined', { game: 'gofish' });
+    this._matchGf();
+    this._setQueueTimer(socket, () => this.playGfBot(socket));
+  }
+
+  _matchGf() {
+    while (this.gfQueue.length >= 2) {
+      const p1 = this.gfQueue.shift();
+      const p2 = this.gfQueue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startGfGame([p1, p2], 'casual');
+    }
+  }
+
+  playGfBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.gfQueue = this.gfQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startGfGame([socket], 'bot');
+  }
+
+  _startGfGame(sockets, type) {
+    const gameId = 'gf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+    const playerData = sockets.map((s) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+    if (playerData.length < 2) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_gf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const botNames = ['FishBot','GoFisher','DeepSea','ReelMaster','CatchBot','PondKing'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+    const gd = { gameId, matchCode, type, gameType: 'gofish', players: playerData };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'gofish', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  gfAskForCard(socket, targetIdx, rank) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'gfAsk', payload: { socketId: socket.id, targetIdx, rank } });
+  }
+
+  gfResign(socket) { this.resign(socket); }
+
+  /* ========== BLACKJACK ========== */
+  joinBjQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.bjQueue = this.bjQueue.filter(s => s.id !== socket.id);
+    this.bjQueue.push(socket);
+    socket.emit('queue:joined', { game: 'blackjack' });
+    this._matchBj();
+    this._setQueueTimer(socket, () => this.playBjBot(socket));
+  }
+
+  _matchBj() {
+    while (this.bjQueue.length >= 2) {
+      const p1 = this.bjQueue.shift();
+      const p2 = this.bjQueue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startBjGame([p1, p2], 'casual');
+    }
+  }
+
+  playBjBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.bjQueue = this.bjQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startBjGame([socket], 'bot');
+  }
+
+  _startBjGame(sockets, type) {
+    const gameId = 'bj_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+    const playerData = sockets.map((s) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+    if (playerData.length < 2) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_bj_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const botNames = ['DealerBot','BlackjackAce','CardCounter','HitMeBot','21Master','JackBot'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+    const gd = { gameId, matchCode, type, gameType: 'blackjack', players: playerData };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'blackjack', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  bjPlaceBet(socket, amount) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'bjBet', payload: { socketId: socket.id, amount } });
+  }
+
+  bjHit(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'bjHit', payload: { socketId: socket.id } });
+  }
+
+  bjStand(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'bjStand', payload: { socketId: socket.id } });
+  }
+
+  bjDouble(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'bjDouble', payload: { socketId: socket.id } });
+  }
+
+  bjResign(socket) { this.resign(socket); }
+
+  /* ========== GIN RUMMY ========== */
+  joinGrQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.grQueue = this.grQueue.filter(s => s.id !== socket.id);
+    this.grQueue.push(socket);
+    socket.emit('queue:joined', { game: 'ginrummy' });
+    this._matchGr();
+    this._setQueueTimer(socket, () => this.playGrBot(socket));
+  }
+
+  _matchGr() {
+    while (this.grQueue.length >= 2) {
+      const p1 = this.grQueue.shift();
+      const p2 = this.grQueue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startGrGame([p1, p2], 'casual');
+    }
+  }
+
+  playGrBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.grQueue = this.grQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startGrGame([socket], 'bot');
+  }
+
+  _startGrGame(sockets, type) {
+    const gameId = 'gr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+    const playerData = sockets.map((s) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+    if (playerData.length < 2) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_gr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const botNames = ['GinMaster','RummyBot','MeldKing','KnockBot','GinAce','CardMelder'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+    const gd = { gameId, matchCode, type, gameType: 'ginrummy', players: playerData };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'ginrummy', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  grDrawFromPile(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'grDrawPile', payload: { socketId: socket.id } });
+  }
+
+  grDrawFromDiscard(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'grDrawDiscard', payload: { socketId: socket.id } });
+  }
+
+  grDiscard(socket, cardIndex) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'grDiscard', payload: { socketId: socket.id, cardIndex } });
+  }
+
+  grKnock(socket, cardIndex) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'grKnock', payload: { socketId: socket.id, cardIndex } });
+  }
+
+  grResign(socket) { this.resign(socket); }
+
+  /* ========== HEARTS ========== */
+  joinHtQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.htQueue = this.htQueue.filter(s => s.id !== socket.id);
+    this.htQueue.push(socket);
+    socket.emit('queue:joined', { game: 'hearts' });
+    this._matchHt();
+    this._setQueueTimer(socket, () => this.playHtBot(socket));
+  }
+
+  _matchHt() {
+    while (this.htQueue.length >= 4) {
+      const players = [];
+      for (let i = 0; i < 4; i++) {
+        const p = this.htQueue.shift();
+        this._clearQueueTimer(p);
+        players.push(p);
+      }
+      this._startHtGame(players, 'casual');
+    }
+  }
+
+  playHtBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.htQueue = this.htQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startHtGame([socket], 'bot');
+  }
+
+  _startHtGame(sockets, type) {
+    const gameId = 'ht_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+    const playerData = sockets.map((s) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+    while (playerData.length < 4) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_ht_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + playerData.length;
+      const botNames = ['HeartBreaker','QueenDodger','TrickTaker','HeartBot','SuitAvoider','CardSweeper'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+    const gd = { gameId, matchCode, type, gameType: 'hearts', players: playerData };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'hearts', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  htPassCards(socket, cardIndices) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'htPass', payload: { socketId: socket.id, cardIndices } });
+  }
+
+  htPlayCard(socket, cardIndex) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'htPlay', payload: { socketId: socket.id, cardIndex } });
+  }
+
+  htResign(socket) { this.resign(socket); }
+
+  /* ========== SPADES ========== */
+  joinSpQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.spQueue = this.spQueue.filter(s => s.id !== socket.id);
+    this.spQueue.push(socket);
+    socket.emit('queue:joined', { game: 'spades' });
+    this._matchSp();
+    this._setQueueTimer(socket, () => this.playSpBot(socket));
+  }
+
+  _matchSp() {
+    while (this.spQueue.length >= 4) {
+      const players = [];
+      for (let i = 0; i < 4; i++) {
+        const p = this.spQueue.shift();
+        this._clearQueueTimer(p);
+        players.push(p);
+      }
+      this._startSpGame(players, 'casual');
+    }
+  }
+
+  playSpBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.spQueue = this.spQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startSpGame([socket], 'bot');
+  }
+
+  _startSpGame(sockets, type) {
+    const gameId = 'sp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+    const playerData = sockets.map((s) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+    while (playerData.length < 4) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_sp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + playerData.length;
+      const botNames = ['SpadeMaster','TrumpBot','BidKing','SpadeAce','TrickBot','NilHunter'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+    const gd = { gameId, matchCode, type, gameType: 'spades', players: playerData };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'spades', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  spPlaceBid(socket, bid) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'spBid', payload: { socketId: socket.id, bid } });
+  }
+
+  spPlayCard(socket, cardIndex) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'spPlay', payload: { socketId: socket.id, cardIndex } });
+  }
+
+  spResign(socket) { this.resign(socket); }
+
+  /* ========== POKER ========== */
+  joinPkQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.pkQueue = this.pkQueue.filter(s => s.id !== socket.id);
+    this.pkQueue.push(socket);
+    socket.emit('queue:joined', { game: 'poker' });
+    this._matchPk();
+    this._setQueueTimer(socket, () => this.playPkBot(socket));
+  }
+
+  _matchPk() {
+    while (this.pkQueue.length >= 2) {
+      const p1 = this.pkQueue.shift();
+      const p2 = this.pkQueue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startPkGame([p1, p2], 'casual');
+    }
+  }
+
+  playPkBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.pkQueue = this.pkQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startPkGame([socket], 'bot');
+  }
+
+  _startPkGame(sockets, type) {
+    const gameId = 'pk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+    const playerData = sockets.map((s) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+    if (playerData.length < 2) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_pk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const botNames = ['PokerFace','BluffBot','AllInAce','RiverRat','ChipStack','FoldMaster'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+    const gd = { gameId, matchCode, type, gameType: 'poker', players: playerData };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'poker', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  pkFold(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'pkFold', payload: { socketId: socket.id } });
+  }
+
+  pkCheck(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'pkCheck', payload: { socketId: socket.id } });
+  }
+
+  pkCall(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'pkCall', payload: { socketId: socket.id } });
+  }
+
+  pkRaise(socket, amount) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'pkRaise', payload: { socketId: socket.id, amount } });
+  }
+
+  pkAllIn(socket) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'pkAllIn', payload: { socketId: socket.id } });
+  }
+
+  pkResign(socket) { this.resign(socket); }
+
+  /* ========== HIGHER OR LOWER ========== */
+  joinHlQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.hlQueue = this.hlQueue.filter(s => s.id !== socket.id);
+    this.hlQueue.push(socket);
+    socket.emit('queue:joined', { game: 'higherlower' });
+    this._matchHl();
+    this._setQueueTimer(socket, () => this.playHlBot(socket));
+  }
+
+  _matchHl() {
+    while (this.hlQueue.length >= 2) {
+      const p1 = this.hlQueue.shift();
+      const p2 = this.hlQueue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startHlGame([p1, p2], 'casual');
+    }
+  }
+
+  playHlBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.hlQueue = this.hlQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startHlGame([socket], 'bot');
+  }
+
+  _startHlGame(sockets, type) {
+    const gameId = 'hl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+    const playerData = sockets.map((s) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+    // Higher or Lower can start with just 1 player — no bot needed for solo
+    const gd = { gameId, matchCode, type, gameType: 'higherlower', players: playerData };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'higherlower', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  hlGuess(socket, choice) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'hlGuess', payload: { socketId: socket.id, choice } });
+  }
+
+  hlResign(socket) { this.resign(socket); }
+
   /* ---------- Stats ---------- */
 
   getOnlineCount() {
@@ -1681,6 +2582,15 @@ class Matchmaker {
       c4: this.c4Queue.length,
       battleship: this.battleshipQueue.length,
       mancala: this.mancalaQueue.length,
+      war: this.warQueue.length,
+      crazy8: this.c8Queue.length,
+      gofish: this.gfQueue.length,
+      blackjack: this.bjQueue.length,
+      ginrummy: this.grQueue.length,
+      hearts: this.htQueue.length,
+      spades: this.spQueue.length,
+      poker: this.pkQueue.length,
+      higherlower: this.hlQueue.length,
     };
   }
 

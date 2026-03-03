@@ -642,6 +642,127 @@ io.on('connection', (socket) => {
     matchmaker.mancalaResign(socket);
   });
 
+    /* ---- War ---- */
+    socket.on('war:join', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.joinWarQueue(socket);
+    });
+    socket.on('war:bot', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.playWarBot(socket);
+    });
+    socket.on('war:play', () => { matchmaker.warPlayRound(socket); });
+    socket.on('war:resign', () => { matchmaker.warResign(socket); });
+
+    /* ---- Crazy Eights ---- */
+    socket.on('c8:join', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.joinC8Queue(socket);
+    });
+    socket.on('c8:bot', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.playC8Bot(socket);
+    });
+    socket.on('c8:play', (data) => { matchmaker.c8PlayCard(socket, data.cardIndex, data.chosenSuit); });
+    socket.on('c8:draw', () => { matchmaker.c8DrawCard(socket); });
+    socket.on('c8:resign', () => { matchmaker.c8Resign(socket); });
+
+    /* ---- Go Fish ---- */
+    socket.on('gf:join', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.joinGfQueue(socket);
+    });
+    socket.on('gf:bot', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.playGfBot(socket);
+    });
+    socket.on('gf:ask', (data) => { matchmaker.gfAskForCard(socket, data.targetIdx, data.rank); });
+    socket.on('gf:resign', () => { matchmaker.gfResign(socket); });
+
+    /* ---- Blackjack ---- */
+    socket.on('bj:join', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.joinBjQueue(socket);
+    });
+    socket.on('bj:bot', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.playBjBot(socket);
+    });
+    socket.on('bj:bet', (data) => { matchmaker.bjPlaceBet(socket, data.amount); });
+    socket.on('bj:hit', () => { matchmaker.bjHit(socket); });
+    socket.on('bj:stand', () => { matchmaker.bjStand(socket); });
+    socket.on('bj:double', () => { matchmaker.bjDouble(socket); });
+    socket.on('bj:resign', () => { matchmaker.bjResign(socket); });
+
+    /* ---- Gin Rummy ---- */
+    socket.on('gr:join', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.joinGrQueue(socket);
+    });
+    socket.on('gr:bot', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.playGrBot(socket);
+    });
+    socket.on('gr:drawPile', () => { matchmaker.grDrawFromPile(socket); });
+    socket.on('gr:drawDiscard', () => { matchmaker.grDrawFromDiscard(socket); });
+    socket.on('gr:discard', (data) => { matchmaker.grDiscard(socket, data.cardIndex); });
+    socket.on('gr:knock', (data) => { matchmaker.grKnock(socket, data.cardIndex); });
+    socket.on('gr:resign', () => { matchmaker.grResign(socket); });
+
+    /* ---- Hearts ---- */
+    socket.on('ht:join', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.joinHtQueue(socket);
+    });
+    socket.on('ht:bot', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.playHtBot(socket);
+    });
+    socket.on('ht:pass', (data) => { matchmaker.htPassCards(socket, data.cardIndices); });
+    socket.on('ht:play', (data) => { matchmaker.htPlayCard(socket, data.cardIndex); });
+    socket.on('ht:resign', () => { matchmaker.htResign(socket); });
+
+    /* ---- Spades ---- */
+    socket.on('sp:join', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.joinSpQueue(socket);
+    });
+    socket.on('sp:bot', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.playSpBot(socket);
+    });
+    socket.on('sp:bid', (data) => { matchmaker.spPlaceBid(socket, data.bid); });
+    socket.on('sp:play', (data) => { matchmaker.spPlayCard(socket, data.cardIndex); });
+    socket.on('sp:resign', () => { matchmaker.spResign(socket); });
+
+    /* ---- Poker ---- */
+    socket.on('pk:join', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.joinPkQueue(socket);
+    });
+    socket.on('pk:bot', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.playPkBot(socket);
+    });
+    socket.on('pk:fold', () => { matchmaker.pkFold(socket); });
+    socket.on('pk:check', () => { matchmaker.pkCheck(socket); });
+    socket.on('pk:call', () => { matchmaker.pkCall(socket); });
+    socket.on('pk:raise', (data) => { matchmaker.pkRaise(socket, data.amount); });
+    socket.on('pk:allIn', () => { matchmaker.pkAllIn(socket); });
+    socket.on('pk:resign', () => { matchmaker.pkResign(socket); });
+
+    /* ---- Higher or Lower ---- */
+    socket.on('hl:join', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.joinHlQueue(socket);
+    });
+    socket.on('hl:bot', () => {
+      if (!socket.username) return socket.emit('auth:required');
+      matchmaker.playHlBot(socket);
+    });
+    socket.on('hl:guess', (data) => { matchmaker.hlGuess(socket, data.choice); });
+    socket.on('hl:resign', () => { matchmaker.hlResign(socket); });
+
   /* ---- Chat ---- */
   socket.on('chat:lobby', (text) => {
     if (!socket.username) return;

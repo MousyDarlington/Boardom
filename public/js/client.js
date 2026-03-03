@@ -151,6 +151,103 @@
       modes: [
         { id: 'mahjongPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
       ]
+    },
+    solitaire: {
+      title: 'Solitaire',
+      icon: '\uD83C\uDCCF',
+      desc: 'Single player \u2014 Classic Klondike card game!',
+      modes: [
+        { id: 'solitairePlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
+      ]
+    },
+    blackjack: {
+      title: 'Blackjack',
+      icon: '\uD83C\uDCCF',
+      desc: '1-6 players \u2014 Beat the dealer to 21!',
+      modes: [
+        { id: 'bjOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'bjBots', icon: '\uD83E\uDD16', name: 'Play vs Bot', desc: 'Challenge the AI dealer' },
+        { id: 'bjLocal', icon: '\uD83C\uDFAE', name: 'Local', desc: 'Same screen hotseat' }
+      ]
+    },
+    poker: {
+      title: 'Poker',
+      icon: '\uD83C\uDCCF',
+      desc: '2-8 players \u2014 Texas Hold\'em!',
+      modes: [
+        { id: 'pkOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'pkBots', icon: '\uD83E\uDD16', name: 'Play vs Bots', desc: 'AI opponents' },
+        { id: 'pkLocal', icon: '\uD83C\uDFAE', name: 'Local', desc: 'Same screen hotseat' }
+      ]
+    },
+    hearts: {
+      title: 'Hearts',
+      icon: '\u2665',
+      desc: '4 players \u2014 Avoid the Queen of Spades!',
+      modes: [
+        { id: 'htOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'htBots', icon: '\uD83E\uDD16', name: 'Play vs Bots', desc: 'AI opponents' },
+        { id: 'htLocal', icon: '\uD83C\uDFAE', name: 'Local (4P)', desc: 'Pass and play' }
+      ]
+    },
+    spades: {
+      title: 'Spades',
+      icon: '\u2660',
+      desc: '4 players \u2014 Bid and trick-take with partners!',
+      modes: [
+        { id: 'spOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'spBots', icon: '\uD83E\uDD16', name: 'Play vs Bots', desc: 'AI opponents' },
+        { id: 'spLocal', icon: '\uD83C\uDFAE', name: 'Local (4P)', desc: 'Pass and play' }
+      ]
+    },
+    ginrummy: {
+      title: 'Gin Rummy',
+      icon: '\uD83C\uDCCF',
+      desc: '2 players \u2014 Meld cards and knock!',
+      modes: [
+        { id: 'grOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'grBots', icon: '\uD83E\uDD16', name: 'Play vs Bot', desc: 'Challenge the AI' },
+        { id: 'grLocal', icon: '\uD83C\uDFAE', name: 'Local 2P', desc: 'Same screen hotseat' }
+      ]
+    },
+    war: {
+      title: 'War',
+      icon: '\u2694',
+      desc: '2 players \u2014 Flip and fight for all 52 cards!',
+      modes: [
+        { id: 'warOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'warBots', icon: '\uD83E\uDD16', name: 'Play vs Bot', desc: 'Challenge the AI' },
+        { id: 'warLocal', icon: '\uD83C\uDFAE', name: 'Local 2P', desc: 'Same screen hotseat' }
+      ]
+    },
+    crazy8: {
+      title: 'Crazy Eights',
+      icon: '8\u2660',
+      desc: '2-6 players \u2014 Match suit or rank, eights are wild!',
+      modes: [
+        { id: 'c8Online', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'c8Bots', icon: '\uD83E\uDD16', name: 'Play vs Bots', desc: 'AI opponents' },
+        { id: 'c8Local', icon: '\uD83C\uDFAE', name: 'Local', desc: 'Same screen hotseat' }
+      ]
+    },
+    gofish: {
+      title: 'Go Fish',
+      icon: '\uD83D\uDC1F',
+      desc: '2-4 players \u2014 Collect sets of four!',
+      modes: [
+        { id: 'gfOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'gfBots', icon: '\uD83E\uDD16', name: 'Play vs Bots', desc: 'AI opponents' },
+        { id: 'gfLocal', icon: '\uD83C\uDFAE', name: 'Local', desc: 'Same screen hotseat' }
+      ]
+    },
+    higherlower: {
+      title: 'Higher or Lower',
+      icon: '\u2195',
+      desc: '1-4 players \u2014 Guess if the next card is higher or lower!',
+      modes: [
+        { id: 'hlPlay', icon: '\uD83C\uDFAE', name: 'Solo', desc: 'Single player challenge' },
+        { id: 'hlBots', icon: '\uD83E\uDD16', name: 'vs Bot', desc: 'Compete against AI' }
+      ]
     }
   };
 
@@ -1032,7 +1129,7 @@
     'lobbyHostScreen', 'lobbyJoinScreen', 'troubleHostScreen', 'guestJoinScreen',
     'shopScreen', 'gameScreen', 'troubleGameScreen', 'scrabbleGameScreen',
     'cahHostScreen', 'cahGameScreen', 'c4GameScreen', 'bsGameScreen', 'mancalaGameScreen',
-    'mahjongGameScreen'];
+    'mahjongGameScreen', 'solitaireGameScreen', 'cardGameScreen'];
 
   function showScreen(name) {
     currentScreen = name;
@@ -1043,7 +1140,8 @@
       shop: 'shopScreen', game: 'gameScreen', trouble: 'troubleGameScreen',
       scrabble: 'scrabbleGameScreen', cahHost: 'cahHostScreen', cah: 'cahGameScreen',
       c4: 'c4GameScreen', battleship: 'bsGameScreen', mancala: 'mancalaGameScreen',
-      mahjong: 'mahjongGameScreen'
+      mahjong: 'mahjongGameScreen', solitaire: 'solitaireGameScreen',
+      cardgame: 'cardGameScreen'
     };
     for (const id of screenIds) {
       const el = $(id);
@@ -1053,7 +1151,7 @@
     if (target) target.classList.add('active');
 
     // Hide game over overlay when switching screens
-    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala' && name !== 'mahjong') {
+    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala' && name !== 'mahjong' && name !== 'solitaire' && name !== 'cardgame') {
       $('gameOverOverlay').classList.add('hidden');
       confettiActive = false;
     }
@@ -2458,6 +2556,168 @@
       switch (modeId) {
         case 'mahjongPlay':
           startMahjongGame();
+          break;
+      }
+    } else if (gameId === 'solitaire') {
+      switch (modeId) {
+        case 'solitairePlay':
+          startSolitaireGame();
+          break;
+      }
+    } else if (gameId === 'blackjack') {
+      switch (modeId) {
+        case 'bjOnline':
+          socket.emit('bj:join');
+          $('queueTitle').textContent = 'Blackjack';
+          $('queueText').textContent = 'Finding players...';
+          showScreen('queue');
+          break;
+        case 'bjBots':
+          socket.emit('bj:bot');
+          $('queueTitle').textContent = 'Blackjack';
+          $('queueText').textContent = 'Starting game vs bot...';
+          showScreen('queue');
+          break;
+        case 'bjLocal':
+          startLocalCardGame('blackjack');
+          break;
+      }
+    } else if (gameId === 'poker') {
+      switch (modeId) {
+        case 'pkOnline':
+          socket.emit('pk:join');
+          $('queueTitle').textContent = 'Poker';
+          $('queueText').textContent = 'Finding players...';
+          showScreen('queue');
+          break;
+        case 'pkBots':
+          socket.emit('pk:bot');
+          $('queueTitle').textContent = 'Poker';
+          $('queueText').textContent = 'Starting game vs bots...';
+          showScreen('queue');
+          break;
+        case 'pkLocal':
+          startLocalCardGame('poker');
+          break;
+      }
+    } else if (gameId === 'hearts') {
+      switch (modeId) {
+        case 'htOnline':
+          socket.emit('ht:join');
+          $('queueTitle').textContent = 'Hearts';
+          $('queueText').textContent = 'Finding players...';
+          showScreen('queue');
+          break;
+        case 'htBots':
+          socket.emit('ht:bot');
+          $('queueTitle').textContent = 'Hearts';
+          $('queueText').textContent = 'Starting game vs bots...';
+          showScreen('queue');
+          break;
+        case 'htLocal':
+          startLocalCardGame('hearts');
+          break;
+      }
+    } else if (gameId === 'spades') {
+      switch (modeId) {
+        case 'spOnline':
+          socket.emit('sp:join');
+          $('queueTitle').textContent = 'Spades';
+          $('queueText').textContent = 'Finding players...';
+          showScreen('queue');
+          break;
+        case 'spBots':
+          socket.emit('sp:bot');
+          $('queueTitle').textContent = 'Spades';
+          $('queueText').textContent = 'Starting game vs bots...';
+          showScreen('queue');
+          break;
+        case 'spLocal':
+          startLocalCardGame('spades');
+          break;
+      }
+    } else if (gameId === 'ginrummy') {
+      switch (modeId) {
+        case 'grOnline':
+          socket.emit('gr:join');
+          $('queueTitle').textContent = 'Gin Rummy';
+          $('queueText').textContent = 'Finding an opponent...';
+          showScreen('queue');
+          break;
+        case 'grBots':
+          socket.emit('gr:bot');
+          $('queueTitle').textContent = 'Gin Rummy';
+          $('queueText').textContent = 'Starting game vs bot...';
+          showScreen('queue');
+          break;
+        case 'grLocal':
+          startLocalCardGame('ginrummy');
+          break;
+      }
+    } else if (gameId === 'war') {
+      switch (modeId) {
+        case 'warOnline':
+          socket.emit('war:join');
+          $('queueTitle').textContent = 'War';
+          $('queueText').textContent = 'Finding an opponent...';
+          showScreen('queue');
+          break;
+        case 'warBots':
+          socket.emit('war:bot');
+          $('queueTitle').textContent = 'War';
+          $('queueText').textContent = 'Starting game vs bot...';
+          showScreen('queue');
+          break;
+        case 'warLocal':
+          startLocalCardGame('war');
+          break;
+      }
+    } else if (gameId === 'crazy8') {
+      switch (modeId) {
+        case 'c8Online':
+          socket.emit('c8:join');
+          $('queueTitle').textContent = 'Crazy Eights';
+          $('queueText').textContent = 'Finding players...';
+          showScreen('queue');
+          break;
+        case 'c8Bots':
+          socket.emit('c8:bot');
+          $('queueTitle').textContent = 'Crazy Eights';
+          $('queueText').textContent = 'Starting game vs bots...';
+          showScreen('queue');
+          break;
+        case 'c8Local':
+          startLocalCardGame('crazy8');
+          break;
+      }
+    } else if (gameId === 'gofish') {
+      switch (modeId) {
+        case 'gfOnline':
+          socket.emit('gf:join');
+          $('queueTitle').textContent = 'Go Fish';
+          $('queueText').textContent = 'Finding players...';
+          showScreen('queue');
+          break;
+        case 'gfBots':
+          socket.emit('gf:bot');
+          $('queueTitle').textContent = 'Go Fish';
+          $('queueText').textContent = 'Starting game vs bots...';
+          showScreen('queue');
+          break;
+        case 'gfLocal':
+          startLocalCardGame('gofish');
+          break;
+      }
+    } else if (gameId === 'higherlower') {
+      switch (modeId) {
+        case 'hlPlay':
+          startLocalCardGame('higherlower');
+          break;
+        case 'hlBots':
+          socket.emit('hl:bot');
+          $('queueTitle').textContent = 'Higher or Lower';
+          $('queueText').textContent = 'Starting game...';
+          showScreen('queue');
           break;
       }
     }
@@ -6747,6 +7007,7 @@
     bindC4SocketEvents();
     bindBSSocketEvents();
     bindMancalaSocketEvents();
+    bindCardGameEvents(socket);
     bindBSButtons();
 
     // C4 resign
@@ -6774,6 +7035,1038 @@
     if (mjNew) mjNew.addEventListener('click', startMahjongGame);
     const mjQuit = $('btnMahjongQuit');
     if (mjQuit) mjQuit.addEventListener('click', () => showScreen('lobby'));
+  }
+
+  /* ================================================
+     SHARED CARD RENDERING
+     ================================================ */
+  const CARD_SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
+  const CARD_SUIT_SYMBOLS = ['\u2663', '\u2666', '\u2665', '\u2660'];
+  const CARD_RANK_NAMES = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+
+  function drawPlayingCard(ctx, x, y, w, h, card, faceUp, selected) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 6);
+    ctx.fillStyle = faceUp ? '#fff' : '#1a3a7a';
+    ctx.fill();
+    ctx.strokeStyle = selected ? '#ff2d55' : '#555';
+    ctx.lineWidth = selected ? 3 : 1;
+    ctx.stroke();
+
+    if (!faceUp) {
+      ctx.fillStyle = '#2255aa';
+      ctx.beginPath();
+      ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#4477cc';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    const isRed = card.suit === 1 || card.suit === 2;
+    ctx.fillStyle = isRed ? '#cc0000' : '#111';
+    const rankStr = CARD_RANK_NAMES[card.rank - 2];
+    const suitStr = CARD_SUIT_SYMBOLS[card.suit];
+
+    // Top-left rank and suit
+    ctx.font = `bold ${Math.floor(h * 0.16)}px sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText(rankStr, x + 5, y + h * 0.18);
+    ctx.font = `${Math.floor(h * 0.14)}px sans-serif`;
+    ctx.fillText(suitStr, x + 5, y + h * 0.32);
+
+    // Center suit symbol
+    ctx.font = `${Math.floor(h * 0.32)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(suitStr, x + w / 2, y + h * 0.62);
+
+    // Bottom-right rank (rotated)
+    ctx.save();
+    ctx.translate(x + w - 5, y + h - 5);
+    ctx.rotate(Math.PI);
+    ctx.textAlign = 'left';
+    ctx.font = `bold ${Math.floor(h * 0.16)}px sans-serif`;
+    ctx.fillText(rankStr, 0, h * 0.13);
+    ctx.font = `${Math.floor(h * 0.14)}px sans-serif`;
+    ctx.fillText(suitStr, 0, h * 0.27);
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  function drawCardBack(ctx, x, y, w, h) {
+    drawPlayingCard(ctx, x, y, w, h, null, false, false);
+  }
+
+  function drawFannedHand(ctx, cards, cx, cy, maxWidth, cardW, cardH, faceUp, selectedIdx) {
+    if (!cards || cards.length === 0) return;
+    const overlap = Math.min(cardW * 0.4, maxWidth / (cards.length + 0.6));
+    const totalW = overlap * (cards.length - 1) + cardW;
+    let startX = cx - totalW / 2;
+    for (let i = 0; i < cards.length; i++) {
+      const sel = (selectedIdx !== undefined && selectedIdx === i);
+      const yOff = sel ? -10 : 0;
+      drawPlayingCard(ctx, startX + i * overlap, cy + yOff, cardW, cardH, cards[i], faceUp, sel);
+    }
+  }
+
+  function drawCardPile(ctx, x, y, w, h, count) {
+    const layers = Math.min(count, 4);
+    for (let i = 0; i < layers; i++) {
+      drawCardBack(ctx, x - i * 2, y - i * 2, w, h);
+    }
+    if (count > 0) {
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(count.toString(), x + w / 2, y + h + 16);
+    }
+  }
+
+  /* ================================================
+     SOLITAIRE (KLONDIKE) — Client-only
+     ================================================ */
+  let solState = null;
+  let solCanvas = null;
+  let solCtx = null;
+  let solSelected = null;    // { source, col, cardIdx }
+  let solDragging = null;     // { cards, x, y, sourceCol, sourceIdx }
+  let solTimer = null;
+  let solStartTime = 0;
+  let solMoves = 0;
+  let solScore = 0;
+  let solGameLoopActive = false;
+  let solUndoStack = [];
+
+  const SOL_W = 900, SOL_H = 620;
+  const SOL_CW = 80, SOL_CH = 112;
+  const SOL_GAP = 24, SOL_FD_GAP = 6;
+  const SOL_MARGIN = 20;
+
+  function solCreateDeck() {
+    const cards = [];
+    for (let s = 0; s < 4; s++) {
+      for (let r = 2; r <= 14; r++) {
+        cards.push({ suit: s, rank: r });
+      }
+    }
+    // Fisher-Yates
+    for (let i = cards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cards[i], cards[j]] = [cards[j], cards[i]];
+    }
+    return cards;
+  }
+
+  function startSolitaireGame() {
+    const deck = solCreateDeck();
+    const tableau = [];
+    let idx = 0;
+    for (let col = 0; col < 7; col++) {
+      const stack = [];
+      for (let row = 0; row <= col; row++) {
+        stack.push({ ...deck[idx++], faceUp: row === col });
+      }
+      tableau.push(stack);
+    }
+    const stock = deck.slice(idx);
+    solState = {
+      tableau,
+      foundations: [[], [], [], []], // one per suit
+      stock,
+      waste: []
+    };
+    solSelected = null;
+    solDragging = null;
+    solMoves = 0;
+    solScore = 0;
+    solUndoStack = [];
+    solStartTime = Date.now();
+
+    if (solTimer) clearInterval(solTimer);
+    solTimer = setInterval(() => {
+      if (!solState) return;
+      const elapsed = Math.floor((Date.now() - solStartTime) / 1000);
+      const min = Math.floor(elapsed / 60);
+      const sec = elapsed % 60;
+      const el = $('solTime');
+      if (el) el.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
+    }, 1000);
+
+    showScreen('solitaire');
+    solCanvas = $('solitaireCanvas');
+    if (solCanvas) {
+      solCanvas.width = SOL_W;
+      solCanvas.height = SOL_H;
+      solCtx = solCanvas.getContext('2d');
+      solCanvas.onclick = solHandleClick;
+    }
+    solGameLoopActive = true;
+    solRender();
+
+    // Bind buttons
+    const undoBtn = $('btnSolUndo');
+    if (undoBtn) undoBtn.onclick = solUndo;
+    const newBtn = $('btnSolNewGame');
+    if (newBtn) newBtn.onclick = startSolitaireGame;
+    const quitBtn = $('btnSolQuit');
+    if (quitBtn) quitBtn.onclick = () => { solGameLoopActive = false; if (solTimer) clearInterval(solTimer); showScreen('lobby'); };
+  }
+
+  function solCardIsRed(card) { return card.suit === 1 || card.suit === 2; }
+
+  function solCanPlaceOnTableau(card, targetCol) {
+    const stack = solState.tableau[targetCol];
+    if (stack.length === 0) return card.rank === 13; // only Kings on empty
+    const top = stack[stack.length - 1];
+    return top.faceUp && solCardIsRed(card) !== solCardIsRed(top) && card.rank === top.rank - 1;
+  }
+
+  function solCanPlaceOnFoundation(card, fIdx) {
+    const pile = solState.foundations[fIdx];
+    if (pile.length === 0) return card.rank === 14; // Aces first (rank 14 = Ace)
+    // Wait - Aces should be first. Ace = 14 in our system, then 2,3,...K.
+    // Foundation order: A(14), 2, 3, ... K(13). That's descending then ascending.
+    // Actually let's rethink: foundations build A,2,3,...K = 14,2,3,...13 — non-standard.
+    // Let's treat Ace as low for foundations: A=1 effectively
+    // We'll remap: foundation value = rank === 14 ? 1 : rank
+    const fVal = (r) => r === 14 ? 1 : r;
+    if (pile.length === 0) return card.rank === 14; // Ace first
+    const top = pile[pile.length - 1];
+    return card.suit === top.suit && fVal(card.rank) === fVal(top.rank) + 1;
+  }
+
+  function solDrawFromStock() {
+    if (solState.stock.length === 0) {
+      // Recycle waste
+      if (solState.waste.length === 0) return;
+      solState.stock = solState.waste.reverse();
+      solState.waste = [];
+    } else {
+      const card = solState.stock.pop();
+      card.faceUp = true;
+      solState.waste.push(card);
+      solMoves++;
+    }
+    $('solMoves').textContent = solMoves;
+  }
+
+  function solHandleClick(e) {
+    if (!solState || !solCanvas) return;
+    const rect = solCanvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (SOL_W / rect.width);
+    const my = (e.clientY - rect.top) * (SOL_H / rect.height);
+
+    // Stock area
+    const stockX = SOL_MARGIN, stockY = SOL_MARGIN;
+    if (mx >= stockX && mx <= stockX + SOL_CW && my >= stockY && my <= stockY + SOL_CH) {
+      solDrawFromStock();
+      solRender();
+      return;
+    }
+
+    // Waste area
+    const wasteX = SOL_MARGIN + SOL_CW + 15;
+    if (mx >= wasteX && mx <= wasteX + SOL_CW && my >= stockY && my <= stockY + SOL_CH && solState.waste.length > 0) {
+      if (solSelected && solSelected.source === 'waste') {
+        // Try to place on foundations
+        const card = solState.waste[solState.waste.length - 1];
+        for (let f = 0; f < 4; f++) {
+          if (solCanPlaceOnFoundation(card, f)) {
+            solState.foundations[f].push(solState.waste.pop());
+            solMoves++; solScore += 10;
+            $('solMoves').textContent = solMoves;
+            $('solScore').textContent = solScore;
+            solSelected = null;
+            solRender();
+            solCheckWin();
+            return;
+          }
+        }
+        solSelected = null;
+      } else {
+        solSelected = { source: 'waste' };
+      }
+      solRender();
+      return;
+    }
+
+    // Foundation areas
+    for (let f = 0; f < 4; f++) {
+      const fx = SOL_MARGIN + (3 + f) * (SOL_CW + 12);
+      const fy = SOL_MARGIN;
+      if (mx >= fx && mx <= fx + SOL_CW && my >= fy && my <= fy + SOL_CH) {
+        if (solSelected) {
+          // Try place selected card on this foundation
+          let card, fromSource;
+          if (solSelected.source === 'waste') {
+            card = solState.waste[solState.waste.length - 1];
+            fromSource = 'waste';
+          } else if (solSelected.source === 'tableau') {
+            const stack = solState.tableau[solSelected.col];
+            card = stack[solSelected.cardIdx];
+            if (solSelected.cardIdx !== stack.length - 1) { solSelected = null; solRender(); return; }
+            fromSource = 'tableau';
+          }
+          if (card && solCanPlaceOnFoundation(card, f)) {
+            if (fromSource === 'waste') solState.waste.pop();
+            else solState.tableau[solSelected.col].pop();
+            solState.foundations[f].push(card);
+            solMoves++; solScore += 10;
+            // Flip new top card
+            if (fromSource === 'tableau') {
+              const s = solState.tableau[solSelected.col];
+              if (s.length > 0 && !s[s.length - 1].faceUp) { s[s.length - 1].faceUp = true; solScore += 5; }
+            }
+            $('solMoves').textContent = solMoves;
+            $('solScore').textContent = solScore;
+            solSelected = null;
+            solRender();
+            solCheckWin();
+            return;
+          }
+        }
+        solSelected = null;
+        solRender();
+        return;
+      }
+    }
+
+    // Tableau columns
+    for (let col = 0; col < 7; col++) {
+      const tx = SOL_MARGIN + col * (SOL_CW + 12);
+      const ty = SOL_MARGIN + SOL_CH + 30;
+      const stack = solState.tableau[col];
+
+      // Calculate hit area for each card
+      for (let i = stack.length - 1; i >= 0; i--) {
+        const cardY = ty + i * (stack[i].faceUp ? SOL_GAP : SOL_FD_GAP);
+        const cardH = (i === stack.length - 1) ? SOL_CH : (stack[i].faceUp ? SOL_GAP : SOL_FD_GAP);
+        if (mx >= tx && mx <= tx + SOL_CW && my >= cardY && my <= cardY + cardH) {
+          if (!stack[i].faceUp) break;
+
+          if (solSelected) {
+            // Try to place selected card(s) on this column
+            if (solSelected.source === 'waste') {
+              const card = solState.waste[solState.waste.length - 1];
+              if (solCanPlaceOnTableau(card, col)) {
+                solState.tableau[col].push(solState.waste.pop());
+                solMoves++;
+                $('solMoves').textContent = solMoves;
+                solSelected = null;
+                solRender();
+                return;
+              }
+            } else if (solSelected.source === 'tableau' && solSelected.col !== col) {
+              const srcStack = solState.tableau[solSelected.col];
+              const moveCards = srcStack.slice(solSelected.cardIdx);
+              if (solCanPlaceOnTableau(moveCards[0], col)) {
+                solState.tableau[solSelected.col] = srcStack.slice(0, solSelected.cardIdx);
+                solState.tableau[col].push(...moveCards);
+                solMoves++;
+                // Flip top card of source column
+                const s = solState.tableau[solSelected.col];
+                if (s.length > 0 && !s[s.length - 1].faceUp) { s[s.length - 1].faceUp = true; solScore += 5; }
+                $('solMoves').textContent = solMoves;
+                $('solScore').textContent = solScore;
+                solSelected = null;
+                solRender();
+                return;
+              }
+            }
+            solSelected = null;
+          } else {
+            solSelected = { source: 'tableau', col, cardIdx: i };
+          }
+          solRender();
+          return;
+        }
+      }
+
+      // Empty column click
+      if (stack.length === 0 && mx >= tx && mx <= tx + SOL_CW && my >= ty && my <= ty + SOL_CH) {
+        if (solSelected) {
+          if (solSelected.source === 'waste') {
+            const card = solState.waste[solState.waste.length - 1];
+            if (card.rank === 13) { // King on empty
+              solState.tableau[col].push(solState.waste.pop());
+              solMoves++;
+              $('solMoves').textContent = solMoves;
+              solSelected = null;
+              solRender();
+              return;
+            }
+          } else if (solSelected.source === 'tableau') {
+            const srcStack = solState.tableau[solSelected.col];
+            const moveCards = srcStack.slice(solSelected.cardIdx);
+            if (moveCards[0].rank === 13) {
+              solState.tableau[solSelected.col] = srcStack.slice(0, solSelected.cardIdx);
+              solState.tableau[col].push(...moveCards);
+              solMoves++;
+              const s = solState.tableau[solSelected.col];
+              if (s.length > 0 && !s[s.length - 1].faceUp) { s[s.length - 1].faceUp = true; solScore += 5; }
+              $('solMoves').textContent = solMoves;
+              $('solScore').textContent = solScore;
+              solSelected = null;
+              solRender();
+              return;
+            }
+          }
+        }
+        solSelected = null;
+        solRender();
+        return;
+      }
+    }
+
+    solSelected = null;
+    solRender();
+  }
+
+  function solCheckWin() {
+    const total = solState.foundations.reduce((sum, f) => sum + f.length, 0);
+    if (total === 52) {
+      solGameLoopActive = false;
+      if (solTimer) clearInterval(solTimer);
+      // Show game over
+      $('gameOverTitle').textContent = 'You Win!';
+      $('gameOverReason').textContent = `Score: ${solScore} | Moves: ${solMoves}`;
+      $('gameOverRating').textContent = '';
+      $('gameOverCoins').textContent = '';
+      $('gameOverOverlay').classList.remove('hidden');
+      const btn = $('btnBackToLobby');
+      if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); showScreen('lobby'); };
+      const pa = $('btnPlayAgain');
+      if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startSolitaireGame(); };
+    }
+  }
+
+  function solUndo() {
+    // Simple: just restart for now
+    // Full undo would require state snapshots
+  }
+
+  function solRender() {
+    if (!solCtx || !solState) return;
+    const ctx = solCtx;
+    ctx.clearRect(0, 0, SOL_W, SOL_H);
+
+    // Green felt background
+    ctx.fillStyle = '#1a6b3c';
+    ctx.fillRect(0, 0, SOL_W, SOL_H);
+
+    // Stock
+    const stockX = SOL_MARGIN, stockY = SOL_MARGIN;
+    if (solState.stock.length > 0) {
+      drawCardPile(ctx, stockX, stockY, SOL_CW, SOL_CH, solState.stock.length);
+    } else {
+      ctx.strokeStyle = '#2a8b4c';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(stockX, stockY, SOL_CW, SOL_CH, 6);
+      ctx.stroke();
+      ctx.fillStyle = '#2a8b4c';
+      ctx.font = '24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('\u21BB', stockX + SOL_CW / 2, stockY + SOL_CH / 2 + 8);
+    }
+
+    // Waste
+    const wasteX = SOL_MARGIN + SOL_CW + 15;
+    if (solState.waste.length > 0) {
+      const top = solState.waste[solState.waste.length - 1];
+      const isSel = solSelected && solSelected.source === 'waste';
+      drawPlayingCard(ctx, wasteX, stockY, SOL_CW, SOL_CH, top, true, isSel);
+    }
+
+    // Foundations
+    for (let f = 0; f < 4; f++) {
+      const fx = SOL_MARGIN + (3 + f) * (SOL_CW + 12);
+      const fy = SOL_MARGIN;
+      if (solState.foundations[f].length > 0) {
+        const top = solState.foundations[f][solState.foundations[f].length - 1];
+        drawPlayingCard(ctx, fx, fy, SOL_CW, SOL_CH, top, true, false);
+      } else {
+        ctx.strokeStyle = '#2a8b4c';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(fx, fy, SOL_CW, SOL_CH, 6);
+        ctx.stroke();
+        ctx.fillStyle = '#3a9b5c';
+        ctx.font = '28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(CARD_SUIT_SYMBOLS[f], fx + SOL_CW / 2, fy + SOL_CH / 2 + 10);
+      }
+    }
+
+    // Tableau
+    for (let col = 0; col < 7; col++) {
+      const tx = SOL_MARGIN + col * (SOL_CW + 12);
+      const ty = SOL_MARGIN + SOL_CH + 30;
+      const stack = solState.tableau[col];
+
+      if (stack.length === 0) {
+        ctx.strokeStyle = '#2a8b4c';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(tx, ty, SOL_CW, SOL_CH, 6);
+        ctx.stroke();
+        continue;
+      }
+
+      let yOff = 0;
+      for (let i = 0; i < stack.length; i++) {
+        const card = stack[i];
+        const isSel = solSelected && solSelected.source === 'tableau' && solSelected.col === col && i >= solSelected.cardIdx;
+        drawPlayingCard(ctx, tx, ty + yOff, SOL_CW, SOL_CH, card, card.faceUp, isSel);
+        yOff += card.faceUp ? SOL_GAP : SOL_FD_GAP;
+      }
+    }
+  }
+
+  /* ================================================
+     ONLINE CARD GAMES — Shared handler
+     ================================================ */
+  let cgState = null;
+  let cgGameType = null;
+  let cgPlayerIndex = -1;
+  let cgCanvas = null;
+  let cgCtx = null;
+  let cgSelectedCard = -1;
+  let cgPlayers = [];
+
+  const CG_W = 900, CG_H = 620;
+  const CG_CW = 70, CG_CH = 98;
+
+  const CARD_GAME_PREFIXES = {
+    war: 'war', crazy8: 'c8', gofish: 'gf', blackjack: 'bj',
+    ginrummy: 'gr', hearts: 'ht', spades: 'sp', poker: 'pk', higherlower: 'hl'
+  };
+
+  function startCardGame(data, gameType) {
+    cgState = data;
+    cgGameType = gameType;
+    cgPlayerIndex = data.playerIndex || 0;
+    cgPlayers = data.players || [];
+    cgSelectedCard = -1;
+
+    showScreen('cardgame');
+    cgCanvas = $('cardGameCanvas');
+    if (cgCanvas) {
+      cgCanvas.width = CG_W;
+      cgCanvas.height = CG_H;
+      cgCtx = cgCanvas.getContext('2d');
+      cgCanvas.onclick = cgHandleClick;
+    }
+
+    // Update HUD
+    const title = GAME_CATALOG[gameType] ? GAME_CATALOG[gameType].title : gameType;
+    const hudLeft = $('cgHudLeft');
+    if (hudLeft) hudLeft.textContent = title;
+    updateCardGameHud();
+    renderCardGame();
+
+    // Action buttons
+    updateCardGameActions();
+
+    // Resign button
+    const resignBtn = $('btnCardGameResign');
+    if (resignBtn) {
+      resignBtn.onclick = () => {
+        const prefix = CARD_GAME_PREFIXES[cgGameType];
+        if (prefix && socket) socket.emit(prefix + ':resign');
+        showScreen('lobby');
+      };
+    }
+  }
+
+  function updateCardGameHud() {
+    const center = $('cgHudCenter');
+    const right = $('cgHudRight');
+    if (!cgState) return;
+
+    if (cgGameType === 'blackjack') {
+      if (center) center.textContent = 'Phase: ' + (cgState.phase || '');
+      if (right) right.textContent = 'Chips: ' + (cgState.chips ? cgState.chips[cgPlayerIndex] : '');
+    } else if (cgGameType === 'poker') {
+      if (center) center.textContent = 'Pot: ' + (cgState.pot || 0);
+      if (right) right.textContent = 'Chips: ' + (cgState.players ? cgState.players[cgPlayerIndex]?.chips : '');
+    } else if (cgGameType === 'hearts' || cgGameType === 'spades') {
+      if (center) center.textContent = 'Trick ' + ((cgState.trickNumber || 0) + 1);
+      if (right) right.textContent = 'Scores: ' + (cgState.scores || []).join(' / ');
+    } else if (cgGameType === 'ginrummy') {
+      if (center) center.textContent = 'Phase: ' + (cgState.phase || '');
+      if (right) right.textContent = 'Scores: ' + (cgState.scores || []).join(' / ');
+    } else if (cgGameType === 'war') {
+      if (center) center.textContent = 'Round ' + (cgState.roundNumber || 0);
+      if (right) right.textContent = 'Cards: ' + ((cgState.piles || cgState.pileCounts || [0, 0]).join(' vs '));
+    } else if (cgGameType === 'crazy8') {
+      if (center) center.textContent = 'Turn: Player ' + ((cgState.currentTurn || 0) + 1);
+      if (right) right.textContent = cgState.chosenSuit != null ? 'Suit: ' + CARD_SUIT_SYMBOLS[cgState.chosenSuit] : '';
+    } else if (cgGameType === 'gofish') {
+      if (center) center.textContent = 'Turn: Player ' + ((cgState.currentTurn || 0) + 1);
+      if (right) right.textContent = 'Books: ' + (cgState.books || []).join(' / ');
+    } else if (cgGameType === 'higherlower') {
+      if (center) center.textContent = 'Streak: ' + (cgState.streak ? cgState.streak[cgPlayerIndex] : 0);
+      if (right) right.textContent = 'Score: ' + (cgState.scores ? cgState.scores[cgPlayerIndex] : 0);
+    }
+  }
+
+  function updateCardGameActions() {
+    const container = $('cardGameActions');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const isMyTurn = cgState && cgState.currentTurn === cgPlayerIndex;
+    const prefix = CARD_GAME_PREFIXES[cgGameType];
+
+    if (cgGameType === 'war') {
+      if (cgState.phase !== 'over') {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary btn-small';
+        btn.textContent = 'Flip!';
+        btn.onclick = () => socket.emit('war:play');
+        container.appendChild(btn);
+      }
+    } else if (cgGameType === 'blackjack') {
+      if (cgState.phase === 'betting') {
+        [10, 25, 50, 100].forEach(amt => {
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-primary btn-small';
+          btn.textContent = 'Bet ' + amt;
+          btn.onclick = () => socket.emit('bj:bet', { amount: amt });
+          container.appendChild(btn);
+        });
+      } else if (cgState.phase === 'playing' && isMyTurn) {
+        ['Hit', 'Stand', 'Double'].forEach(action => {
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-primary btn-small';
+          btn.textContent = action;
+          btn.onclick = () => socket.emit('bj:' + action.toLowerCase());
+          container.appendChild(btn);
+        });
+      }
+    } else if (cgGameType === 'crazy8' && isMyTurn) {
+      const drawBtn = document.createElement('button');
+      drawBtn.className = 'btn btn-ghost btn-small';
+      drawBtn.textContent = 'Draw Card';
+      drawBtn.onclick = () => socket.emit('c8:draw');
+      container.appendChild(drawBtn);
+    } else if (cgGameType === 'hearts' && cgState.phase === 'passing') {
+      const passBtn = document.createElement('button');
+      passBtn.className = 'btn btn-primary btn-small';
+      passBtn.textContent = 'Pass Cards';
+      passBtn.onclick = () => {
+        // Would need multi-select - for now pass first 3
+        if (cgState.hand && cgState.hand.length >= 3) {
+          socket.emit('ht:pass', { cardIndices: [0, 1, 2] });
+        }
+      };
+      container.appendChild(passBtn);
+    } else if (cgGameType === 'spades' && cgState.phase === 'bidding') {
+      for (let b = 0; b <= 5; b++) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-small ' + (b === 0 ? 'btn-ghost' : 'btn-primary');
+        btn.textContent = b === 0 ? 'Nil' : 'Bid ' + b;
+        btn.onclick = () => socket.emit('sp:bid', { bid: b });
+        container.appendChild(btn);
+      }
+    } else if (cgGameType === 'poker' && isMyTurn) {
+      ['Fold', 'Check', 'Call'].forEach(action => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-small ' + (action === 'Fold' ? 'btn-ghost' : 'btn-primary');
+        btn.textContent = action;
+        btn.onclick = () => socket.emit('pk:' + action.toLowerCase());
+        container.appendChild(btn);
+      });
+      const raiseBtn = document.createElement('button');
+      raiseBtn.className = 'btn btn-primary btn-small';
+      raiseBtn.textContent = 'Raise';
+      raiseBtn.onclick = () => socket.emit('pk:raise', { amount: (cgState.currentBet || 20) * 2 });
+      container.appendChild(raiseBtn);
+      const allInBtn = document.createElement('button');
+      allInBtn.className = 'btn btn-primary btn-small';
+      allInBtn.textContent = 'All In';
+      allInBtn.onclick = () => socket.emit('pk:allIn');
+      container.appendChild(allInBtn);
+    } else if (cgGameType === 'ginrummy' && isMyTurn) {
+      if (cgState.phase === 'draw') {
+        const pile = document.createElement('button');
+        pile.className = 'btn btn-primary btn-small';
+        pile.textContent = 'Draw from Pile';
+        pile.onclick = () => socket.emit('gr:drawPile');
+        container.appendChild(pile);
+        const disc = document.createElement('button');
+        disc.className = 'btn btn-primary btn-small';
+        disc.textContent = 'Take Discard';
+        disc.onclick = () => socket.emit('gr:drawDiscard');
+        container.appendChild(disc);
+      } else if (cgState.phase === 'discard') {
+        const info = document.createElement('span');
+        info.textContent = 'Click a card to discard';
+        info.style.color = '#aaa';
+        container.appendChild(info);
+        const knockBtn = document.createElement('button');
+        knockBtn.className = 'btn btn-primary btn-small';
+        knockBtn.textContent = 'Knock';
+        knockBtn.onclick = () => {
+          if (cgSelectedCard >= 0) socket.emit('gr:knock', { cardIndex: cgSelectedCard });
+        };
+        container.appendChild(knockBtn);
+      }
+    } else if (cgGameType === 'higherlower') {
+      if (cgState.phase !== 'over' && isMyTurn) {
+        const higher = document.createElement('button');
+        higher.className = 'btn btn-primary btn-small';
+        higher.textContent = '\u2191 Higher';
+        higher.onclick = () => socket.emit('hl:guess', { choice: 'higher' });
+        container.appendChild(higher);
+        const lower = document.createElement('button');
+        lower.className = 'btn btn-primary btn-small';
+        lower.textContent = '\u2193 Lower';
+        lower.onclick = () => socket.emit('hl:guess', { choice: 'lower' });
+        container.appendChild(lower);
+      }
+    } else if (cgGameType === 'gofish' && isMyTurn) {
+      const info = document.createElement('span');
+      info.textContent = 'Select a card rank to ask for';
+      info.style.color = '#aaa';
+      container.appendChild(info);
+    }
+  }
+
+  function cgHandleClick(e) {
+    if (!cgState || !cgCanvas) return;
+    const rect = cgCanvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (CG_W / rect.width);
+    const my = (e.clientY - rect.top) * (CG_H / rect.height);
+
+    // Check if clicking on own hand cards
+    const hand = cgState.hand || cgState.hands?.[cgPlayerIndex] || [];
+    if (hand.length > 0) {
+      const handY = CG_H - CG_CH - 20;
+      const overlap = Math.min(CG_CW * 0.4, (CG_W - 80) / (hand.length + 0.6));
+      const totalW = overlap * (hand.length - 1) + CG_CW;
+      const startX = CG_W / 2 - totalW / 2;
+
+      for (let i = hand.length - 1; i >= 0; i--) {
+        const cx = startX + i * overlap;
+        if (mx >= cx && mx <= cx + CG_CW && my >= handY && my <= handY + CG_CH) {
+          if (cgSelectedCard === i) {
+            // Double-click = play card
+            const prefix = CARD_GAME_PREFIXES[cgGameType];
+            if (cgGameType === 'crazy8') {
+              let chosenSuit = null;
+              if (hand[i].rank === 8) {
+                chosenSuit = hand[i].suit; // Default to same suit
+              }
+              socket.emit('c8:play', { cardIndex: i, chosenSuit });
+            } else if (cgGameType === 'hearts') {
+              socket.emit('ht:play', { cardIndex: i });
+            } else if (cgGameType === 'spades') {
+              socket.emit('sp:play', { cardIndex: i });
+            } else if (cgGameType === 'ginrummy' && cgState.phase === 'discard') {
+              socket.emit('gr:discard', { cardIndex: i });
+            } else if (cgGameType === 'gofish') {
+              // Ask for this rank from first other player
+              const target = cgPlayerIndex === 0 ? 1 : 0;
+              socket.emit('gf:ask', { targetIdx: target, rank: hand[i].rank });
+            }
+            cgSelectedCard = -1;
+          } else {
+            cgSelectedCard = i;
+          }
+          renderCardGame();
+          return;
+        }
+      }
+    }
+
+    cgSelectedCard = -1;
+    renderCardGame();
+  }
+
+  function renderCardGame() {
+    if (!cgCtx || !cgState) return;
+    const ctx = cgCtx;
+    ctx.clearRect(0, 0, CG_W, CG_H);
+
+    // Dark green table
+    ctx.fillStyle = '#1a4a2e';
+    ctx.fillRect(0, 0, CG_W, CG_H);
+
+    // Game title
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    const title = GAME_CATALOG[cgGameType] ? GAME_CATALOG[cgGameType].title : cgGameType;
+    ctx.fillText(title, CG_W / 2, 22);
+
+    // Draw own hand at bottom
+    const hand = cgState.hand || cgState.hands?.[cgPlayerIndex] || [];
+    if (hand.length > 0) {
+      drawFannedHand(ctx, hand, CG_W / 2, CG_H - CG_CH - 20, CG_W - 80, CG_CW, CG_CH, true, cgSelectedCard);
+    }
+
+    // Draw game-specific center content
+    if (cgGameType === 'war') {
+      renderWarCenter(ctx);
+    } else if (cgGameType === 'blackjack') {
+      renderBlackjackCenter(ctx);
+    } else if (cgGameType === 'poker') {
+      renderPokerCenter(ctx);
+    } else if (cgGameType === 'hearts' || cgGameType === 'spades') {
+      renderTrickCenter(ctx);
+    } else if (cgGameType === 'crazy8') {
+      renderCrazy8Center(ctx);
+    } else if (cgGameType === 'gofish') {
+      renderGoFishCenter(ctx);
+    } else if (cgGameType === 'ginrummy') {
+      renderGinRummyCenter(ctx);
+    } else if (cgGameType === 'higherlower') {
+      renderHigherLowerCenter(ctx);
+    }
+
+    // Draw opponent info
+    renderOpponents(ctx);
+  }
+
+  function renderOpponents(ctx) {
+    if (!cgPlayers) return;
+    const opponents = cgPlayers.filter((_, i) => i !== cgPlayerIndex);
+    const spacing = CG_W / (opponents.length + 1);
+    opponents.forEach((p, i) => {
+      const x = spacing * (i + 1);
+      ctx.fillStyle = '#ccc';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.username || 'Player', x, 50);
+      // Draw face-down cards for opponent
+      const count = cgState.handCounts ? cgState.handCounts[cgPlayers.indexOf(p)] : 0;
+      if (count > 0) {
+        drawCardPile(ctx, x - CG_CW / 2, 55, CG_CW * 0.7, CG_CH * 0.7, count);
+      }
+    });
+  }
+
+  function renderWarCenter(ctx) {
+    const battleCards = cgState.battleCards || [];
+    if (battleCards.length >= 2) {
+      drawPlayingCard(ctx, CG_W / 2 - CG_CW - 20, CG_H / 2 - CG_CH / 2, CG_CW, CG_CH, battleCards[0], true, false);
+      drawPlayingCard(ctx, CG_W / 2 + 20, CG_H / 2 - CG_CH / 2, CG_CW, CG_CH, battleCards[1], true, false);
+    }
+    ctx.fillStyle = '#fff';
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('vs', CG_W / 2, CG_H / 2 + 5);
+  }
+
+  function renderBlackjackCenter(ctx) {
+    // Dealer hand at top
+    const dealer = cgState.dealerHand || cgState.dealer;
+    if (dealer && dealer.cards) {
+      ctx.fillStyle = '#ffd700';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('DEALER', CG_W / 2, 50);
+      const dc = dealer.cards;
+      const startX = CG_W / 2 - (dc.length * (CG_CW * 0.5)) / 2;
+      dc.forEach((card, i) => {
+        const faceUp = i > 0 || !dealer.hidden;
+        drawPlayingCard(ctx, startX + i * (CG_CW + 8), 60, CG_CW, CG_CH, card, faceUp, false);
+      });
+    }
+    // Player hand value
+    if (cgState.hands && cgState.hands[cgPlayerIndex]) {
+      const h = cgState.hands[cgPlayerIndex];
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Hand: ' + (h.value || ''), CG_W / 2, CG_H - CG_CH - 50);
+    }
+  }
+
+  function renderPokerCenter(ctx) {
+    // Community cards
+    const community = cgState.communityCards || [];
+    const startX = CG_W / 2 - (community.length * (CG_CW + 6)) / 2;
+    community.forEach((card, i) => {
+      drawPlayingCard(ctx, startX + i * (CG_CW + 6), CG_H / 2 - CG_CH / 2 - 20, CG_CW, CG_CH, card, true, false);
+    });
+    // Pot
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Pot: ' + (cgState.pot || 0), CG_W / 2, CG_H / 2 + CG_CH / 2 + 10);
+  }
+
+  function renderTrickCenter(ctx) {
+    // Current trick in center
+    const trick = cgState.currentTrick || [];
+    const positions = [
+      { x: CG_W / 2, y: CG_H / 2 + 30 },  // bottom (player)
+      { x: CG_W / 2 - 100, y: CG_H / 2 - 20 },  // left
+      { x: CG_W / 2, y: CG_H / 2 - 70 },  // top
+      { x: CG_W / 2 + 100, y: CG_H / 2 - 20 }   // right
+    ];
+    trick.forEach((t, i) => {
+      const card = t.card || t;
+      const pos = positions[i % 4];
+      drawPlayingCard(ctx, pos.x - CG_CW / 2, pos.y - CG_CH / 2, CG_CW, CG_CH, card, true, false);
+    });
+  }
+
+  function renderCrazy8Center(ctx) {
+    // Discard pile
+    const top = cgState.discardTop || cgState.topCard;
+    if (top) {
+      drawPlayingCard(ctx, CG_W / 2 - CG_CW / 2, CG_H / 2 - CG_CH / 2, CG_CW, CG_CH, top, true, false);
+    }
+    // Draw pile
+    drawCardPile(ctx, CG_W / 2 - CG_CW - 50, CG_H / 2 - CG_CH / 2, CG_CW, CG_CH, cgState.drawPileCount || 0);
+    // Chosen suit indicator
+    if (cgState.chosenSuit != null) {
+      ctx.fillStyle = (cgState.chosenSuit === 1 || cgState.chosenSuit === 2) ? '#cc0000' : '#111';
+      ctx.font = 'bold 32px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(CARD_SUIT_SYMBOLS[cgState.chosenSuit], CG_W / 2 + CG_CW + 30, CG_H / 2 + 10);
+    }
+  }
+
+  function renderGoFishCenter(ctx) {
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Ocean: ' + (cgState.oceanCount || cgState.ocean?.length || 0) + ' cards', CG_W / 2, CG_H / 2 - 30);
+    // Last action
+    if (cgState.lastAction) {
+      ctx.fillStyle = '#ffd700';
+      ctx.font = '14px sans-serif';
+      ctx.fillText(cgState.lastActionText || '', CG_W / 2, CG_H / 2);
+    }
+    // Books
+    ctx.fillStyle = '#aaa';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('Your Books: ' + (cgState.books ? cgState.books[cgPlayerIndex] : 0), CG_W / 2, CG_H / 2 + 25);
+  }
+
+  function renderGinRummyCenter(ctx) {
+    // Discard pile top
+    const top = cgState.discardTop;
+    if (top) {
+      drawPlayingCard(ctx, CG_W / 2 + 10, CG_H / 2 - CG_CH / 2, CG_CW, CG_CH, top, true, false);
+    }
+    // Draw pile
+    drawCardPile(ctx, CG_W / 2 - CG_CW - 10, CG_H / 2 - CG_CH / 2, CG_CW, CG_CH, cgState.drawPileCount || 0);
+    // Phase indicator
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(cgState.phase === 'draw' ? 'Draw a card' : 'Discard a card', CG_W / 2, CG_H / 2 + CG_CH / 2 + 25);
+  }
+
+  function renderHigherLowerCenter(ctx) {
+    // Current card in center
+    const card = cgState.currentCard;
+    if (card) {
+      drawPlayingCard(ctx, CG_W / 2 - CG_CW / 2, CG_H / 2 - CG_CH / 2, CG_CW, CG_CH, card, true, false);
+    }
+    // Last result
+    if (cgState.lastResult) {
+      const r = cgState.lastResult;
+      ctx.fillStyle = r.correct ? '#34c759' : '#ff3b30';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(r.correct ? 'Correct!' : 'Wrong!', CG_W / 2, CG_H / 2 - CG_CH / 2 - 15);
+    }
+    // Streak
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Streak: ' + (cgState.streak ? cgState.streak[cgPlayerIndex] : 0), CG_W / 2, CG_H / 2 + CG_CH / 2 + 30);
+  }
+
+  /* ================================================
+     LOCAL CARD GAME (placeholder)
+     ================================================ */
+  function startLocalCardGame(gameType) {
+    // For now, redirect to bot mode for most games
+    const prefix = CARD_GAME_PREFIXES[gameType];
+    if (prefix && socket) {
+      socket.emit(prefix + ':bot');
+      const title = GAME_CATALOG[gameType] ? GAME_CATALOG[gameType].title : gameType;
+      $('queueTitle').textContent = title;
+      $('queueText').textContent = 'Starting game vs bot...';
+      showScreen('queue');
+    }
+  }
+
+  /* ================================================
+     CARD GAME SOCKET BINDINGS
+     ================================================ */
+  function bindCardGameEvents(s) {
+    // All card game types share the same handler pattern
+    const gameTypes = [
+      { type: 'war', prefix: 'war' },
+      { type: 'crazy8', prefix: 'c8' },
+      { type: 'gofish', prefix: 'gf' },
+      { type: 'blackjack', prefix: 'bj' },
+      { type: 'ginrummy', prefix: 'gr' },
+      { type: 'hearts', prefix: 'ht' },
+      { type: 'spades', prefix: 'sp' },
+      { type: 'poker', prefix: 'pk' },
+      { type: 'higherlower', prefix: 'hl' }
+    ];
+
+    gameTypes.forEach(({ type, prefix }) => {
+      s.on(prefix + ':start', (data) => {
+        startCardGame(data, type);
+      });
+
+      s.on(prefix + ':update', (data) => {
+        if (cgGameType === type) {
+          cgState = { ...cgState, ...data };
+          updateCardGameHud();
+          updateCardGameActions();
+          renderCardGame();
+        }
+      });
+
+      s.on(prefix + ':over', (data) => {
+        if (cgGameType === type) {
+          const title = data.winnerUsername ? data.winnerUsername + ' wins!' : (data.reason || 'Game Over');
+          $('gameOverTitle').textContent = title;
+          $('gameOverReason').textContent = data.reason || '';
+          $('gameOverRating').textContent = '';
+          $('gameOverCoins').textContent = data.coins ? '+' + data.coins + ' coins' : '';
+          $('gameOverOverlay').classList.remove('hidden');
+          const btn = $('btnBackToLobby');
+          if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); showScreen('lobby'); };
+          const pa = $('btnPlayAgain');
+          if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); showScreen('lobby'); };
+        }
+      });
+
+      s.on(prefix + ':error', (data) => {
+        const info = $('cardGameInfo');
+        if (info) {
+          info.textContent = data.message || 'Error';
+          setTimeout(() => { info.textContent = ''; }, 3000);
+        }
+      });
+
+      s.on(prefix + ':paused', (data) => {
+        $('pauseReason').textContent = (data.disconnectedPlayer || 'Opponent') + ' disconnected';
+        $('gamePausedOverlay').classList.remove('hidden');
+      });
+
+      s.on(prefix + ':resumed', () => {
+        $('gamePausedOverlay').classList.add('hidden');
+      });
+    });
   }
 
   // Start when DOM is ready

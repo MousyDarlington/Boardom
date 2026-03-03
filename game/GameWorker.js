@@ -15,6 +15,24 @@ const MancalaGame = require('./MancalaGame');
 const ConnectFourBotPlayer = require('./ConnectFourBotPlayer');
 const BattleshipBotPlayer = require('./BattleshipBotPlayer');
 const MancalaBotPlayer = require('./MancalaBotPlayer');
+const WarGame = require('./WarGame');
+const CrazyEightsGame = require('./CrazyEightsGame');
+const GoFishGame = require('./GoFishGame');
+const BlackjackGame = require('./BlackjackGame');
+const GinRummyGame = require('./GinRummyGame');
+const HeartsGame = require('./HeartsGame');
+const SpadesGame = require('./SpadesGame');
+const PokerGame = require('./PokerGame');
+const HigherLowerGame = require('./HigherLowerGame');
+const WarBotPlayer = require('./WarBotPlayer');
+const CrazyEightsBotPlayer = require('./CrazyEightsBotPlayer');
+const GoFishBotPlayer = require('./GoFishBotPlayer');
+const BlackjackBotPlayer = require('./BlackjackBotPlayer');
+const GinRummyBotPlayer = require('./GinRummyBotPlayer');
+const HeartsBotPlayer = require('./HeartsBotPlayer');
+const SpadesBotPlayer = require('./SpadesBotPlayer');
+const PokerBotPlayer = require('./PokerBotPlayer');
+const HigherLowerBotPlayer = require('./HigherLowerBotPlayer');
 const fs = require('fs');
 
 /* ================================================
@@ -55,6 +73,24 @@ parentPort.on('message', (msg) => {
       case 'bsSetReady':       handleBSSetReady(msg.payload); break;
       case 'bsFireShot':       handleBSFireShot(msg.payload); break;
       case 'mancalaMove':      handleMancalaMove(msg.payload); break;
+      case 'warPlay':         handleWarPlay(msg.payload); break;
+      case 'c8Play':          handleC8Play(msg.payload); break;
+      case 'c8Draw':          handleC8Draw(msg.payload); break;
+      case 'gfAsk':           handleGfAsk(msg.payload); break;
+      case 'bjBet':           handleBjBet(msg.payload); break;
+      case 'bjHit':           handleBjHit(msg.payload); break;
+      case 'bjStand':         handleBjStand(msg.payload); break;
+      case 'bjDouble':        handleBjDouble(msg.payload); break;
+      case 'grDrawPile':      handleGrDrawPile(msg.payload); break;
+      case 'grDrawDiscard':   handleGrDrawDiscard(msg.payload); break;
+      case 'grDiscard':       handleGrDiscard(msg.payload); break;
+      case 'grKnock':         handleGrKnock(msg.payload); break;
+      case 'htPass':          handleHtPass(msg.payload); break;
+      case 'htPlay':          handleHtPlay(msg.payload); break;
+      case 'spBid':           handleSpBid(msg.payload); break;
+      case 'spPlay':          handleSpPlay(msg.payload); break;
+      case 'pkAction':        handlePkAction(msg.payload); break;
+      case 'hlGuess':         handleHlGuess(msg.payload); break;
       case 'resign':            handleResign(msg.payload); break;
       case 'chat':              handleChat(msg.payload); break;
       case 'playerDisconnect':  handlePlayerDisconnect(msg.payload); break;
@@ -160,7 +196,38 @@ function buildLocalAdapter() {
     },
     mancalaMakeMove(socket, pitIdx) {
       handleMancalaMove({ socketId: socket.id, pitIdx });
-    }
+    },
+    get warGame() { return game; },
+    get c8Game() { return game; },
+    get gfGame() { return game; },
+    get bjGame() { return game; },
+    get grGame() { return game; },
+    get htGame() { return game; },
+    get spGame() { return game; },
+    get pkGame() { return game; },
+    get hlGame() { return game; },
+    warPlayRound(socket) { handleWarPlay({ socketId: socket.id }); },
+    c8PlayCard(socket, cardIndex, chosenSuit) { handleC8Play({ socketId: socket.id, cardIndex, chosenSuit }); },
+    c8DrawCard(socket) { handleC8Draw({ socketId: socket.id }); },
+    gfAskForCard(socket, targetIdx, rank) { handleGfAsk({ socketId: socket.id, targetIdx, rank }); },
+    bjPlaceBet(socket, amount) { handleBjBet({ socketId: socket.id, amount }); },
+    bjHit(socket) { handleBjHit({ socketId: socket.id }); },
+    bjStand(socket) { handleBjStand({ socketId: socket.id }); },
+    bjDouble(socket) { handleBjDouble({ socketId: socket.id }); },
+    grDrawFromPile(socket) { handleGrDrawPile({ socketId: socket.id }); },
+    grDrawFromDiscard(socket) { handleGrDrawDiscard({ socketId: socket.id }); },
+    grDiscard(socket, cardIndex) { handleGrDiscard({ socketId: socket.id, cardIndex }); },
+    grKnock(socket, cardIndex) { handleGrKnock({ socketId: socket.id, cardIndex }); },
+    htPassCards(socket, cardIndices) { handleHtPass({ socketId: socket.id, cardIndices }); },
+    htPlayCard(socket, cardIndex) { handleHtPlay({ socketId: socket.id, cardIndex }); },
+    spPlaceBid(socket, bid) { handleSpBid({ socketId: socket.id, bid }); },
+    spPlayCard(socket, cardIndex) { handleSpPlay({ socketId: socket.id, cardIndex }); },
+    pkFold(socket) { handlePkAction({ socketId: socket.id, action: 'fold' }); },
+    pkCheck(socket) { handlePkAction({ socketId: socket.id, action: 'check' }); },
+    pkCall(socket) { handlePkAction({ socketId: socket.id, action: 'call' }); },
+    pkRaise(socket, amount) { handlePkAction({ socketId: socket.id, action: 'raise', amount }); },
+    pkAllIn(socket) { handlePkAction({ socketId: socket.id, action: 'allIn' }); },
+    hlGuess(socket, choice) { handleHlGuess({ socketId: socket.id, choice }); }
   };
 }
 
@@ -206,6 +273,33 @@ function handleInit(payload) {
       break;
     case 'mancala':
       game = new MancalaGame();
+      break;
+    case 'war':
+      game = new WarGame();
+      break;
+    case 'crazy8':
+      game = new CrazyEightsGame(players.length);
+      break;
+    case 'gofish':
+      game = new GoFishGame(players.length);
+      break;
+    case 'blackjack':
+      game = new BlackjackGame(players.length);
+      break;
+    case 'ginrummy':
+      game = new GinRummyGame();
+      break;
+    case 'hearts':
+      game = new HeartsGame();
+      break;
+    case 'spades':
+      game = new SpadesGame();
+      break;
+    case 'poker':
+      game = new PokerGame(players.length);
+      break;
+    case 'higherlower':
+      game = new HigherLowerGame(players.length);
       break;
   }
 
@@ -280,6 +374,87 @@ function handleInit(payload) {
         bot.username = p.username;
         bot.id = p.id;
         break;
+      case 'war':
+        bot = new WarBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'crazy8':
+        bot = new CrazyEightsBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'gofish':
+        bot = new GoFishBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'blackjack':
+        bot = new BlackjackBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'ginrummy':
+        bot = new GinRummyBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'hearts':
+        bot = new HeartsBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'spades':
+        bot = new SpadesBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'poker':
+        bot = new PokerBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'higherlower':
+        bot = new HigherLowerBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
     }
     bots.push(bot);
   }
@@ -329,6 +504,14 @@ function handleInit(payload) {
         const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
         if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
           currentBot._scheduleMove();
+        }
+      } else if (['war', 'crazy8', 'gofish', 'blackjack', 'ginrummy', 'hearts', 'spades', 'poker', 'higherlower'].includes(gameType)) {
+        if (game.gameOver || game.phase === 'over') return;
+        const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
+        if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
+          if (currentBot._schedulePlay) currentBot._schedulePlay();
+          else if (currentBot._scheduleMove) currentBot._scheduleMove();
+          else if (currentBot._scheduleTurn) currentBot._scheduleTurn();
         }
       }
     }, 3000);
@@ -492,6 +675,31 @@ function sendStartData(payload) {
         if (bot) bot.socket.emit('mancala:start', startPayload);
       } else {
         playerStartData.push({ socketId: players[i].id, event: 'mancala:start', data: startPayload });
+      }
+    }
+  } else if (['war', 'crazy8', 'gofish', 'blackjack', 'ginrummy', 'hearts', 'spades', 'poker', 'higherlower'].includes(gameType)) {
+    const playersInfo = players.map(p => ({ username: p.username, rating: p.rating || 1200 }));
+    const eventPrefix = gameType === 'crazy8' ? 'c8' : gameType === 'gofish' ? 'gf' : gameType === 'blackjack' ? 'bj' : gameType === 'ginrummy' ? 'gr' : gameType === 'hearts' ? 'ht' : gameType === 'spades' ? 'sp' : gameType === 'poker' ? 'pk' : gameType === 'higherlower' ? 'hl' : gameType;
+    const startEvent = eventPrefix + ':start';
+
+    // For poker, start the first hand
+    if (gameType === 'poker' && game.startHand) game.startHand();
+
+    for (let i = 0; i < players.length; i++) {
+      const state = game.getStateForPlayer ? game.getStateForPlayer(i) : game.getState();
+      const startPayload = {
+        gameId, matchCode,
+        playerIndex: i,
+        playerCount: players.length,
+        players: playersInfo,
+        type: gameTypeStr,
+        ...state
+      };
+      if (players[i].isBot) {
+        const bot = bots.find(b => b.socket.id === players[i].id);
+        if (bot) bot.socket.emit(startEvent, startPayload);
+      } else {
+        playerStartData.push({ socketId: players[i].id, event: startEvent, data: startPayload });
       }
     }
   }
@@ -1259,6 +1467,352 @@ function postMancalaGameOver(goResult) {
 }
 
 /* ================================================
+   CARD GAME HELPERS
+   ================================================ */
+function getCardEventPrefix() {
+  const map = { war: 'war', crazy8: 'c8', gofish: 'gf', blackjack: 'bj', ginrummy: 'gr', hearts: 'ht', spades: 'sp', poker: 'pk', higherlower: 'hl' };
+  return map[gameType] || gameType;
+}
+
+function broadcastCardUpdate(extra) {
+  const prefix = getCardEventPrefix();
+  broadcastPerPlayer((i) => {
+    const state = game.getStateForPlayer ? game.getStateForPlayer(i) : game.getState();
+    return { event: prefix + ':update', data: { ...state, ...extra, playerIndex: i } };
+  });
+}
+
+function postCardGameOver(prefix, goResult) {
+  const overData = {
+    winner: goResult.winner,
+    winnerUsername: typeof goResult.winner === 'number' ? players[goResult.winner]?.username : null,
+    reason: goResult.reason || 'Game over',
+    scores: goResult.scores || null
+  };
+
+  for (const p of players) {
+    if (p.isBot) {
+      const bot = bots.find(b => b.socket.id === p.id);
+      if (bot) bot.socket.emit(prefix + ':over', overData);
+    }
+  }
+
+  const humanTargets = players.filter(p => !p.isBot)
+    .map(p => ({ socketId: p.id, event: prefix + ':over', data: overData }));
+
+  parentPort.postMessage({
+    type: 'gameOver',
+    payload: {
+      gameId, gameType,
+      winner: goResult.winner,
+      scores: goResult.scores,
+      reason: goResult.reason,
+      playerUsernames: players.map(p => p.username),
+      overTargets: humanTargets
+    }
+  });
+}
+
+/* ================================================
+   WAR ACTIONS
+   ================================================ */
+function handleWarPlay({ socketId }) {
+  if (gameType !== 'war') return;
+  const result = game.playRound();
+  if (!result.valid) return;
+  broadcastCardUpdate({ battleCards: result.battleCards, warCards: result.warCards, roundWinner: result.roundWinner });
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('war', go);
+}
+
+/* ================================================
+   CRAZY EIGHTS ACTIONS
+   ================================================ */
+function handleC8Play({ socketId, cardIndex, chosenSuit }) {
+  if (gameType !== 'crazy8') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.playCard(idx, cardIndex, chosenSuit);
+  if (!result.valid) {
+    postEmit(socketId, 'c8:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('c8', go);
+}
+
+function handleC8Draw({ socketId }) {
+  if (gameType !== 'crazy8') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.drawCard(idx);
+  if (!result.valid) {
+    postEmit(socketId, 'c8:error', { message: result.error || 'Cannot draw' });
+    return;
+  }
+  broadcastCardUpdate();
+}
+
+/* ================================================
+   GO FISH ACTIONS
+   ================================================ */
+function handleGfAsk({ socketId, targetIdx, rank }) {
+  if (gameType !== 'gofish') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.askForCard(idx, targetIdx, rank);
+  if (!result.valid) {
+    postEmit(socketId, 'gf:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate({ lastAction: result });
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('gf', go);
+}
+
+/* ================================================
+   BLACKJACK ACTIONS
+   ================================================ */
+function handleBjBet({ socketId, amount }) {
+  if (gameType !== 'blackjack') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.placeBet(idx, amount);
+  if (!result.valid) {
+    postEmit(socketId, 'bj:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+  // If all bets placed and we moved to dealing, auto-deal
+  if (game.phase === 'dealing' || game.phase === 'playing') {
+    if (game.deal) game.deal();
+    broadcastCardUpdate();
+  }
+}
+
+function handleBjHit({ socketId }) {
+  if (gameType !== 'blackjack') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.hit(idx);
+  if (!result.valid) {
+    postEmit(socketId, 'bj:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+  if (game.phase === 'dealer') {
+    if (game._dealerPlay) game._dealerPlay();
+    if (game._payout) game._payout();
+    broadcastCardUpdate();
+  }
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('bj', go);
+}
+
+function handleBjStand({ socketId }) {
+  if (gameType !== 'blackjack') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.stand(idx);
+  if (!result.valid) return;
+  broadcastCardUpdate();
+  if (game.phase === 'dealer') {
+    if (game._dealerPlay) game._dealerPlay();
+    if (game._payout) game._payout();
+    broadcastCardUpdate();
+  }
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('bj', go);
+}
+
+function handleBjDouble({ socketId }) {
+  if (gameType !== 'blackjack') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.doubleDown(idx);
+  if (!result.valid) {
+    postEmit(socketId, 'bj:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+  if (game.phase === 'dealer') {
+    if (game._dealerPlay) game._dealerPlay();
+    if (game._payout) game._payout();
+    broadcastCardUpdate();
+  }
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('bj', go);
+}
+
+/* ================================================
+   GIN RUMMY ACTIONS
+   ================================================ */
+function handleGrDrawPile({ socketId }) {
+  if (gameType !== 'ginrummy') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.drawFromPile(idx);
+  if (!result.valid) {
+    postEmit(socketId, 'gr:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+}
+
+function handleGrDrawDiscard({ socketId }) {
+  if (gameType !== 'ginrummy') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.drawFromDiscard(idx);
+  if (!result.valid) {
+    postEmit(socketId, 'gr:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+}
+
+function handleGrDiscard({ socketId, cardIndex }) {
+  if (gameType !== 'ginrummy') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.discard(idx, cardIndex);
+  if (!result.valid) {
+    postEmit(socketId, 'gr:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('gr', go);
+}
+
+function handleGrKnock({ socketId, cardIndex }) {
+  if (gameType !== 'ginrummy') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.knock(idx, cardIndex);
+  if (!result.valid) {
+    postEmit(socketId, 'gr:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('gr', go);
+}
+
+/* ================================================
+   HEARTS ACTIONS
+   ================================================ */
+function handleHtPass({ socketId, cardIndices }) {
+  if (gameType !== 'hearts') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.passCards(idx, cardIndices);
+  if (!result.valid) {
+    postEmit(socketId, 'ht:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+}
+
+function handleHtPlay({ socketId, cardIndex }) {
+  if (gameType !== 'hearts') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.playCard(idx, cardIndex);
+  if (!result.valid) {
+    postEmit(socketId, 'ht:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('ht', go);
+}
+
+/* ================================================
+   SPADES ACTIONS
+   ================================================ */
+function handleSpBid({ socketId, bid }) {
+  if (gameType !== 'spades') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.placeBid(idx, bid);
+  if (!result.valid) {
+    postEmit(socketId, 'sp:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+}
+
+function handleSpPlay({ socketId, cardIndex }) {
+  if (gameType !== 'spades') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.playCard(idx, cardIndex);
+  if (!result.valid) {
+    postEmit(socketId, 'sp:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate();
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('sp', go);
+}
+
+/* ================================================
+   POKER ACTIONS
+   ================================================ */
+function handlePkAction({ socketId, action, amount }) {
+  if (gameType !== 'poker') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  let result;
+  switch (action) {
+    case 'fold': result = game.fold(idx); break;
+    case 'check': result = game.check(idx); break;
+    case 'call': result = game.call(idx); break;
+    case 'raise': result = game.raise(idx, amount); break;
+    case 'allIn': result = game.allIn(idx); break;
+    default: return;
+  }
+  if (!result || !result.valid) {
+    postEmit(socketId, 'pk:error', { message: (result && result.error) || 'Invalid action' });
+    return;
+  }
+  broadcastCardUpdate();
+  if (result.handOver || (game.phase === 'showdown')) {
+    // Start next hand after a delay if game not over
+    const go = game.checkGameOver();
+    if (go.over) {
+      postCardGameOver('pk', go);
+    } else if (game.startHand) {
+      setTimeout(() => {
+        if (game && !game.gameOver) {
+          game.startHand();
+          broadcastCardUpdate();
+        }
+      }, 3000);
+    }
+  }
+}
+
+/* ================================================
+   HIGHER OR LOWER ACTIONS
+   ================================================ */
+function handleHlGuess({ socketId, choice }) {
+  if (gameType !== 'higherlower') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+  const result = game.guess(idx, choice);
+  if (!result.valid) {
+    postEmit(socketId, 'hl:error', { message: result.error });
+    return;
+  }
+  broadcastCardUpdate({ lastResult: result });
+  const go = game.checkGameOver();
+  if (go.over) postCardGameOver('hl', go);
+}
+
+/* ================================================
    RESIGN
    ================================================ */
 function handleResign({ socketId }) {
@@ -1297,6 +1851,18 @@ function handleResign({ socketId }) {
   } else if (gameType === 'mancala') {
     const winnerIdx = 1 - idx;
     postMancalaGameOver({ over: true, winner: winnerIdx, reason: 'Opponent resigned', scores: game._getScores() });
+  } else if (['war', 'crazy8', 'gofish', 'blackjack', 'ginrummy', 'hearts', 'spades', 'poker', 'higherlower'].includes(gameType)) {
+    const eventPrefix = gameType === 'crazy8' ? 'c8' : gameType === 'gofish' ? 'gf' : gameType === 'blackjack' ? 'bj' : gameType === 'ginrummy' ? 'gr' : gameType === 'hearts' ? 'ht' : gameType === 'spades' ? 'sp' : gameType === 'poker' ? 'pk' : gameType === 'higherlower' ? 'hl' : gameType;
+    // Simple resign: other player(s) win
+    let winnerIdx = 0;
+    if (players.length === 2) {
+      winnerIdx = 1 - idx;
+    } else {
+      for (let i = 0; i < players.length; i++) {
+        if (i !== idx) { winnerIdx = i; break; }
+      }
+    }
+    postCardGameOver(eventPrefix, { over: true, winner: winnerIdx, reason: 'Opponent resigned' });
   }
 }
 
@@ -1659,6 +2225,33 @@ function handleInitFromState(payload) {
     case 'mancala':
       game = MancalaGame.deserialize(state);
       break;
+    case 'war':
+      game = WarGame.deserialize(state);
+      break;
+    case 'crazy8':
+      game = CrazyEightsGame.deserialize(state);
+      break;
+    case 'gofish':
+      game = GoFishGame.deserialize(state);
+      break;
+    case 'blackjack':
+      game = BlackjackGame.deserialize(state);
+      break;
+    case 'ginrummy':
+      game = GinRummyGame.deserialize(state);
+      break;
+    case 'hearts':
+      game = HeartsGame.deserialize(state);
+      break;
+    case 'spades':
+      game = SpadesGame.deserialize(state);
+      break;
+    case 'poker':
+      game = PokerGame.deserialize(state);
+      break;
+    case 'higherlower':
+      game = HigherLowerGame.deserialize(state);
+      break;
   }
 
   // Mark all human players as disconnected (they'll rejoin via attemptRejoin)
@@ -1737,6 +2330,87 @@ function handleInitFromState(payload) {
         bot.username = p.username;
         bot.id = p.id;
         break;
+      case 'war':
+        bot = new WarBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'crazy8':
+        bot = new CrazyEightsBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'gofish':
+        bot = new GoFishBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'blackjack':
+        bot = new BlackjackBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'ginrummy':
+        bot = new GinRummyBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'hearts':
+        bot = new HeartsBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'spades':
+        bot = new SpadesBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'poker':
+        bot = new PokerBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'higherlower':
+        bot = new HigherLowerBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
     }
     if (bot) {
       bot._paused = true;
@@ -1786,6 +2460,14 @@ function handleInitFromState(payload) {
         const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
         if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
           currentBot._scheduleMove();
+        }
+      } else if (['war', 'crazy8', 'gofish', 'blackjack', 'ginrummy', 'hearts', 'spades', 'poker', 'higherlower'].includes(gameType)) {
+        if (game.gameOver || game.phase === 'over') return;
+        const currentBot = bots.find(b => b.playerIndex === game.currentTurn);
+        if (currentBot && !currentBot.destroyed && !currentBot._paused && !currentBot._timer) {
+          if (currentBot._schedulePlay) currentBot._schedulePlay();
+          else if (currentBot._scheduleMove) currentBot._scheduleMove();
+          else if (currentBot._scheduleTurn) currentBot._scheduleTurn();
         }
       }
     }, 3000);
