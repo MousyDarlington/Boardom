@@ -33,6 +33,8 @@ const HeartsBotPlayer = require('./HeartsBotPlayer');
 const SpadesBotPlayer = require('./SpadesBotPlayer');
 const PokerBotPlayer = require('./PokerBotPlayer');
 const HigherLowerBotPlayer = require('./HigherLowerBotPlayer');
+const PoolGame = require('./PoolGame');
+const PoolBotPlayer = require('./PoolBotPlayer');
 const fs = require('fs');
 
 /* ================================================
@@ -91,6 +93,8 @@ parentPort.on('message', (msg) => {
       case 'spPlay':          handleSpPlay(msg.payload); break;
       case 'pkAction':        handlePkAction(msg.payload); break;
       case 'hlGuess':         handleHlGuess(msg.payload); break;
+      case 'poolShoot':       handlePoolShoot(msg.payload); break;
+      case 'poolPlaceCue':    handlePoolPlaceCue(msg.payload); break;
       case 'resign':            handleResign(msg.payload); break;
       case 'chat':              handleChat(msg.payload); break;
       case 'playerDisconnect':  handlePlayerDisconnect(msg.payload); break;
@@ -301,6 +305,9 @@ function handleInit(payload) {
     case 'higherlower':
       game = new HigherLowerGame(players.length);
       break;
+    case 'pool':
+      game = new PoolGame();
+      break;
   }
 
   // Create bots
@@ -448,6 +455,15 @@ function handleInit(payload) {
         break;
       case 'higherlower':
         bot = new HigherLowerBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'pool':
+        bot = new PoolBotPlayer(adapter, p.botRating || 1200, p.botName);
         bot.gameId = gameId;
         bot.playerIndex = p.playerIndex;
         bot.socket.id = p.id;
@@ -637,6 +653,25 @@ function sendStartData(payload) {
         if (bot) bot.socket.emit('c4:start', startPayload);
       } else {
         playerStartData.push({ socketId: players[i].id, event: 'c4:start', data: startPayload });
+      }
+    }
+  } else if (gameType === 'pool') {
+    const state = game.getState();
+    const playersInfo = players.map(p => ({ username: p.username, rating: p.rating || 1200 }));
+    for (let i = 0; i < players.length; i++) {
+      const startPayload = {
+        gameId, matchCode,
+        playerIndex: i,
+        playerCount: 2,
+        players: playersInfo,
+        type: gameTypeStr,
+        ...state
+      };
+      if (players[i].isBot) {
+        const bot = bots.find(b => b.socket.id === players[i].id);
+        if (bot) bot.socket.emit('pool:start', startPayload);
+      } else {
+        playerStartData.push({ socketId: players[i].id, event: 'pool:start', data: startPayload });
       }
     }
   } else if (gameType === 'battleship') {
@@ -1273,6 +1308,70 @@ function postC4GameOver(goResult) {
       gameId, gameType: 'c4',
       winnerIdx,
       reason: goResult.reason,
+      playerUsernames: players.map(p => p.username),
+      overTargets: humanTargets
+    }
+  });
+}
+
+/* ================================================
+   8-BALL POOL ACTIONS
+   ================================================ */
+function handlePoolShoot({ socketId, angle, power }) {
+  if (gameType !== 'pool') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+
+  const result = game.shoot(idx, angle, power);
+  if (!result.valid) {
+    postEmit(socketId, 'pool:error', { message: result.error });
+    return;
+  }
+
+  broadcastToPlayers('pool:update', result);
+
+  if (result.gameOver) {
+    postPoolGameOver(result);
+  }
+}
+
+function handlePoolPlaceCue({ socketId, x, y }) {
+  if (gameType !== 'pool') return;
+  const idx = socketToIndex.get(socketId);
+  if (idx === undefined) return;
+
+  const result = game.placeCueBall(idx, x, y);
+  if (!result.valid) {
+    postEmit(socketId, 'pool:error', { message: result.error });
+    return;
+  }
+
+  broadcastToPlayers('pool:update', result);
+}
+
+function postPoolGameOver(result) {
+  const winnerIdx = result.winner;
+  const overData = {
+    winner: winnerIdx,
+    winnerUsername: winnerIdx !== null ? players[winnerIdx]?.username : null,
+    reason: result.turnMessage || 'Game over'
+  };
+
+  for (const b of bots) {
+    if (b && !b.destroyed) {
+      b.socket.emit('pool:over', overData);
+    }
+  }
+
+  const humanTargets = players.filter(p => !p.isBot)
+    .map(p => ({ socketId: p.id, event: 'pool:over', data: overData }));
+
+  parentPort.postMessage({
+    type: 'gameOver',
+    payload: {
+      gameId, gameType: 'pool',
+      winnerIdx,
+      reason: result.turnMessage,
       playerUsernames: players.map(p => p.username),
       overTargets: humanTargets
     }
@@ -2247,6 +2346,9 @@ function handleInitFromState(payload) {
     case 'higherlower':
       game = HigherLowerGame.deserialize(state);
       break;
+    case 'pool':
+      game = PoolGame.deserialize(state);
+      break;
   }
 
   // Mark all human players as disconnected (they'll rejoin via attemptRejoin)
@@ -2399,6 +2501,15 @@ function handleInitFromState(payload) {
         break;
       case 'higherlower':
         bot = new HigherLowerBotPlayer(adapter, p.botRating || 1200, p.botName);
+        bot.gameId = gameId;
+        bot.playerIndex = p.playerIndex;
+        bot.socket.id = p.id;
+        bot.socket.username = p.username;
+        bot.username = p.username;
+        bot.id = p.id;
+        break;
+      case 'pool':
+        bot = new PoolBotPlayer(adapter, p.botRating || 1200, p.botName);
         bot.gameId = gameId;
         bot.playerIndex = p.playerIndex;
         bot.socket.id = p.id;

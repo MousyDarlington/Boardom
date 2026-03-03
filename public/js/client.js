@@ -248,6 +248,16 @@
         { id: 'hlPlay', icon: '\uD83C\uDFAE', name: 'Solo', desc: 'Single player challenge' },
         { id: 'hlBots', icon: '\uD83E\uDD16', name: 'vs Bot', desc: 'Compete against AI' }
       ]
+    },
+    pool: {
+      title: '8-Ball Pool',
+      icon: '\uD83C\uDFB1',
+      desc: '2 players \u2014 Pocket all your balls and sink the 8!',
+      modes: [
+        { id: 'poolOnline', icon: '\uD83C\uDF10', name: 'Play Online', desc: 'Match with players' },
+        { id: 'poolBots', icon: '\uD83E\uDD16', name: 'Play vs Bot', desc: 'Challenge the AI' },
+        { id: 'poolLocal', icon: '\uD83C\uDFAE', name: 'Local 2P', desc: 'Same screen hotseat' }
+      ]
     }
   };
 
@@ -1129,7 +1139,7 @@
     'lobbyHostScreen', 'lobbyJoinScreen', 'troubleHostScreen', 'guestJoinScreen',
     'shopScreen', 'gameScreen', 'troubleGameScreen', 'scrabbleGameScreen',
     'cahHostScreen', 'cahGameScreen', 'c4GameScreen', 'bsGameScreen', 'mancalaGameScreen',
-    'mahjongGameScreen', 'solitaireGameScreen', 'cardGameScreen'];
+    'mahjongGameScreen', 'solitaireGameScreen', 'cardGameScreen', 'poolGameScreen'];
 
   function showScreen(name) {
     currentScreen = name;
@@ -1141,7 +1151,7 @@
       scrabble: 'scrabbleGameScreen', cahHost: 'cahHostScreen', cah: 'cahGameScreen',
       c4: 'c4GameScreen', battleship: 'bsGameScreen', mancala: 'mancalaGameScreen',
       mahjong: 'mahjongGameScreen', solitaire: 'solitaireGameScreen',
-      cardgame: 'cardGameScreen'
+      cardgame: 'cardGameScreen', pool: 'poolGameScreen'
     };
     for (const id of screenIds) {
       const el = $(id);
@@ -1151,7 +1161,7 @@
     if (target) target.classList.add('active');
 
     // Hide game over overlay when switching screens
-    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala' && name !== 'mahjong' && name !== 'solitaire' && name !== 'cardgame') {
+    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala' && name !== 'mahjong' && name !== 'solitaire' && name !== 'cardgame' && name !== 'pool') {
       $('gameOverOverlay').classList.add('hidden');
       confettiActive = false;
     }
@@ -1163,6 +1173,7 @@
     if (name !== 'battleship') bsGameLoopActive = false;
     if (name !== 'mancala') mnGameLoopActive = false;
     if (name !== 'mahjong') mjGameLoopActive = false;
+    if (name !== 'pool') poolGameLoopActive = false;
 
     if (name === 'game') {
       setupCanvas();
@@ -1194,6 +1205,10 @@
     if (name === 'mahjong') {
       setupMahjongCanvas();
       startMahjongGameLoop();
+    }
+    if (name === 'pool') {
+      setupPoolCanvas();
+      startPoolGameLoop();
     }
 
     // Hide overlays when leaving lobby
@@ -2718,6 +2733,24 @@
           $('queueTitle').textContent = 'Higher or Lower';
           $('queueText').textContent = 'Starting game...';
           showScreen('queue');
+          break;
+      }
+    } else if (gameId === 'pool') {
+      switch (modeId) {
+        case 'poolOnline':
+          socket.emit('pool:join');
+          $('queueTitle').textContent = '8-Ball Pool';
+          $('queueText').textContent = 'Finding an opponent...';
+          showScreen('queue');
+          break;
+        case 'poolBots':
+          socket.emit('pool:bot');
+          $('queueTitle').textContent = '8-Ball Pool';
+          $('queueText').textContent = 'Starting game vs bot...';
+          showScreen('queue');
+          break;
+        case 'poolLocal':
+          startLocalPoolGame();
           break;
       }
     }
@@ -5942,6 +5975,7 @@
       const myIdx = currentScreen === 'c4' ? c4MyIndex
                   : currentScreen === 'battleship' ? bsMyIndex
                   : currentScreen === 'mancala' ? mnMyIndex
+                  : currentScreen === 'pool' ? poolMyIndex
                   : -1;
       isWin = data.winner === myIdx;
       title.textContent = isWin ? 'Victory!' : 'Defeat';
@@ -6590,6 +6624,919 @@
   }
 
   /* ================================================
+     8-BALL POOL -- CLIENT
+     ================================================ */
+  const POOL_W = 900, POOL_H = 520;
+  const PT_X = 50, PT_Y = 60;
+  const PT_W = 800, PT_H = 400;
+  const POOL_R = 10;
+  const POOL_POCKET_R = 18;
+  const POOL_FRICTION = 0.985;
+  const POOL_STOP = 0.1;
+  const POOL_DT = 1 / 120;
+  const POOL_MAX_POWER = 20;
+  const MAX_STEPS_LOCAL = 10000;
+  const POOL_POCKETS = [
+    { x: 0, y: 0 }, { x: PT_W / 2, y: 0 }, { x: PT_W, y: 0 },
+    { x: 0, y: PT_H }, { x: PT_W / 2, y: PT_H }, { x: PT_W, y: PT_H }
+  ];
+
+  // Standard pool ball colors
+  const POOL_COLORS = [
+    '#ffffff', // 0 = cue (white)
+    '#fdd835', // 1 yellow
+    '#1565c0', // 2 blue
+    '#c62828', // 3 red
+    '#6a1b9a', // 4 purple
+    '#ef6c00', // 5 orange
+    '#2e7d32', // 6 green
+    '#6d4c41', // 7 maroon
+    '#212121', // 8 black
+    '#fdd835', // 9 yellow stripe
+    '#1565c0', // 10 blue stripe
+    '#c62828', // 11 red stripe
+    '#6a1b9a', // 12 purple stripe
+    '#ef6c00', // 13 orange stripe
+    '#2e7d32', // 14 green stripe
+    '#6d4c41'  // 15 maroon stripe
+  ];
+
+  let poolCanvas, poolCtx;
+  let poolGameLoopActive = false;
+  let poolMyIndex = -1;
+  let poolState = null;
+  let poolLocal = null;
+  let poolAiming = false;
+  let poolAimStart = null;
+  let poolAimCurrent = null;
+  let poolAnimating = false;
+  let poolAnimBalls = null;
+  let poolMatchCode = null;
+  let poolOpponentInfo = null;
+  let poolAnimStepsLeft = 0;
+
+  function setupPoolCanvas() {
+    poolCanvas = $('poolCanvas');
+    if (!poolCanvas) return;
+    poolCanvas.width = POOL_W;
+    poolCanvas.height = POOL_H;
+    poolCtx = poolCanvas.getContext('2d');
+    poolCanvas.addEventListener('mousedown', poolHandleMouseDown);
+    poolCanvas.addEventListener('mousemove', poolHandleMouseMove);
+    poolCanvas.addEventListener('mouseup', poolHandleMouseUp);
+    poolCanvas.addEventListener('mouseleave', poolHandleMouseUp);
+  }
+
+  function startPoolGameLoop() {
+    poolGameLoopActive = true;
+    function loop() {
+      if (!poolGameLoopActive) return;
+      if (poolAnimating && poolAnimBalls) poolStepAnimation();
+      renderPool();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  /* ---- Pool rendering ---- */
+
+  function poolBallType(id) {
+    if (id === 0) return 'cue';
+    if (id >= 1 && id <= 7) return 'solid';
+    if (id === 8) return 'eight';
+    return 'stripe';
+  }
+
+  function drawPoolBall(ctx, x, y, ball) {
+    const r = POOL_R;
+    const color = POOL_COLORS[ball.id] || '#888';
+    const isStripe = ball.id >= 9 && ball.id <= 15;
+
+    // Ball shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.arc(x + 1.5, y + 1.5, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (isStripe) {
+      // White base
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      // Colored stripe band (middle section)
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = color;
+      ctx.fillRect(x - r, y - r * 0.5, r * 2, r);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Number circle (except cue ball)
+    if (ball.id !== 0) {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.font = `bold ${Math.floor(r * 0.8)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('' + ball.id, x, y + 0.5);
+    }
+
+    // Outline
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  function renderPool() {
+    if (!poolCtx) return;
+    const ctx = poolCtx;
+    const state = poolAnimating && poolAnimBalls ? { balls: poolAnimBalls } : (poolState || {});
+    const balls = state.balls || [];
+
+    ctx.clearRect(0, 0, POOL_W, POOL_H);
+
+    // Dark background
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, POOL_W, POOL_H);
+
+    // Table rail border (brown wood)
+    ctx.fillStyle = '#5d3a1a';
+    ctx.beginPath();
+    ctx.roundRect(PT_X - 14, PT_Y - 14, PT_W + 28, PT_H + 28, 10);
+    ctx.fill();
+
+    // Felt surface (green)
+    ctx.fillStyle = '#1b6b3a';
+    ctx.fillRect(PT_X, PT_Y, PT_W, PT_H);
+
+    // Rail edge highlights
+    ctx.strokeStyle = '#7a5230';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(PT_X - 14, PT_Y - 14, PT_W + 28, PT_H + 28, 10);
+    ctx.stroke();
+
+    // Draw pockets
+    for (const p of POOL_POCKETS) {
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.arc(PT_X + p.x, PT_Y + p.y, POOL_POCKET_R, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0a0a0a';
+      ctx.beginPath();
+      ctx.arc(PT_X + p.x, PT_Y + p.y, POOL_POCKET_R - 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Head string line (1/4 mark)
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(PT_X + PT_W * 0.25, PT_Y);
+    ctx.lineTo(PT_X + PT_W * 0.25, PT_Y + PT_H);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw balls
+    for (const b of balls) {
+      if (b.pocketed) continue;
+      drawPoolBall(ctx, PT_X + b.x, PT_Y + b.y, b);
+    }
+
+    // Ball-in-hand indicator
+    const ps = poolLocal ? poolLocal.state : poolState;
+    if (ps && ps.ballInHand && !poolAnimating) {
+      const isMyTurn = poolLocal ? true : (ps.currentTurn === poolMyIndex);
+      if (isMyTurn) {
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([3, 3]);
+        const cue = balls.find(b => b.id === 0);
+        if (cue) {
+          ctx.beginPath();
+          ctx.arc(PT_X + cue.x, PT_Y + cue.y, POOL_R + 5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        // Info text
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Click on the table to place the cue ball', POOL_W / 2, PT_Y + PT_H + 30);
+      }
+    }
+
+    // Aiming visuals
+    if (poolAiming && poolAimStart && poolAimCurrent && !poolAnimating) {
+      const cue = balls.find(b => b.id === 0);
+      if (cue) {
+        const cx = PT_X + cue.x, cy = PT_Y + cue.y;
+        // Direction: from drag point back through cue ball (opposite of pull)
+        const dx = poolAimStart.x - poolAimCurrent.x;
+        const dy = poolAimStart.y - poolAimCurrent.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 2) {
+          const angle = Math.atan2(dy, dx);
+          const power = Math.min(dist / 8, POOL_MAX_POWER);
+          const powerFrac = power / POOL_MAX_POWER;
+
+          // Aim line (dotted)
+          ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(angle) * 200, cy + Math.sin(angle) * 200);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Cue stick (behind cue ball)
+          const stickLen = 180;
+          const pullBack = 10 + powerFrac * 60;
+          const sx = cx - Math.cos(angle) * pullBack;
+          const sy = cy - Math.sin(angle) * pullBack;
+          const ex = sx - Math.cos(angle) * stickLen;
+          const ey = sy - Math.sin(angle) * stickLen;
+
+          ctx.strokeStyle = '#d4a55a';
+          ctx.lineWidth = 5;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+
+          // Cue tip
+          ctx.strokeStyle = '#eee';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(sx - Math.cos(angle) * 6, sy - Math.sin(angle) * 6);
+          ctx.stroke();
+
+          // Power bar
+          const barX = POOL_W - 40, barY = PT_Y + 20, barH = PT_H - 40;
+          ctx.fillStyle = 'rgba(0,0,0,0.4)';
+          ctx.fillRect(barX, barY, 16, barH);
+          const green = [0x34, 0xc7, 0x59];
+          const red = [0xff, 0x2d, 0x55];
+          const r = Math.round(green[0] + (red[0] - green[0]) * powerFrac);
+          const g = Math.round(green[1] + (red[1] - green[1]) * powerFrac);
+          const bl = Math.round(green[2] + (red[2] - green[2]) * powerFrac);
+          ctx.fillStyle = `rgb(${r},${g},${bl})`;
+          const fillH = barH * powerFrac;
+          ctx.fillRect(barX, barY + barH - fillH, 16, fillH);
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(barX, barY, 16, barH);
+        }
+      }
+    }
+
+    // Pocketed ball tally on sides
+    if (ps && ps.playerGroups) {
+      const allBalls = ps.balls || balls;
+      const pocketed0 = allBalls.filter(b => b.pocketed && b.id !== 0 && b.id !== 8 &&
+        ((ps.playerGroups[0] === 'solid' && b.id >= 1 && b.id <= 7) ||
+         (ps.playerGroups[0] === 'stripe' && b.id >= 9 && b.id <= 15)));
+      const pocketed1 = allBalls.filter(b => b.pocketed && b.id !== 0 && b.id !== 8 &&
+        ((ps.playerGroups[1] === 'solid' && b.id >= 1 && b.id <= 7) ||
+         (ps.playerGroups[1] === 'stripe' && b.id >= 9 && b.id <= 15)));
+
+      const p0Balls = poolMyIndex === 0 ? pocketed0 : pocketed1;
+      const p1Balls = poolMyIndex === 0 ? pocketed1 : pocketed0;
+
+      // My pocketed balls (bottom)
+      p0Balls.forEach((b, i) => {
+        drawPoolBall(ctx, PT_X + 30 + i * 22, PT_Y + PT_H + 38, b);
+      });
+      // Opponent pocketed balls (top)
+      p1Balls.forEach((b, i) => {
+        drawPoolBall(ctx, PT_X + 30 + i * 22, PT_Y - 28, b);
+      });
+    }
+
+    // Turn badge
+    if (ps && !ps.gameOver && !poolAnimating) {
+      const badge = $('poolTurnBadge');
+      if (badge) {
+        if (poolLocal) {
+          badge.textContent = 'Player ' + (ps.currentTurn + 1) + "'s Turn";
+          badge.style.color = ps.currentTurn === 0 ? '#ff2d55' : '#34c759';
+        } else {
+          const myTurn = ps.currentTurn === poolMyIndex;
+          badge.textContent = myTurn ? 'YOUR TURN' : "OPPONENT'S TURN";
+          badge.style.color = myTurn ? '#34c759' : '#ff2d55';
+        }
+      }
+    }
+
+    // Info text
+    if (ps && ps.turnMessage && !poolAnimating) {
+      const info = $('poolInfo');
+      if (info) info.textContent = ps.turnMessage;
+    }
+  }
+
+  /* ---- Pool aiming & input ---- */
+
+  function poolMousePos(e) {
+    const rect = poolCanvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (POOL_W / rect.width),
+      y: (e.clientY - rect.top) * (POOL_H / rect.height)
+    };
+  }
+
+  function poolHandleMouseDown(e) {
+    if (poolAnimating) return;
+    const ps = poolLocal ? poolLocal.state : poolState;
+    if (!ps || ps.gameOver) return;
+    const isMyTurn = poolLocal ? true : (ps.currentTurn === poolMyIndex);
+    if (!isMyTurn) return;
+
+    const pos = poolMousePos(e);
+    const balls = ps.balls || [];
+
+    // Ball-in-hand: place cue ball
+    if (ps.ballInHand) {
+      const tx = pos.x - PT_X, ty = pos.y - PT_Y;
+      if (tx >= POOL_R && tx <= PT_W - POOL_R && ty >= POOL_R && ty <= PT_H - POOL_R) {
+        if (poolLocal) {
+          const result = poolLocalPlaceCue(tx, ty);
+          if (result && result.valid) {
+            poolLocal.state = { ...poolLocal.state, ...result };
+          }
+        } else {
+          socket.emit('pool:placeCue', { x: tx, y: ty });
+        }
+      }
+      return;
+    }
+
+    // Check if clicking near cue ball to aim
+    const cue = balls.find(b => b.id === 0 && !b.pocketed);
+    if (!cue) return;
+    const cx = PT_X + cue.x, cy = PT_Y + cue.y;
+    const dx = pos.x - cx, dy = pos.y - cy;
+    // Allow aiming from anywhere on the table (not just near cue ball)
+    if (pos.x >= PT_X && pos.x <= PT_X + PT_W && pos.y >= PT_Y && pos.y <= PT_Y + PT_H) {
+      poolAiming = true;
+      poolAimStart = pos;
+      poolAimCurrent = pos;
+    }
+  }
+
+  function poolHandleMouseMove(e) {
+    if (!poolAiming) return;
+    poolAimCurrent = poolMousePos(e);
+  }
+
+  function poolHandleMouseUp(e) {
+    if (!poolAiming) return;
+    poolAiming = false;
+
+    const ps = poolLocal ? poolLocal.state : poolState;
+    if (!ps || ps.ballInHand || ps.gameOver) { poolAimStart = null; poolAimCurrent = null; return; }
+
+    const pos = poolMousePos(e);
+    const dx = poolAimStart.x - pos.x;
+    const dy = poolAimStart.y - pos.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    poolAimStart = null;
+    poolAimCurrent = null;
+
+    if (dist < 5) return; // too short, ignore
+
+    const angle = Math.atan2(dy, dx);
+    const power = Math.min(dist / 8, POOL_MAX_POWER);
+
+    if (poolLocal) {
+      const result = poolLocalShoot(angle, power);
+      if (result && result.valid) {
+        poolStartAnimation(result);
+      }
+    } else {
+      socket.emit('pool:shoot', { angle, power });
+    }
+  }
+
+  /* ---- Pool animation ---- */
+
+  function poolStartAnimation(data) {
+    if (!data || data.shotAngle === undefined) {
+      // Non-shot update (e.g., placeCue) — just apply state
+      if (poolLocal) {
+        // already updated
+      } else {
+        poolState = { ...poolState, ...data };
+      }
+      return;
+    }
+
+    // Get pre-shot ball positions for animation
+    const ps = poolLocal ? poolLocal.state : poolState;
+    const preBalls = (ps && ps.balls) ? ps.balls.map(b => ({ ...b })) : [];
+
+    // Apply shot to animation balls
+    const cue = preBalls.find(b => b.id === 0 && !b.pocketed);
+    if (cue && data.shotAngle !== undefined) {
+      cue.vx = Math.cos(data.shotAngle) * data.shotPower;
+      cue.vy = Math.sin(data.shotAngle) * data.shotPower;
+      poolAnimBalls = preBalls;
+      poolAnimating = true;
+      poolAnimStepsLeft = 600; // max frames
+
+      // Update authoritative state (will snap to when animation ends)
+      if (!poolLocal) {
+        poolState = { ...poolState, ...data };
+      } else {
+        poolLocal.state = { ...poolLocal.state, ...data };
+      }
+    } else {
+      if (!poolLocal) poolState = { ...poolState, ...data };
+    }
+  }
+
+  function poolStepAnimation() {
+    if (!poolAnimBalls) { poolAnimating = false; return; }
+
+    // Run multiple physics substeps per frame for smooth animation
+    const subsPerFrame = 4;
+    for (let sub = 0; sub < subsPerFrame; sub++) {
+      let allStopped = true;
+
+      // Move balls
+      for (const b of poolAnimBalls) {
+        if (b.pocketed) continue;
+        if (Math.abs(b.vx) > POOL_STOP || Math.abs(b.vy) > POOL_STOP) {
+          allStopped = false;
+          b.x += b.vx * POOL_DT;
+          b.y += b.vy * POOL_DT;
+        }
+      }
+
+      // Ball-ball collisions
+      const active = poolAnimBalls.filter(b => !b.pocketed);
+      for (let i = 0; i < active.length; i++) {
+        for (let j = i + 1; j < active.length; j++) {
+          const b1 = active[i], b2 = active[j];
+          const dx = b2.x - b1.x, dy = b2.y - b1.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < POOL_R * 2 && dist > 0) {
+            const overlap = POOL_R * 2 - dist;
+            const nx = dx / dist, ny = dy / dist;
+            b1.x -= nx * overlap / 2;
+            b1.y -= ny * overlap / 2;
+            b2.x += nx * overlap / 2;
+            b2.y += ny * overlap / 2;
+            const dvx = b1.vx - b2.vx, dvy = b1.vy - b2.vy;
+            const dot = dvx * nx + dvy * ny;
+            if (dot > 0) {
+              b1.vx -= dot * nx; b1.vy -= dot * ny;
+              b2.vx += dot * nx; b2.vy += dot * ny;
+            }
+          }
+        }
+      }
+
+      // Wall collisions
+      for (const b of poolAnimBalls) {
+        if (b.pocketed) continue;
+        const nearPocket = POOL_POCKETS.some(p => {
+          const ddx = b.x - p.x, ddy = b.y - p.y;
+          return Math.sqrt(ddx * ddx + ddy * ddy) < POOL_POCKET_R * 1.5;
+        });
+        if (!nearPocket) {
+          if (b.x < POOL_R) { b.x = POOL_R; b.vx = Math.abs(b.vx) * 0.8; }
+          if (b.x > PT_W - POOL_R) { b.x = PT_W - POOL_R; b.vx = -Math.abs(b.vx) * 0.8; }
+          if (b.y < POOL_R) { b.y = POOL_R; b.vy = Math.abs(b.vy) * 0.8; }
+          if (b.y > PT_H - POOL_R) { b.y = PT_H - POOL_R; b.vy = -Math.abs(b.vy) * 0.8; }
+        }
+      }
+
+      // Pocket detection
+      for (const b of poolAnimBalls) {
+        if (b.pocketed) continue;
+        for (const p of POOL_POCKETS) {
+          const ddx = b.x - p.x, ddy = b.y - p.y;
+          if (Math.sqrt(ddx * ddx + ddy * ddy) < POOL_POCKET_R) {
+            b.pocketed = true;
+            b.vx = 0; b.vy = 0;
+            break;
+          }
+        }
+      }
+
+      // Friction
+      for (const b of poolAnimBalls) {
+        if (b.pocketed) continue;
+        b.vx *= POOL_FRICTION;
+        b.vy *= POOL_FRICTION;
+        if (Math.sqrt(b.vx * b.vx + b.vy * b.vy) < POOL_STOP) {
+          b.vx = 0; b.vy = 0;
+        }
+      }
+
+      if (allStopped) {
+        poolAnimating = false;
+        poolAnimBalls = null;
+        // Update info text from authoritative state
+        const ps = poolLocal ? poolLocal.state : poolState;
+        if (ps && ps.turnMessage) {
+          const info = $('poolInfo');
+          if (info) info.textContent = ps.turnMessage;
+        }
+        return;
+      }
+    }
+
+    poolAnimStepsLeft -= subsPerFrame;
+    if (poolAnimStepsLeft <= 0) {
+      poolAnimating = false;
+      poolAnimBalls = null;
+    }
+  }
+
+  /* ---- Pool local mode ---- */
+
+  function startLocalPoolGame() {
+    // Initialize a local pool game state
+    const balls = [];
+    balls.push({ id: 0, x: PT_W * 0.25, y: PT_H / 2, vx: 0, vy: 0, pocketed: false });
+
+    // Rack balls
+    const cx = PT_W * 0.72, cy = PT_H / 2;
+    const spacing = POOL_R * 2.05;
+    const positions = [];
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col <= row; col++) {
+        positions.push({
+          x: cx + row * spacing * Math.cos(Math.PI / 6),
+          y: cy + (col - row / 2) * spacing
+        });
+      }
+    }
+
+    const solids = [1, 2, 3, 4, 5, 6, 7];
+    const stripes = [9, 10, 11, 12, 13, 14, 15];
+    for (let i = solids.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [solids[i], solids[j]] = [solids[j], solids[i]];
+    }
+    for (let i = stripes.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [stripes[i], stripes[j]] = [stripes[j], stripes[i]];
+    }
+
+    const assignment = new Array(15).fill(0);
+    assignment[4] = 8;
+    assignment[10] = solids.pop();
+    assignment[14] = stripes.pop();
+    const remaining = [...solids, ...stripes];
+    for (let i = remaining.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
+    }
+    let ri = 0;
+    for (let i = 0; i < 15; i++) {
+      if (assignment[i] === 0) assignment[i] = remaining[ri++];
+    }
+    for (let i = 0; i < 15; i++) {
+      balls.push({ id: assignment[i], x: positions[i].x, y: positions[i].y, vx: 0, vy: 0, pocketed: false });
+    }
+
+    poolLocal = {
+      state: {
+        balls,
+        currentTurn: 0,
+        playerGroups: [null, null],
+        phase: 'playing',
+        ballInHand: true,
+        gameOver: false,
+        winner: null,
+        foulReason: null,
+        lastPocketed: [],
+        turnMessage: 'Player 1: Place the cue ball to break!'
+      }
+    };
+    poolMyIndex = 0;
+    poolAnimating = false;
+    poolAnimBalls = null;
+    poolAiming = false;
+
+    $('poolMyName').textContent = 'Player 1';
+    $('poolOppName').textContent = 'Player 2';
+    $('poolMyGroup').textContent = '';
+    $('poolOppGroup').textContent = '';
+    $('poolMatchCodeValue').textContent = 'LOCAL';
+    $('poolInfo').textContent = 'Player 1: Place the cue ball to break!';
+    showScreen('pool');
+  }
+
+  function poolLocalPlaceCue(x, y) {
+    const st = poolLocal.state;
+    if (!st.ballInHand) return { valid: false };
+    if (x < POOL_R || x > PT_W - POOL_R || y < POOL_R || y > PT_H - POOL_R) return { valid: false };
+    for (const b of st.balls) {
+      if (b.id === 0 || b.pocketed) continue;
+      const dx = x - b.x, dy = y - b.y;
+      if (Math.sqrt(dx * dx + dy * dy) < POOL_R * 2.2) return { valid: false };
+    }
+    const cue = st.balls.find(b => b.id === 0);
+    cue.x = x; cue.y = y; cue.pocketed = false;
+    st.ballInHand = false;
+    st.foulReason = null;
+    st.turnMessage = '';
+    return { valid: true, balls: st.balls.map(b => ({ ...b })), ballInHand: false };
+  }
+
+  function poolLocalShoot(angle, power) {
+    const st = poolLocal.state;
+    if (st.ballInHand || st.gameOver) return { valid: false };
+    if (power <= 0 || power > POOL_MAX_POWER) return { valid: false };
+
+    // Snapshot pre-shot for animation
+    const preBalls = st.balls.map(b => ({ ...b }));
+
+    const cue = st.balls.find(b => b.id === 0);
+    cue.vx = Math.cos(angle) * power;
+    cue.vy = Math.sin(angle) * power;
+
+    // Simulate
+    const simResult = poolLocalSimulate(st.balls);
+
+    // Evaluate
+    poolLocalEvaluate(st, simResult);
+
+    return {
+      valid: true,
+      ...st,
+      shotAngle: angle,
+      shotPower: power,
+      balls: preBalls // animation starts from pre-shot positions
+    };
+  }
+
+  function poolLocalSimulate(balls) {
+    const pocketed = [];
+    let firstHitId = null, hitAnyBall = false;
+
+    for (let step = 0; step < MAX_STEPS_LOCAL; step++) {
+      let allStopped = true;
+      for (const b of balls) {
+        if (b.pocketed) continue;
+        if (Math.abs(b.vx) > POOL_STOP || Math.abs(b.vy) > POOL_STOP) {
+          allStopped = false;
+          b.x += b.vx * POOL_DT;
+          b.y += b.vy * POOL_DT;
+        }
+      }
+      if (allStopped && step > 0) break;
+
+      const active = balls.filter(b => !b.pocketed);
+      for (let i = 0; i < active.length; i++) {
+        for (let j = i + 1; j < active.length; j++) {
+          const b1 = active[i], b2 = active[j];
+          const dx = b2.x - b1.x, dy = b2.y - b1.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < POOL_R * 2 && dist > 0) {
+            if (!hitAnyBall && (b1.id === 0 || b2.id === 0)) {
+              firstHitId = b1.id === 0 ? b2.id : b1.id;
+              hitAnyBall = true;
+            }
+            const overlap = POOL_R * 2 - dist;
+            const nx = dx / dist, ny = dy / dist;
+            b1.x -= nx * overlap / 2; b1.y -= ny * overlap / 2;
+            b2.x += nx * overlap / 2; b2.y += ny * overlap / 2;
+            const dvx = b1.vx - b2.vx, dvy = b1.vy - b2.vy;
+            const dot = dvx * nx + dvy * ny;
+            if (dot > 0) {
+              b1.vx -= dot * nx; b1.vy -= dot * ny;
+              b2.vx += dot * nx; b2.vy += dot * ny;
+            }
+          }
+        }
+      }
+
+      for (const b of balls) {
+        if (b.pocketed) continue;
+        const nearPocket = POOL_POCKETS.some(p => {
+          const ddx = b.x - p.x, ddy = b.y - p.y;
+          return Math.sqrt(ddx * ddx + ddy * ddy) < POOL_POCKET_R * 1.5;
+        });
+        if (!nearPocket) {
+          if (b.x < POOL_R) { b.x = POOL_R; b.vx = Math.abs(b.vx) * 0.8; }
+          if (b.x > PT_W - POOL_R) { b.x = PT_W - POOL_R; b.vx = -Math.abs(b.vx) * 0.8; }
+          if (b.y < POOL_R) { b.y = POOL_R; b.vy = Math.abs(b.vy) * 0.8; }
+          if (b.y > PT_H - POOL_R) { b.y = PT_H - POOL_R; b.vy = -Math.abs(b.vy) * 0.8; }
+        }
+      }
+
+      for (const b of balls) {
+        if (b.pocketed) continue;
+        for (const p of POOL_POCKETS) {
+          const ddx = b.x - p.x, ddy = b.y - p.y;
+          if (Math.sqrt(ddx * ddx + ddy * ddy) < POOL_POCKET_R) {
+            b.pocketed = true;
+            b.vx = 0; b.vy = 0;
+            pocketed.push(b.id);
+            break;
+          }
+        }
+      }
+
+      for (const b of balls) {
+        if (b.pocketed) continue;
+        b.vx *= POOL_FRICTION; b.vy *= POOL_FRICTION;
+        if (Math.sqrt(b.vx * b.vx + b.vy * b.vy) < POOL_STOP) { b.vx = 0; b.vy = 0; }
+      }
+    }
+
+    for (const b of balls) { b.vx = 0; b.vy = 0; }
+    return { pocketed, firstHitId, hitAnyBall };
+  }
+
+  function poolLocalEvaluate(st, simResult) {
+    const { pocketed, firstHitId, hitAnyBall } = simResult;
+    st.lastPocketed = pocketed;
+    st.foulReason = null;
+    st.turnMessage = '';
+
+    const cuePocketed = pocketed.includes(0);
+    const eightPocketed = pocketed.includes(8);
+    const opponent = 1 - st.currentTurn;
+    const myGroup = st.playerGroups[st.currentTurn];
+
+    if (eightPocketed) {
+      if (myGroup) {
+        const myBallsLeft = st.balls.filter(b => !b.pocketed && b.id !== 0 && b.id !== 8 && poolBallType(b.id) === myGroup);
+        if (myBallsLeft.length === 0 && !cuePocketed) {
+          st.gameOver = true; st.phase = 'over'; st.winner = st.currentTurn;
+          st.turnMessage = 'Player ' + (st.currentTurn + 1) + ' wins!';
+          setTimeout(() => showGameOverOverlay({ winner: st.currentTurn, winnerUsername: 'Player ' + (st.currentTurn + 1), reason: st.turnMessage }), 1500);
+          return;
+        }
+      }
+      st.gameOver = true; st.phase = 'over'; st.winner = opponent;
+      st.turnMessage = 'Player ' + (st.currentTurn + 1) + ' pocketed the 8-ball illegally!';
+      setTimeout(() => showGameOverOverlay({ winner: opponent, winnerUsername: 'Player ' + (opponent + 1), reason: st.turnMessage }), 1500);
+      return;
+    }
+
+    if (cuePocketed) {
+      st.foulReason = 'Scratch! Cue ball pocketed.';
+    } else if (!hitAnyBall) {
+      st.foulReason = 'Foul! Cue ball did not hit any ball.';
+    } else if (myGroup && firstHitId !== null) {
+      const firstHitType = poolBallType(firstHitId);
+      if (firstHitType !== myGroup && firstHitType !== 'eight') {
+        const myBallsLeft = st.balls.filter(b => !b.pocketed && b.id !== 0 && b.id !== 8 && poolBallType(b.id) === myGroup);
+        if (myBallsLeft.length > 0) st.foulReason = 'Foul! Must hit your own group first.';
+      }
+    }
+
+    if (!st.playerGroups[0] && !st.foulReason) {
+      const pocketedSolids = pocketed.filter(id => poolBallType(id) === 'solid');
+      const pocketedStripes = pocketed.filter(id => poolBallType(id) === 'stripe');
+      if (pocketedSolids.length > 0 && pocketedStripes.length === 0) {
+        st.playerGroups[st.currentTurn] = 'solid';
+        st.playerGroups[opponent] = 'stripe';
+        st.turnMessage = 'Player ' + (st.currentTurn + 1) + ' is Solids!';
+        poolUpdateGroupLabels(st);
+      } else if (pocketedStripes.length > 0 && pocketedSolids.length === 0) {
+        st.playerGroups[st.currentTurn] = 'stripe';
+        st.playerGroups[opponent] = 'solid';
+        st.turnMessage = 'Player ' + (st.currentTurn + 1) + ' is Stripes!';
+        poolUpdateGroupLabels(st);
+      }
+    }
+
+    if (st.foulReason) {
+      st.turnMessage = st.foulReason;
+      if (cuePocketed) {
+        const cue = st.balls.find(b => b.id === 0);
+        cue.pocketed = false;
+        cue.x = PT_W * 0.25; cue.y = PT_H / 2;
+      }
+      st.currentTurn = opponent;
+      st.ballInHand = true;
+      return;
+    }
+
+    const updatedGroup = st.playerGroups[st.currentTurn];
+    if (updatedGroup) {
+      const legalPockets = pocketed.filter(id => poolBallType(id) === updatedGroup);
+      if (legalPockets.length > 0) {
+        st.turnMessage = st.turnMessage || 'Nice shot!';
+        return;
+      }
+    } else if (pocketed.length > 0) {
+      st.turnMessage = st.turnMessage || 'Nice shot!';
+      return;
+    }
+
+    st.currentTurn = opponent;
+    st.turnMessage = st.turnMessage || '';
+  }
+
+  function poolUpdateGroupLabels(st) {
+    if (!st || !st.playerGroups) return;
+    const myG = poolLocal ? st.playerGroups[0] : st.playerGroups[poolMyIndex];
+    const oppG = poolLocal ? st.playerGroups[1] : st.playerGroups[1 - poolMyIndex];
+    const myLabel = $('poolMyGroup');
+    const oppLabel = $('poolOppGroup');
+    if (myLabel) myLabel.textContent = myG ? ('(' + myG.charAt(0).toUpperCase() + myG.slice(1) + 's)') : '';
+    if (oppLabel) oppLabel.textContent = oppG ? ('(' + oppG.charAt(0).toUpperCase() + oppG.slice(1) + 's)') : '';
+  }
+
+  /* ---- Pool socket events ---- */
+
+  function bindPoolEvents(s) {
+    s.on('pool:start', (data) => {
+      poolMyIndex = data.playerIndex;
+      poolState = data;
+      poolMatchCode = data.matchCode;
+      poolLocal = null;
+      poolAnimating = false;
+      poolAnimBalls = null;
+      poolAiming = false;
+      poolOpponentInfo = data.players[1 - poolMyIndex] || { username: 'Opponent' };
+
+      $('poolMyName').textContent = data.players[poolMyIndex]?.username || 'You';
+      $('poolOppName').textContent = poolOpponentInfo.username;
+      $('poolMyGroup').textContent = '';
+      $('poolOppGroup').textContent = '';
+      $('poolMatchCodeValue').textContent = data.matchCode || '------';
+      $('poolInfo').textContent = data.ballInHand ? 'Place the cue ball to break!' : '';
+      showScreen('pool');
+    });
+
+    s.on('pool:update', (data) => {
+      if (data.shotAngle !== undefined && data.shotPower !== undefined) {
+        poolStartAnimation(data);
+      } else {
+        poolState = { ...poolState, ...data };
+        if (data.turnMessage) {
+          const info = $('poolInfo');
+          if (info) info.textContent = data.turnMessage;
+        }
+      }
+      poolUpdateGroupLabels(poolState);
+    });
+
+    s.on('pool:over', (data) => {
+      if (poolState) poolState.gameOver = true;
+      setTimeout(() => showGameOverOverlay(data), 1500);
+    });
+
+    s.on('pool:error', (data) => {
+      const info = $('poolInfo');
+      if (info) info.textContent = data.message || 'Error';
+    });
+
+    s.on('pool:rejoined', (data) => {
+      poolMyIndex = data.playerIndex;
+      poolState = data;
+      poolMatchCode = data.matchCode;
+      poolLocal = null;
+      poolAnimating = false;
+      $('poolMatchCodeValue').textContent = data.matchCode || '------';
+      poolUpdateGroupLabels(poolState);
+      showScreen('pool');
+    });
+  }
+
+  /* ---- Pool resign ---- */
+  function setupPoolResign() {
+    const btn = $('btnPoolResign');
+    if (btn) btn.addEventListener('click', () => {
+      if (poolLocal) {
+        showScreen('lobby');
+        poolLocal = null;
+      } else if (socket) {
+        socket.emit('pool:resign');
+        showScreen('lobby');
+      }
+    });
+  }
+
+  /* ================================================
      MAHJONG SOLITAIRE -- CLIENT
      ================================================ */
   const MJ_CANVAS_W = 760;
@@ -7007,8 +7954,10 @@
     bindC4SocketEvents();
     bindBSSocketEvents();
     bindMancalaSocketEvents();
+    bindPoolEvents(socket);
     bindCardGameEvents(socket);
     bindBSButtons();
+    setupPoolResign();
 
     // C4 resign
     const c4Resign = $('btnC4Resign');
@@ -7025,6 +7974,8 @@
     if (bsCopy) bsCopy.addEventListener('click', () => { navigator.clipboard?.writeText($('bsMatchCodeValue')?.textContent || ''); });
     const mnCopy = $('btnCopyMancalaCode');
     if (mnCopy) mnCopy.addEventListener('click', () => { navigator.clipboard?.writeText($('mancalaMatchCodeValue')?.textContent || ''); });
+    const poolCopy = $('btnCopyPoolCode');
+    if (poolCopy) poolCopy.addEventListener('click', () => { navigator.clipboard?.writeText($('poolMatchCodeValue')?.textContent || ''); });
 
     // Mahjong buttons
     const mjHint = $('btnMahjongHint');

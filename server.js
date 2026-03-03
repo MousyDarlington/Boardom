@@ -592,6 +592,29 @@ io.on('connection', (socket) => {
     matchmaker.c4Resign(socket);
   });
 
+  /* ---- 8-Ball Pool ---- */
+  socket.on('pool:join', () => {
+    if (!socket.username) return socket.emit('auth:required');
+    matchmaker.joinPoolQueue(socket);
+  });
+
+  socket.on('pool:bot', () => {
+    if (!socket.username) return socket.emit('auth:required');
+    matchmaker.playPoolBot(socket);
+  });
+
+  socket.on('pool:shoot', (data) => {
+    matchmaker.poolShoot(socket, data.angle, data.power);
+  });
+
+  socket.on('pool:placeCue', (data) => {
+    matchmaker.poolPlaceCue(socket, data.x, data.y);
+  });
+
+  socket.on('pool:resign', () => {
+    matchmaker.poolResign(socket);
+  });
+
   /* ---- Battleship ---- */
   socket.on('bs:join', () => {
     if (!socket.username) return socket.emit('auth:required');

@@ -640,6 +640,37 @@
     </div>
   </div>
 
+  <!-- ===== 8-BALL POOL GAME SCREEN ===== -->
+  <div id="poolGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud" id="poolHud" style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;">
+          <div class="pool-player-hud glass" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;">
+            <span style="width:12px;height:12px;border-radius:50%;background:#ff2d55;display:inline-block;"></span>
+            <span class="hud-name" id="poolOppName">Opponent</span>
+            <span id="poolOppGroup" style="font-size:12px;opacity:0.7;"></span>
+          </div>
+          <div class="turn-badge" id="poolTurnBadge" style="font-weight:bold;font-size:16px;">YOUR TURN</div>
+          <div class="pool-player-hud glass" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;">
+            <span style="width:12px;height:12px;border-radius:50%;background:#34c759;display:inline-block;"></span>
+            <span class="hud-name" id="poolMyName">You</span>
+            <span id="poolMyGroup" style="font-size:12px;opacity:0.7;"></span>
+          </div>
+        </div>
+        <canvas id="poolCanvas"></canvas>
+        <div class="pool-info" id="poolInfo" style="text-align:center;padding:4px;min-height:24px;font-size:14px;color:#ffd700;"></div>
+        <div class="game-controls">
+          <div class="match-code-display">
+            <span class="match-code-label">Code:</span>
+            <span class="match-code-value" id="poolMatchCodeValue">------</span>
+            <button class="btn-copy-code" id="btnCopyPoolCode" title="Copy code">&#x1F4CB;</button>
+          </div>
+          <button class="btn btn-small btn-ghost" id="btnPoolResign">Resign</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== BATTLESHIP GAME SCREEN ===== -->
   <div id="bsGameScreen" class="screen">
     <div class="bs-layout">

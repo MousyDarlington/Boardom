@@ -32,6 +32,7 @@ class Matchmaker {
     this.cahQueue = [];               // socket refs for CAH
     this.cahLobbies = new Map();      // code -> { host, players: [{ socket, username }], hostUsername, packType, maxRounds, createdAt }
     this.c4Queue = [];              // Connect Four queue
+    this.poolQueue = [];            // 8-Ball Pool queue
     this.battleshipQueue = [];      // Battleship queue
     this.mancalaQueue = [];         // Mancala queue
     this.warQueue = [];
@@ -216,6 +217,7 @@ class Matchmaker {
                 : gd.gameType === 'spades' ? 'sp:over'
                 : gd.gameType === 'poker' ? 'pk:over'
                 : gd.gameType === 'higherlower' ? 'hl:over'
+                : gd.gameType === 'pool' ? 'pool:over'
                 : 'game:over';
     for (const p of gd.players) {
       if (!p.isBot) {
@@ -335,7 +337,7 @@ class Matchmaker {
       }
       for (const p of gd.players) this._decrementTrials(p.username);
 
-    } else if (['war', 'crazy8', 'gofish', 'blackjack', 'ginrummy', 'hearts', 'spades', 'poker', 'higherlower'].includes(gd.gameType)) {
+    } else if (['war', 'crazy8', 'gofish', 'blackjack', 'ginrummy', 'hearts', 'spades', 'poker', 'higherlower', 'pool'].includes(gd.gameType)) {
       // Card games: give winner coins
       const { winner } = overPayload;
       if (typeof winner === 'number' && gd.players[winner]) {
@@ -619,6 +621,7 @@ class Matchmaker {
   leaveQueue(socket) {
     this._removeFromQueues(socket);
     this.c4Queue = this.c4Queue.filter(s => s.id !== socket.id);
+    this.poolQueue = this.poolQueue.filter(s => s.id !== socket.id);
     this.battleshipQueue = this.battleshipQueue.filter(s => s.id !== socket.id);
     this.mancalaQueue = this.mancalaQueue.filter(s => s.id !== socket.id);
     this.warQueue = this.warQueue.filter(s => s.id !== socket.id);
@@ -731,6 +734,7 @@ class Matchmaker {
     this.scrabbleQueue = this.scrabbleQueue.filter(s => s.id !== socket.id);
     this.cahQueue = this.cahQueue.filter(s => s.id !== socket.id);
     this.c4Queue = this.c4Queue.filter(s => s.id !== socket.id);
+    this.poolQueue = this.poolQueue.filter(s => s.id !== socket.id);
     this.battleshipQueue = this.battleshipQueue.filter(s => s.id !== socket.id);
     this.mancalaQueue = this.mancalaQueue.filter(s => s.id !== socket.id);
     this.warQueue = this.warQueue.filter(s => s.id !== socket.id);
@@ -829,6 +833,7 @@ class Matchmaker {
                     : gd.gameType === 'spades' ? 'sp:paused'
                     : gd.gameType === 'poker' ? 'pk:paused'
                     : gd.gameType === 'higherlower' ? 'hl:paused'
+                    : gd.gameType === 'pool' ? 'pool:paused'
                     : 'game:paused';
 
     for (const p of gd.players) {
@@ -922,6 +927,7 @@ class Matchmaker {
                         : gd.gameType === 'spades' ? 'sp:resumed'
                         : gd.gameType === 'poker' ? 'pk:resumed'
                         : gd.gameType === 'higherlower' ? 'hl:resumed'
+                        : gd.gameType === 'pool' ? 'pool:resumed'
                         : 'game:resumed';
         for (const p of gd.players) {
           if (p.username !== username && !p.isBot) {
@@ -1545,6 +1551,104 @@ class Matchmaker {
   }
 
   c4Resign(socket) { this.resign(socket); }
+
+  /* ========== 8-BALL POOL GAME ========== */
+
+  /* ---- Pool Queue ---- */
+  joinPoolQueue(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.poolQueue = this.poolQueue.filter(s => s.id !== socket.id);
+    this.poolQueue.push(socket);
+    socket.emit('queue:joined', { game: 'pool' });
+    this._matchPool();
+    this._setQueueTimer(socket, () => this.playPoolBot(socket));
+  }
+
+  _matchPool() {
+    while (this.poolQueue.length >= 2) {
+      const p1 = this.poolQueue.shift();
+      const p2 = this.poolQueue.shift();
+      this._clearQueueTimer(p1);
+      this._clearQueueTimer(p2);
+      this._startPoolGame([p1, p2], 'casual');
+    }
+  }
+
+  playPoolBot(socket) {
+    if (this.playerToGame.has(socket.id)) return;
+    this.poolQueue = this.poolQueue.filter(s => s.id !== socket.id);
+    this._clearQueueTimer(socket);
+    this._startPoolGame([socket], 'bot');
+  }
+
+  _startPoolGame(sockets, type) {
+    const gameId = 'pool_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const matchCode = this._genCode();
+
+    const playerData = sockets.map((s, i) => ({
+      id: s.id,
+      username: s.username || s.guestName || 'Guest',
+      rating: this.userStore.getUser(s.username)?.rating || 1200,
+      isBot: false,
+      cosmetics: this._getCosmetics(s.username)
+    }));
+
+    // Add bot if solo
+    if (playerData.length < 2) {
+      const humanRating = playerData[0].rating;
+      const botRating = humanRating + (Math.random() - 0.5) * 200;
+      const botId = 'bot_pool_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const botNames = ['CueMaster','ShotBot','RackAttack','PoolShark','BankShot','SideSpinner'];
+      const botName = 'Bot ' + botNames[Math.floor(Math.random() * botNames.length)];
+      this.userStore.ensureBotUser(botName, botRating);
+      playerData.push({
+        id: botId,
+        username: botName,
+        rating: botRating,
+        isBot: true,
+        botRating,
+        botName,
+        cosmetics: {}
+      });
+    }
+
+    const gd = { gameId, matchCode, type, gameType: 'pool', players: playerData };
+    this.games.set(gameId, gd);
+    this.matchCodes.set(matchCode, gameId);
+    for (const p of playerData) {
+      if (!p.isBot) this.playerToGame.set(p.id, gameId);
+      this.usernameToGame.set(p.username, gameId);
+    }
+
+    for (const p of playerData) {
+      if (!p.isBot) {
+        const s = this._getSocket(p.id);
+        if (s) s.join(gameId);
+      }
+    }
+
+    this._spawnWorker(gameId, {
+      gameId, matchCode, gameType: 'pool', gameTypeStr: type,
+      players: playerData
+    });
+  }
+
+  /* ---- Pool Actions ---- */
+  poolShoot(socket, angle, power) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'poolShoot', payload: { socketId: socket.id, angle, power } });
+  }
+
+  poolPlaceCue(socket, x, y) {
+    const gid = this.playerToGame.get(socket.id);
+    if (!gid) return;
+    const worker = this.workers.get(gid);
+    if (worker) worker.postMessage({ type: 'poolPlaceCue', payload: { socketId: socket.id, x, y } });
+  }
+
+  poolResign(socket) { this.resign(socket); }
 
   /* ========== BATTLESHIP GAME ========== */
 
