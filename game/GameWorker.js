@@ -231,7 +231,9 @@ function buildLocalAdapter() {
     pkCall(socket) { handlePkAction({ socketId: socket.id, action: 'call' }); },
     pkRaise(socket, amount) { handlePkAction({ socketId: socket.id, action: 'raise', amount }); },
     pkAllIn(socket) { handlePkAction({ socketId: socket.id, action: 'allIn' }); },
-    hlGuess(socket, choice) { handleHlGuess({ socketId: socket.id, choice }); }
+    hlGuess(socket, choice) { handleHlGuess({ socketId: socket.id, choice }); },
+    poolShoot(socket, angle, power) { handlePoolShoot({ socketId: socket.id, angle, power }); },
+    poolPlaceCue(socket, x, y) { handlePoolPlaceCue({ socketId: socket.id, x, y }); }
   };
 }
 
