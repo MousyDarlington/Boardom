@@ -1584,11 +1584,6 @@ function handleBjBet({ socketId, amount }) {
     return;
   }
   broadcastCardUpdate();
-  // If all bets placed and we moved to dealing, auto-deal
-  if (game.phase === 'dealing' || game.phase === 'playing') {
-    if (game.deal) game.deal();
-    broadcastCardUpdate();
-  }
 }
 
 function handleBjHit({ socketId }) {

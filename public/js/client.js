@@ -7054,7 +7054,7 @@
     ctx.lineWidth = selected ? 3 : 1;
     ctx.stroke();
 
-    if (!faceUp) {
+    if (!faceUp || !card) {
       ctx.fillStyle = '#2255aa';
       ctx.beginPath();
       ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 4);
@@ -7869,6 +7869,18 @@
     ctx.fillText('vs', CG_W / 2, CG_H / 2 + 5);
   }
 
+  function bjHandValue(cards) {
+    let value = 0, aces = 0;
+    for (const c of cards) {
+      if (!c) continue;
+      if (c.rank >= 11 && c.rank <= 13) value += 10;
+      else if (c.rank === 14) { value += 11; aces++; }
+      else value += c.rank;
+    }
+    while (value > 21 && aces > 0) { value -= 10; aces--; }
+    return value;
+  }
+
   function renderBlackjackCenter(ctx) {
     // Dealer hand at top
     const dealer = cgState.dealerHand || cgState.dealer;
@@ -7880,17 +7892,27 @@
       const dc = dealer.cards;
       const startX = CG_W / 2 - (dc.length * (CG_CW * 0.5)) / 2;
       dc.forEach((card, i) => {
-        const faceUp = i > 0 || !dealer.hidden;
+        const faceUp = i === 0 || !dealer.hidden;
         drawPlayingCard(ctx, startX + i * (CG_CW + 8), 60, CG_CW, CG_CH, card, faceUp, false);
       });
+      // Dealer value (only show visible cards' value)
+      const visibleCards = dc.filter(c => c !== null);
+      if (visibleCards.length > 0) {
+        const dv = bjHandValue(visibleCards);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(dealer.hidden ? dv + ' + ?' : '' + dv, CG_W / 2, 60 + CG_CH + 18);
+      }
     }
     // Player hand value
     if (cgState.hands && cgState.hands[cgPlayerIndex]) {
       const h = cgState.hands[cgPlayerIndex];
+      const val = h.cards && h.cards.length > 0 ? bjHandValue(h.cards) : '';
       ctx.fillStyle = '#fff';
       ctx.font = '16px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Hand: ' + (h.value || ''), CG_W / 2, CG_H - CG_CH - 50);
+      ctx.fillText('Hand: ' + val, CG_W / 2, CG_H - CG_CH - 50);
     }
   }
 
