@@ -7222,19 +7222,16 @@
     const stack = solState.tableau[targetCol];
     if (stack.length === 0) return card.rank === 13; // only Kings on empty
     const top = stack[stack.length - 1];
-    return top.faceUp && solCardIsRed(card) !== solCardIsRed(top) && card.rank === top.rank - 1;
+    // Ace (rank 14) is treated as 1 for tableau ordering (lowest card, goes on a 2)
+    const tabVal = (r) => r === 14 ? 1 : r;
+    return top.faceUp && solCardIsRed(card) !== solCardIsRed(top) && tabVal(card.rank) === tabVal(top.rank) - 1;
   }
 
   function solCanPlaceOnFoundation(card, fIdx) {
     const pile = solState.foundations[fIdx];
     if (pile.length === 0) return card.rank === 14; // Aces first (rank 14 = Ace)
-    // Wait - Aces should be first. Ace = 14 in our system, then 2,3,...K.
-    // Foundation order: A(14), 2, 3, ... K(13). That's descending then ascending.
-    // Actually let's rethink: foundations build A,2,3,...K = 14,2,3,...13 — non-standard.
-    // Let's treat Ace as low for foundations: A=1 effectively
-    // We'll remap: foundation value = rank === 14 ? 1 : rank
+    // Foundation builds A(1), 2, 3, ..., K(13). Remap Ace from 14 to 1.
     const fVal = (r) => r === 14 ? 1 : r;
-    if (pile.length === 0) return card.rank === 14; // Ace first
     const top = pile[pile.length - 1];
     return card.suit === top.suit && fVal(card.rank) === fVal(top.rank) + 1;
   }
@@ -7341,9 +7338,17 @@
       const ty = SOL_MARGIN + SOL_CH + 30;
       const stack = solState.tableau[col];
 
-      // Calculate hit area for each card
+      // Pre-calculate cumulative Y offsets (must match rendering)
+      const cardYPositions = [];
+      let cumY = 0;
+      for (let i = 0; i < stack.length; i++) {
+        cardYPositions.push(ty + cumY);
+        cumY += stack[i].faceUp ? SOL_GAP : SOL_FD_GAP;
+      }
+
+      // Calculate hit area for each card (iterate top-to-bottom for correct overlap)
       for (let i = stack.length - 1; i >= 0; i--) {
-        const cardY = ty + i * (stack[i].faceUp ? SOL_GAP : SOL_FD_GAP);
+        const cardY = cardYPositions[i];
         const cardH = (i === stack.length - 1) ? SOL_CH : (stack[i].faceUp ? SOL_GAP : SOL_FD_GAP);
         if (mx >= tx && mx <= tx + SOL_CW && my >= cardY && my <= cardY + cardH) {
           if (!stack[i].faceUp) break;
