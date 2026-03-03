@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# User data
+data/users.json
+data/games.json
+data/sessions/
+
+# Environment
+.env
+.env.local
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
