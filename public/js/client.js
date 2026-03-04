@@ -6803,6 +6803,26 @@
     poolCanvas.addEventListener('mousemove', poolHandleMouseMove);
     poolCanvas.addEventListener('mouseup', poolHandleMouseUp);
     poolCanvas.addEventListener('mouseleave', poolHandleMouseUp);
+    poolCanvas.addEventListener('touchstart', poolHandleTouchStart, { passive: false });
+    poolCanvas.addEventListener('touchmove', poolHandleTouchMove, { passive: false });
+    poolCanvas.addEventListener('touchend', poolHandleTouchEnd, { passive: false });
+    poolCanvas.addEventListener('touchcancel', poolHandleTouchEnd, { passive: false });
+  }
+
+  function poolHandleTouchStart(e) {
+    e.preventDefault();
+    const t = e.touches[0];
+    poolHandleMouseDown({ clientX: t.clientX, clientY: t.clientY });
+  }
+  function poolHandleTouchMove(e) {
+    e.preventDefault();
+    const t = e.touches[0];
+    poolHandleMouseMove({ clientX: t.clientX, clientY: t.clientY });
+  }
+  function poolHandleTouchEnd(e) {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    poolHandleMouseUp({ clientX: t.clientX, clientY: t.clientY });
   }
 
   function startPoolGameLoop() {
@@ -8259,6 +8279,130 @@
     if (mjNew) mjNew.addEventListener('click', startMahjongGame);
     const mjQuit = $('btnMahjongQuit');
     if (mjQuit) mjQuit.addEventListener('click', () => showScreen('lobby'));
+
+    bindTouchControls();
+  }
+
+  /* ---------- Touch Controls ---------- */
+  let msFlagMode = false;
+  let msLongPressTimer = null;
+
+  function touchHoldBtn(id, onDown, onUp) {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); el.classList.add('active'); }, { passive: false });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); el.classList.remove('active'); }, { passive: false });
+    el.addEventListener('touchcancel', (e) => { e.preventDefault(); onUp(); el.classList.remove('active'); }, { passive: false });
+  }
+
+  function touchTapBtn(id, action) {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); action(); }, { passive: false });
+  }
+
+  function touchRepeatBtn(id, action, interval) {
+    const el = $(id);
+    if (!el) return;
+    let timer = null;
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } el.classList.remove('active'); };
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); action(); el.classList.add('active'); timer = setInterval(action, interval || 100); }, { passive: false });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); stop(); }, { passive: false });
+    el.addEventListener('touchcancel', (e) => { e.preventDefault(); stop(); }, { passive: false });
+  }
+
+  function bindTouchControls() {
+    // --- Pinball ---
+    touchHoldBtn('tchPbLeft',
+      () => { pbKeysDown['ArrowLeft'] = true; },
+      () => { pbKeysDown['ArrowLeft'] = false; }
+    );
+    touchHoldBtn('tchPbRight',
+      () => { pbKeysDown['ArrowRight'] = true; },
+      () => { pbKeysDown['ArrowRight'] = false; }
+    );
+    touchHoldBtn('tchPbPlunger',
+      () => { pbKeysDown[' '] = true; if (pbBallInPlunger && !pbPlungerCharging) { pbPlungerCharging = true; pbPlungerCharge = 0; } },
+      () => { pbKeysDown[' '] = false; if (pbPlungerCharging) { pbPlungerCharging = false; if (pbBallInPlunger) { pbBall.vy = -pbPlungerCharge; pbBall.vx = -1 + Math.random() * 2; pbBallInPlunger = false; } pbPlungerCharge = 0; } }
+    );
+
+    // --- JezzBall ---
+    const jbToggle = $('tchJbToggle');
+    if (jbToggle) {
+      jbToggle.addEventListener('click', () => {
+        jbHorizontal = !jbHorizontal;
+        jbToggle.textContent = jbHorizontal ? '\u2194 Horizontal' : '\u2195 Vertical';
+        jbUpdateHud();
+      });
+    }
+
+    // --- Minesweeper ---
+    const msFlag = $('tchMsFlag');
+    if (msFlag) {
+      msFlag.addEventListener('click', () => {
+        msFlagMode = !msFlagMode;
+        msFlag.textContent = msFlagMode ? '\uD83D\uDEA9 Flag Mode: ON' : '\uD83D\uDEA9 Flag Mode: OFF';
+        msFlag.style.background = msFlagMode ? 'rgba(255,50,50,0.3)' : '';
+      });
+    }
+    // Override minesweeper canvas touch to support flag mode
+    const msCvs = $('minesweeperCanvas');
+    if (msCvs) {
+      msCvs.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (msGameOver) return;
+        const t = e.touches[0];
+        const rect = msCvs.getBoundingClientRect();
+        const c = Math.floor((t.clientX - rect.left) * (msCvs.width / rect.width) / MS_CELL);
+        const r = Math.floor((t.clientY - rect.top) * (msCvs.height / rect.height) / MS_CELL);
+        if (r < 0 || r >= msRows || c < 0 || c >= msCols) return;
+        if (msFlagMode) {
+          // Flag mode tap = toggle flag
+          if (!msGrid[r][c].revealed) {
+            msGrid[r][c].flagged = !msGrid[r][c].flagged;
+            msFlagged += msGrid[r][c].flagged ? 1 : -1;
+            $('msRemaining').textContent = msMines - msFlagged;
+          }
+        } else {
+          // Normal tap = reveal (same as click)
+          if (msGrid[r][c].flagged) return;
+          if (msGrid[r][c].revealed) { msChord(r, c); return; }
+          if (msFirstClick) { msPlaceMines(r, c); msFirstClick = false; msTimer = setInterval(() => { msTime++; $('msTime').textContent = Math.floor(msTime/60) + ':' + String(msTime%60).padStart(2,'0'); }, 1000); }
+          msRevealCell(r, c);
+        }
+      }, { passive: false });
+    }
+
+    // --- Space Invaders ---
+    touchHoldBtn('tchSiLeft',
+      () => { siKeysDown['ArrowLeft'] = true; },
+      () => { siKeysDown['ArrowLeft'] = false; }
+    );
+    touchHoldBtn('tchSiRight',
+      () => { siKeysDown['ArrowRight'] = true; },
+      () => { siKeysDown['ArrowRight'] = false; }
+    );
+    touchHoldBtn('tchSiShoot',
+      () => { siKeysDown[' '] = true; },
+      () => { siKeysDown[' '] = false; }
+    );
+
+    // --- Tetris ---
+    touchRepeatBtn('tchTetLeft', () => { tetMovePiece(-1, 0); }, 120);
+    touchRepeatBtn('tchTetRight', () => { tetMovePiece(1, 0); }, 120);
+    touchTapBtn('tchTetRotate', () => { tetRotate(); });
+    touchRepeatBtn('tchTetDown', () => { if (tetMovePiece(0, 1)) tetScore++; }, 80);
+    touchTapBtn('tchTetDrop', () => { tetHardDrop(); });
+
+    // --- Columns ---
+    touchRepeatBtn('tchColLeft', () => {
+      if (colPiece && colPiece.x > 0 && !colBoard[colPiece.y][colPiece.x - 1] && !colBoard[colPiece.y + 1][colPiece.x - 1] && !colBoard[colPiece.y + 2][colPiece.x - 1]) colPiece.x--;
+    }, 120);
+    touchRepeatBtn('tchColRight', () => {
+      if (colPiece && colPiece.x < COL_COLS - 1 && !colBoard[colPiece.y][colPiece.x + 1] && !colBoard[colPiece.y + 1][colPiece.x + 1] && !colBoard[colPiece.y + 2][colPiece.x + 1]) colPiece.x++;
+    }, 120);
+    touchTapBtn('tchColCycle', () => { if (colPiece) colPiece.gems.unshift(colPiece.gems.pop()); });
+    touchRepeatBtn('tchColDown', () => { if (colPiece) colDropTimer = colDropInterval; }, 80);
   }
 
   /* ================================================

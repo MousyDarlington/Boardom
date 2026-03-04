@@ -2994,3 +2994,68 @@ input:focus {
     gap: 0.5rem;
   }
 }
+
+/* ---------- Touch Controls ---------- */
+.touch-controls {
+  display: none;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+  flex-wrap: wrap;
+}
+
+@media (pointer: coarse) {
+  .touch-controls { display: flex; }
+}
+
+.touch-btn {
+  min-width: 56px;
+  min-height: 56px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  backdrop-filter: blur(4px);
+  transition: background 0.1s;
+}
+
+.touch-btn:active, .touch-btn.active {
+  background: rgba(255,255,255,0.3);
+  border-color: rgba(255,255,255,0.6);
+}
+
+.touch-btn-wide {
+  min-width: 80px;
+  padding: 0 1rem;
+  font-size: 0.9rem;
+}
+
+.touch-btn-hold {
+  min-width: 70px;
+  padding: 0 0.8rem;
+  font-size: 0.85rem;
+}
+
+.touch-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.touch-spacer {
+  width: 56px;
+}
+
+.touch-toggle {
+  min-width: 100px;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.8rem;
+}

@@ -860,6 +860,11 @@
         </div>
         <canvas id="pinballCanvas"></canvas>
         <div class="pool-info" id="pinballInfo">Hold SPACE to charge, release to launch!</div>
+        <div class="touch-controls" id="pinballTouch">
+          <button class="touch-btn touch-btn-hold" id="tchPbLeft">&#9664; Flip</button>
+          <button class="touch-btn touch-btn-hold" id="tchPbPlunger">&#9650; Launch</button>
+          <button class="touch-btn touch-btn-hold" id="tchPbRight">Flip &#9654;</button>
+        </div>
         <div class="game-controls">
           <button class="btn btn-small btn-ghost" id="btnPbNewGame">New Game</button>
           <button class="btn btn-small btn-ghost" id="btnPbQuit">Quit</button>
@@ -880,6 +885,9 @@
         </div>
         <canvas id="jezzballCanvas"></canvas>
         <div class="pool-info" id="jezzballInfo">Click to place walls — fill 75% to advance! Press V to toggle direction.</div>
+        <div class="touch-controls" id="jezzballTouch">
+          <button class="touch-btn touch-toggle" id="tchJbToggle">&#8596; Horizontal</button>
+        </div>
         <div class="game-controls">
           <button class="btn btn-small btn-ghost" id="btnJbNewGame">New Game</button>
           <button class="btn btn-small btn-ghost" id="btnJbQuit">Quit</button>
@@ -899,6 +907,9 @@
         </div>
         <canvas id="minesweeperCanvas"></canvas>
         <div class="pool-info" id="minesweeperInfo">Left-click to reveal, right-click to flag</div>
+        <div class="touch-controls" id="minesweeperTouch">
+          <button class="touch-btn touch-toggle" id="tchMsFlag">&#128681; Flag Mode: OFF</button>
+        </div>
         <div class="game-controls">
           <button class="btn btn-small btn-ghost" id="btnMsNewGame">New Game</button>
           <button class="btn btn-small btn-ghost" id="btnMsQuit">Quit</button>
@@ -918,6 +929,11 @@
         </div>
         <canvas id="spaceinvadersCanvas"></canvas>
         <div class="pool-info" id="siInfo">Arrow keys to move, SPACE to shoot!</div>
+        <div class="touch-controls" id="siTouch">
+          <button class="touch-btn" id="tchSiLeft">&#9664;</button>
+          <button class="touch-btn touch-btn-wide" id="tchSiShoot">FIRE</button>
+          <button class="touch-btn" id="tchSiRight">&#9654;</button>
+        </div>
         <div class="game-controls">
           <button class="btn btn-small btn-ghost" id="btnSiNewGame">New Game</button>
           <button class="btn btn-small btn-ghost" id="btnSiQuit">Quit</button>
@@ -937,6 +953,17 @@
         </div>
         <canvas id="tetrisCanvas"></canvas>
         <div class="pool-info" id="tetrisInfo">Arrow keys to move, Up to rotate, Space to hard drop!</div>
+        <div class="touch-controls" id="tetrisTouch">
+          <div class="touch-row">
+            <button class="touch-btn" id="tchTetLeft">&#9664;</button>
+            <button class="touch-btn" id="tchTetRotate">&#8635;</button>
+            <button class="touch-btn" id="tchTetRight">&#9654;</button>
+          </div>
+          <div class="touch-row">
+            <button class="touch-btn touch-btn-hold" id="tchTetDown">&#9660; Down</button>
+            <button class="touch-btn touch-btn-wide" id="tchTetDrop">DROP</button>
+          </div>
+        </div>
         <div class="game-controls">
           <button class="btn btn-small btn-ghost" id="btnTetNewGame">New Game</button>
           <button class="btn btn-small btn-ghost" id="btnTetQuit">Quit</button>
@@ -956,6 +983,16 @@
         </div>
         <canvas id="columnsCanvas"></canvas>
         <div class="pool-info" id="columnsInfo">Arrow keys to move, Up to cycle gems, Space to drop!</div>
+        <div class="touch-controls" id="columnsTouch">
+          <div class="touch-row">
+            <button class="touch-btn" id="tchColLeft">&#9664;</button>
+            <button class="touch-btn" id="tchColCycle">&#8635;</button>
+            <button class="touch-btn" id="tchColRight">&#9654;</button>
+          </div>
+          <div class="touch-row">
+            <button class="touch-btn touch-btn-hold" id="tchColDown">&#9660; Down</button>
+          </div>
+        </div>
         <div class="game-controls">
           <button class="btn btn-small btn-ghost" id="btnColNewGame">New Game</button>
           <button class="btn btn-small btn-ghost" id="btnColQuit">Quit</button>
