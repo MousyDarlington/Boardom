@@ -7151,8 +7151,17 @@
   function poolStepAnimation() {
     if (!poolAnimBalls) { poolAnimating = false; return; }
 
-    // Run multiple physics substeps per frame for smooth animation
-    const subsPerFrame = 8;
+    // Adaptive substeps: measure max ball speed, run more substeps when fast,
+    // fewer when slow so deceleration is visible and natural.
+    let maxSpd = 0;
+    for (const b of poolAnimBalls) {
+      if (b.pocketed) continue;
+      const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+      if (spd > maxSpd) maxSpd = spd;
+    }
+    // sqrt mapping: fast (1200) → ~14, medium (100) → ~6, slow (10) → ~3, crawl → 2
+    const subsPerFrame = Math.max(2, Math.min(16, Math.round(2 + Math.sqrt(maxSpd) * 0.35)));
+
     for (let sub = 0; sub < subsPerFrame; sub++) {
       let allStopped = true;
 
@@ -7167,10 +7176,12 @@
       }
 
       // Ball-ball collisions
-      const active = poolAnimBalls.filter(b => !b.pocketed);
-      for (let i = 0; i < active.length; i++) {
-        for (let j = i + 1; j < active.length; j++) {
-          const b1 = active[i], b2 = active[j];
+      for (let i = 0; i < poolAnimBalls.length; i++) {
+        const b1 = poolAnimBalls[i];
+        if (b1.pocketed) continue;
+        for (let j = i + 1; j < poolAnimBalls.length; j++) {
+          const b2 = poolAnimBalls[j];
+          if (b2.pocketed) continue;
           const dx = b2.x - b1.x, dy = b2.y - b1.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < POOL_R * 2 && dist > 0) {
