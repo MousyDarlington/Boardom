@@ -7033,11 +7033,27 @@
         poolStartAnimation(result);
       }
     } else {
+      // Start animation immediately (optimistic) so balls move without waiting for server
+      poolStartAnimationOptimistic(angle, power);
       socket.emit('pool:shoot', { angle, power });
     }
   }
 
   /* ---- Pool animation ---- */
+
+  function poolStartAnimationOptimistic(angle, power) {
+    // Start animation immediately using client-side physics (no server wait)
+    const ps = poolState;
+    if (!ps || !ps.balls) return;
+    const preBalls = ps.balls.map(b => ({ ...b }));
+    const cue = preBalls.find(b => b.id === 0 && !b.pocketed);
+    if (!cue) return;
+    cue.vx = Math.cos(angle) * power * POOL_POWER_SCALE;
+    cue.vy = Math.sin(angle) * power * POOL_POWER_SCALE;
+    poolAnimBalls = preBalls;
+    poolAnimating = true;
+    poolAnimStepsLeft = 1500;
+  }
 
   function poolStartAnimation(data) {
     if (!data || data.shotAngle === undefined) {
@@ -7490,7 +7506,13 @@
 
     s.on('pool:update', (data) => {
       if (data.shotAngle !== undefined && data.shotPower !== undefined) {
-        poolStartAnimation(data);
+        if (poolAnimating) {
+          // Already animating optimistically — just save authoritative end state
+          poolState = { ...poolState, ...data };
+        } else {
+          // Opponent's shot or missed optimistic start — animate now
+          poolStartAnimation(data);
+        }
       } else {
         poolState = { ...poolState, ...data };
         if (data.turnMessage) {
