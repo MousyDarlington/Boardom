@@ -6678,6 +6678,7 @@
   // Cue stroke animation state
   let poolCueStroke = null;       // { angle, power, startTime, duration, cx, cy }
   let poolPendingUpdate = null;   // server response buffered until stroke finishes
+  let poolUpdateQueue = [];       // queued updates that arrived during animation
 
   function setupPoolCanvas() {
     poolCanvas = $('poolCanvas');
@@ -7108,6 +7109,48 @@
 
   /* ---- Pool animation ---- */
 
+  // Start a shot update: cue stroke → ball simulation
+  function poolPlayShotUpdate(data) {
+    const balls = poolState ? poolState.balls : null;
+    const cue = balls ? balls.find(b => b.id === 0 && !b.pocketed) : null;
+    if (cue) {
+      poolCueStroke = {
+        angle: data.shotAngle, power: data.shotPower,
+        startTime: performance.now(),
+        duration: 250 + (1 - data.shotPower / POOL_MAX_POWER) * 150,
+        cx: cue.x, cy: cue.y
+      };
+      poolPendingUpdate = data;
+    } else {
+      poolStartAnimation(data);
+    }
+  }
+
+  // Process queued updates one at a time after current animation finishes
+  function poolDrainQueue() {
+    while (poolUpdateQueue.length > 0) {
+      const item = poolUpdateQueue.shift();
+      if (item.type === 'state') {
+        // Non-shot update: apply immediately
+        poolState = { ...poolState, ...item.data };
+        if (item.data.turnMessage) {
+          const info = $('poolInfo');
+          if (info) info.textContent = item.data.turnMessage;
+        }
+        poolUpdateGroupLabels(poolState);
+      } else if (item.type === 'shot') {
+        // Shot update: start cue stroke + simulation, then stop draining
+        poolPlayShotUpdate(item.data);
+        poolUpdateGroupLabels(poolState);
+        return; // will drain more when this animation finishes
+      } else if (item.type === 'over') {
+        if (poolState) poolState.gameOver = true;
+        setTimeout(() => showGameOverOverlay(item.data), 1500);
+        return;
+      }
+    }
+  }
+
   function poolStartAnimation(data) {
     if (!data || data.shotAngle === undefined) {
       // Non-shot update (e.g., placeCue) — just apply state
@@ -7240,22 +7283,30 @@
       }
 
       if (allStopped) {
-        poolAnimating = false;
-        poolAnimBalls = null;
-        // Update info text from authoritative state
-        const ps = poolLocal ? poolLocal.state : poolState;
-        if (ps && ps.turnMessage) {
-          const info = $('poolInfo');
-          if (info) info.textContent = ps.turnMessage;
-        }
+        poolAnimFinished();
         return;
       }
     }
 
     poolAnimStepsLeft -= subsPerFrame;
     if (poolAnimStepsLeft <= 0) {
-      poolAnimating = false;
-      poolAnimBalls = null;
+      poolAnimFinished();
+    }
+  }
+
+  function poolAnimFinished() {
+    poolAnimating = false;
+    poolAnimBalls = null;
+    // Update info text from authoritative state
+    const ps = poolLocal ? poolLocal.state : poolState;
+    if (ps && ps.turnMessage) {
+      const info = $('poolInfo');
+      if (info) info.textContent = ps.turnMessage;
+    }
+    poolUpdateGroupLabels(ps);
+    // Process any queued updates (opponent shots, game over, etc.)
+    if (poolUpdateQueue.length > 0) {
+      poolDrainQueue();
     }
   }
 
@@ -7564,6 +7615,7 @@
       poolAiming = false;
       poolCueStroke = null;
       poolPendingUpdate = null;
+      poolUpdateQueue = [];
       poolOpponentInfo = data.players[1 - poolMyIndex] || { username: 'Opponent' };
 
       $('poolMyName').textContent = data.players[poolMyIndex]?.username || 'You';
@@ -7576,42 +7628,41 @@
     });
 
     s.on('pool:update', (data) => {
+      const busy = poolCueStroke || poolAnimating;
+
       if (data.shotAngle !== undefined && data.shotPower !== undefined) {
-        if (poolCueStroke) {
-          // Our shot: stroke still playing, buffer the result
+        if (poolCueStroke && !poolPendingUpdate) {
+          // Our own shot: stroke still playing, this is the server result for it
           poolPendingUpdate = data;
-        } else if (poolAnimating) {
-          // Already animating — just update authoritative state
-          poolState = { ...poolState, ...data };
+        } else if (busy) {
+          // Another shot arrived while busy — queue it
+          poolUpdateQueue.push({ type: 'shot', data });
         } else {
-          // Opponent's shot — play stroke then simulation
-          const balls = poolState ? poolState.balls : null;
-          const cue = balls ? balls.find(b => b.id === 0 && !b.pocketed) : null;
-          if (cue) {
-            poolCueStroke = {
-              angle: data.shotAngle, power: data.shotPower,
-              startTime: performance.now(),
-              duration: 250 + (1 - data.shotPower / POOL_MAX_POWER) * 150,
-              cx: cue.x, cy: cue.y
-            };
-            poolPendingUpdate = data;
-          } else {
-            poolStartAnimation(data);
-          }
+          // Idle — play opponent's cue stroke then simulation
+          poolPlayShotUpdate(data);
         }
       } else {
-        poolState = { ...poolState, ...data };
-        if (data.turnMessage) {
-          const info = $('poolInfo');
-          if (info) info.textContent = data.turnMessage;
+        if (busy) {
+          // Non-shot update (placement, etc.) arrived while busy — queue it
+          poolUpdateQueue.push({ type: 'state', data });
+        } else {
+          poolState = { ...poolState, ...data };
+          if (data.turnMessage) {
+            const info = $('poolInfo');
+            if (info) info.textContent = data.turnMessage;
+          }
+          poolUpdateGroupLabels(poolState);
         }
       }
-      poolUpdateGroupLabels(poolState);
     });
 
     s.on('pool:over', (data) => {
-      if (poolState) poolState.gameOver = true;
-      setTimeout(() => showGameOverOverlay(data), 1500);
+      if (poolCueStroke || poolAnimating) {
+        poolUpdateQueue.push({ type: 'over', data });
+      } else {
+        if (poolState) poolState.gameOver = true;
+        setTimeout(() => showGameOverOverlay(data), 1500);
+      }
     });
 
     s.on('pool:error', (data) => {
