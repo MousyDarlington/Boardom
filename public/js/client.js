@@ -9363,7 +9363,7 @@
           w.growing = false;
           jbFillEnclosed();
           jbUpdateHud();
-          if (jbCalcFilled() >= 75) { jbLevel++; jbScore += 1000; jbInitLevel(); }
+          if (jbCalcFilled() >= 75) { jbLevel++; jbScore += 1000; jbInitLevel(); return; }
           break;
         }
       }
