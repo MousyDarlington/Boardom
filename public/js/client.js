@@ -160,6 +160,56 @@
         { id: 'solitairePlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
       ]
     },
+    pinball: {
+      title: 'Pinball',
+      icon: '\uD83C\uDFB3',
+      desc: 'Single player \u2014 Classic arcade pinball!',
+      modes: [
+        { id: 'pinballPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
+      ]
+    },
+    jezzball: {
+      title: 'JezzBall',
+      icon: '\uD83C\uDFC6',
+      desc: 'Single player \u2014 Trap the bouncing balls!',
+      modes: [
+        { id: 'jezzballPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
+      ]
+    },
+    minesweeper: {
+      title: 'Minesweeper',
+      icon: '\uD83D\uDCA3',
+      desc: 'Single player \u2014 Find all the mines!',
+      modes: [
+        { id: 'msEasy', icon: '\uD83D\uDE0A', name: 'Easy', desc: '9\u00d79, 10 mines' },
+        { id: 'msMedium', icon: '\uD83D\uDE10', name: 'Medium', desc: '16\u00d716, 40 mines' },
+        { id: 'msHard', icon: '\uD83D\uDE08', name: 'Hard', desc: '30\u00d716, 99 mines' }
+      ]
+    },
+    spaceinvaders: {
+      title: 'Space Invaders',
+      icon: '\uD83D\uDC7E',
+      desc: 'Single player \u2014 Defend Earth from aliens!',
+      modes: [
+        { id: 'siPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
+      ]
+    },
+    tetris: {
+      title: 'Tetris',
+      icon: '\uD83E\uDDF1',
+      desc: 'Single player \u2014 Stack and clear lines!',
+      modes: [
+        { id: 'tetrisPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
+      ]
+    },
+    columns: {
+      title: 'Columns',
+      icon: '\uD83D\uDC8E',
+      desc: 'Single player \u2014 Match 3 gems in a row!',
+      modes: [
+        { id: 'columnsPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
+      ]
+    },
     blackjack: {
       title: 'Blackjack',
       icon: '\uD83C\uDCCF',
@@ -1139,7 +1189,9 @@
     'lobbyHostScreen', 'lobbyJoinScreen', 'troubleHostScreen', 'guestJoinScreen',
     'shopScreen', 'gameScreen', 'troubleGameScreen', 'scrabbleGameScreen',
     'cahHostScreen', 'cahGameScreen', 'c4GameScreen', 'bsGameScreen', 'mancalaGameScreen',
-    'mahjongGameScreen', 'solitaireGameScreen', 'cardGameScreen', 'poolGameScreen'];
+    'mahjongGameScreen', 'solitaireGameScreen', 'pinballGameScreen', 'jezzballGameScreen',
+    'minesweeperGameScreen', 'spaceinvadersGameScreen', 'tetrisGameScreen', 'columnsGameScreen',
+    'cardGameScreen', 'poolGameScreen'];
 
   function showScreen(name) {
     currentScreen = name;
@@ -1151,6 +1203,9 @@
       scrabble: 'scrabbleGameScreen', cahHost: 'cahHostScreen', cah: 'cahGameScreen',
       c4: 'c4GameScreen', battleship: 'bsGameScreen', mancala: 'mancalaGameScreen',
       mahjong: 'mahjongGameScreen', solitaire: 'solitaireGameScreen',
+      pinball: 'pinballGameScreen', jezzball: 'jezzballGameScreen',
+      minesweeper: 'minesweeperGameScreen', spaceinvaders: 'spaceinvadersGameScreen',
+      tetris: 'tetrisGameScreen', columns: 'columnsGameScreen',
       cardgame: 'cardGameScreen', pool: 'poolGameScreen'
     };
     for (const id of screenIds) {
@@ -1161,7 +1216,7 @@
     if (target) target.classList.add('active');
 
     // Hide game over overlay when switching screens
-    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala' && name !== 'mahjong' && name !== 'solitaire' && name !== 'cardgame' && name !== 'pool') {
+    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala' && name !== 'mahjong' && name !== 'solitaire' && name !== 'pinball' && name !== 'jezzball' && name !== 'minesweeper' && name !== 'spaceinvaders' && name !== 'tetris' && name !== 'columns' && name !== 'cardgame' && name !== 'pool') {
       $('gameOverOverlay').classList.add('hidden');
       confettiActive = false;
     }
@@ -1173,6 +1228,12 @@
     if (name !== 'battleship') bsGameLoopActive = false;
     if (name !== 'mancala') mnGameLoopActive = false;
     if (name !== 'mahjong') mjGameLoopActive = false;
+    if (name !== 'pinball') { pbGameLoopActive = false; document.removeEventListener('keydown', pbKeyDown); document.removeEventListener('keyup', pbKeyUp); }
+    if (name !== 'jezzball') jbGameLoopActive = false;
+    if (name !== 'minesweeper') msGameLoopActive = false;
+    if (name !== 'spaceinvaders') { siGameLoopActive = false; document.removeEventListener('keydown', siKeyDown); document.removeEventListener('keyup', siKeyUp); }
+    if (name !== 'tetris') { tetGameLoopActive = false; document.removeEventListener('keydown', tetKeyDown); }
+    if (name !== 'columns') { colGameLoopActive = false; document.removeEventListener('keydown', colKeyDown); }
     if (name !== 'pool') poolGameLoopActive = false;
 
     if (name === 'game') {
@@ -1205,6 +1266,30 @@
     if (name === 'mahjong') {
       setupMahjongCanvas();
       startMahjongGameLoop();
+    }
+    if (name === 'pinball') {
+      setupPinballCanvas();
+      startPinballGameLoop();
+    }
+    if (name === 'jezzball') {
+      setupJezzballCanvas();
+      startJezzballGameLoop();
+    }
+    if (name === 'minesweeper') {
+      setupMinesweeperCanvas();
+      startMinesweeperGameLoop();
+    }
+    if (name === 'spaceinvaders') {
+      setupSICanvas();
+      startSIGameLoop();
+    }
+    if (name === 'tetris') {
+      setupTetrisCanvas();
+      startTetrisGameLoop();
+    }
+    if (name === 'columns') {
+      setupColumnsCanvas();
+      startColumnsGameLoop();
     }
     if (name === 'pool') {
       setupPoolCanvas();
@@ -2578,6 +2663,34 @@
         case 'solitairePlay':
           startSolitaireGame();
           break;
+      }
+    } else if (gameId === 'pinball') {
+      switch (modeId) {
+        case 'pinballPlay':
+          startPinballGame();
+          break;
+      }
+    } else if (gameId === 'jezzball') {
+      switch (modeId) {
+        case 'jezzballPlay': startJezzballGame(); break;
+      }
+    } else if (gameId === 'minesweeper') {
+      switch (modeId) {
+        case 'msEasy': startMinesweeperGame(9, 9, 10, 'Easy'); break;
+        case 'msMedium': startMinesweeperGame(16, 16, 40, 'Medium'); break;
+        case 'msHard': startMinesweeperGame(30, 16, 99, 'Hard'); break;
+      }
+    } else if (gameId === 'spaceinvaders') {
+      switch (modeId) {
+        case 'siPlay': startSIGame(); break;
+      }
+    } else if (gameId === 'tetris') {
+      switch (modeId) {
+        case 'tetrisPlay': startTetrisGame(); break;
+      }
+    } else if (gameId === 'columns') {
+      switch (modeId) {
+        case 'columnsPlay': startColumnsGame(); break;
       }
     } else if (gameId === 'blackjack') {
       switch (modeId) {
@@ -8641,6 +8754,1488 @@
         yOff += card.faceUp ? SOL_GAP : SOL_FD_GAP;
       }
     }
+  }
+
+  /* ================================================
+     PINBALL — Single Player Arcade
+     ================================================ */
+  const PB_W = 500, PB_H = 800;
+  const PB_BALL_R = 8;
+  const PB_GRAVITY = 0.15;
+  const PB_FRICTION = 0.999;
+  const PB_WALL_REST = 0.65;
+  const PB_BUMPER_REST = 1.2;
+  const PB_FLIPPER_LEN = 60;
+  const PB_FLIPPER_HW = 10;
+  const PB_FLIPPER_REST = 0.45;
+  const PB_FLIPPER_ACTIVE = -0.45;
+  const PB_FLIPPER_SPEED = 0.25;
+  const PB_PLUNGER_MAX = 25;
+  const PB_PLUNGER_RATE = 0.4;
+  const PB_MAX_BALLS = 3;
+
+  let pbCanvas = null, pbCtx = null;
+  let pbGameLoopActive = false;
+  let pbKeysDown = {};
+  let pbBall = { x: 440, y: 700, vx: 0, vy: 0 };
+  let pbScore = 0, pbBallNum = 1, pbMultiplier = 1, pbConsecutiveHits = 0;
+  let pbPlungerCharge = 0, pbPlungerCharging = false, pbBallInPlunger = true;
+  let pbLeftFlipperAngle = PB_FLIPPER_REST;
+  let pbRightFlipperAngle = PB_FLIPPER_REST;
+  let pbBumperFlash = [0, 0, 0];
+  let pbTargetCooldown = [0, 0, 0, 0];
+  let pbGameOver = false;
+
+  const pbLeftFlipperPivot = { x: 170, y: 720 };
+  const pbRightFlipperPivot = { x: 330, y: 720 };
+
+  const pbBumpers = [
+    { x: 170, y: 220, r: 25 },
+    { x: 330, y: 180, r: 25 },
+    { x: 250, y: 300, r: 25 }
+  ];
+
+  const pbWalls = [
+    // Left wall
+    { x1: 40, y1: 60, x2: 40, y2: 700 },
+    { x1: 40, y1: 700, x2: 120, y2: 740 },
+    // Right wall (above plunger lane)
+    { x1: 420, y1: 60, x2: 420, y2: 700 },
+    { x1: 420, y1: 700, x2: 380, y2: 740 },
+    // Plunger lane walls
+    { x1: 460, y1: 60, x2: 460, y2: 760 },
+    { x1: 420, y1: 60, x2: 460, y2: 60 },
+    // Top arc segments
+    { x1: 40, y1: 60, x2: 100, y2: 25 },
+    { x1: 100, y1: 25, x2: 200, y2: 10 },
+    { x1: 200, y1: 10, x2: 300, y2: 10 },
+    { x1: 300, y1: 10, x2: 400, y2: 25 },
+    { x1: 400, y1: 25, x2: 460, y2: 60 },
+    // Slingshots near flippers
+    { x1: 80, y1: 620, x2: 120, y2: 700 },
+    { x1: 420, y1: 620, x2: 380, y2: 700 },
+    // Inner guide walls
+    { x1: 80, y1: 550, x2: 80, y2: 620 },
+    { x1: 420, y1: 550, x2: 420, y2: 620 }
+  ];
+
+  const pbTargets = [
+    { x1: 60, y1: 150, x2: 60, y2: 220 },
+    { x1: 60, y1: 350, x2: 60, y2: 420 },
+    { x1: 440, y1: 120, x2: 440, y2: 190 },
+    { x1: 440, y1: 320, x2: 440, y2: 390 }
+  ];
+
+  function pbKeyDown(e) {
+    pbKeysDown[e.key] = true;
+    if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+    }
+    if ((e.key === ' ' || e.key === 'ArrowDown') && pbBallInPlunger && !pbPlungerCharging) {
+      pbPlungerCharging = true;
+      pbPlungerCharge = 0;
+    }
+  }
+
+  function pbKeyUp(e) {
+    pbKeysDown[e.key] = false;
+    if ((e.key === ' ' || e.key === 'ArrowDown') && pbPlungerCharging) {
+      pbPlungerCharging = false;
+      if (pbBallInPlunger) {
+        pbBall.vy = -pbPlungerCharge;
+        pbBall.vx = -1 + Math.random() * 2;
+        pbBallInPlunger = false;
+      }
+      pbPlungerCharge = 0;
+    }
+  }
+
+  function setupPinballCanvas() {
+    pbCanvas = $('pinballCanvas');
+    if (pbCanvas) {
+      pbCanvas.width = PB_W;
+      pbCanvas.height = PB_H;
+      pbCtx = pbCanvas.getContext('2d');
+    }
+  }
+
+  function startPinballGameLoop() {
+    pbGameLoopActive = true;
+    function loop() {
+      if (!pbGameLoopActive) return;
+      if (!pbGameOver) pbUpdate();
+      pbRender();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function startPinballGame() {
+    pbScore = 0;
+    pbBallNum = 1;
+    pbMultiplier = 1;
+    pbConsecutiveHits = 0;
+    pbGameOver = false;
+    pbBallInPlunger = true;
+    pbPlungerCharge = 0;
+    pbPlungerCharging = false;
+    pbBall = { x: 440, y: 700, vx: 0, vy: 0 };
+    pbLeftFlipperAngle = PB_FLIPPER_REST;
+    pbRightFlipperAngle = PB_FLIPPER_REST;
+    pbBumperFlash = [0, 0, 0];
+    pbTargetCooldown = [0, 0, 0, 0];
+    pbKeysDown = {};
+    $('pbScore').textContent = '0';
+    $('pbBallNum').textContent = '1 / 3';
+    $('pbMultiplier').textContent = '1x';
+    $('gameOverOverlay').classList.add('hidden');
+    const info = $('pinballInfo');
+    if (info) info.textContent = 'Hold SPACE to charge, release to launch!';
+    document.removeEventListener('keydown', pbKeyDown);
+    document.removeEventListener('keyup', pbKeyUp);
+    document.addEventListener('keydown', pbKeyDown);
+    document.addEventListener('keyup', pbKeyUp);
+    showScreen('pinball');
+
+    // Bind buttons
+    const newBtn = $('btnPbNewGame');
+    if (newBtn) newBtn.onclick = startPinballGame;
+    const quitBtn = $('btnPbQuit');
+    if (quitBtn) quitBtn.onclick = () => { pbGameLoopActive = false; document.removeEventListener('keydown', pbKeyDown); document.removeEventListener('keyup', pbKeyUp); showScreen('lobby'); };
+  }
+
+  function pbUpdate() {
+    // Update flippers
+    const leftActive = pbKeysDown['ArrowLeft'] || pbKeysDown['a'] || pbKeysDown['A'] || pbKeysDown['z'] || pbKeysDown['Z'];
+    const rightActive = pbKeysDown['ArrowRight'] || pbKeysDown['d'] || pbKeysDown['D'] || pbKeysDown['/'];
+    const leftTarget = leftActive ? PB_FLIPPER_ACTIVE : PB_FLIPPER_REST;
+    const rightTarget = rightActive ? PB_FLIPPER_ACTIVE : PB_FLIPPER_REST;
+    if (pbLeftFlipperAngle < leftTarget) pbLeftFlipperAngle = Math.min(pbLeftFlipperAngle + PB_FLIPPER_SPEED, leftTarget);
+    else if (pbLeftFlipperAngle > leftTarget) pbLeftFlipperAngle = Math.max(pbLeftFlipperAngle - PB_FLIPPER_SPEED, leftTarget);
+    if (pbRightFlipperAngle < rightTarget) pbRightFlipperAngle = Math.min(pbRightFlipperAngle + PB_FLIPPER_SPEED, rightTarget);
+    else if (pbRightFlipperAngle > rightTarget) pbRightFlipperAngle = Math.max(pbRightFlipperAngle - PB_FLIPPER_SPEED, rightTarget);
+
+    // Plunger charge
+    if (pbPlungerCharging) {
+      pbPlungerCharge = Math.min(pbPlungerCharge + PB_PLUNGER_RATE, PB_PLUNGER_MAX);
+    }
+
+    if (pbBallInPlunger) {
+      pbBall.x = 440;
+      pbBall.y = 700 + (pbPlungerCharging ? pbPlungerCharge * 1.5 : 0);
+      return;
+    }
+
+    // Physics
+    pbBall.vy += PB_GRAVITY;
+    pbBall.vx *= PB_FRICTION;
+    pbBall.vy *= PB_FRICTION;
+    pbBall.x += pbBall.vx;
+    pbBall.y += pbBall.vy;
+
+    // Wall collisions
+    for (const w of pbWalls) {
+      pbCollideLineSegment(w);
+    }
+
+    // Bumper collisions
+    for (let i = 0; i < pbBumpers.length; i++) {
+      const b = pbBumpers[i];
+      const dx = pbBall.x - b.x;
+      const dy = pbBall.y - b.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = PB_BALL_R + b.r;
+      if (dist < minDist && dist > 0) {
+        const nx = dx / dist;
+        const ny = dy / dist;
+        pbBall.x = b.x + nx * minDist;
+        pbBall.y = b.y + ny * minDist;
+        const dot = pbBall.vx * nx + pbBall.vy * ny;
+        pbBall.vx = (pbBall.vx - 2 * dot * nx) * PB_BUMPER_REST;
+        pbBall.vy = (pbBall.vy - 2 * dot * ny) * PB_BUMPER_REST;
+        pbBumperFlash[i] = 15;
+        pbAddScore(100);
+      }
+    }
+
+    // Target collisions
+    for (let i = 0; i < pbTargets.length; i++) {
+      if (pbTargetCooldown[i] > 0) { pbTargetCooldown[i]--; continue; }
+      const t = pbTargets[i];
+      const d = pbPointToSegmentDist(pbBall.x, pbBall.y, t.x1, t.y1, t.x2, t.y2);
+      if (d < PB_BALL_R + 5) {
+        pbTargetCooldown[i] = 120;
+        pbAddScore(50);
+      }
+    }
+
+    // Flipper collisions
+    pbCollideWithFlipper(pbLeftFlipperPivot, pbLeftFlipperAngle, 1, leftActive);
+    pbCollideWithFlipper(pbRightFlipperPivot, pbRightFlipperAngle, -1, rightActive);
+
+    // Decrement bumper flash timers
+    for (let i = 0; i < pbBumperFlash.length; i++) {
+      if (pbBumperFlash[i] > 0) pbBumperFlash[i]--;
+    }
+
+    // Drain detection
+    if (pbBall.y > PB_H + 20) {
+      pbBallDrained();
+    }
+  }
+
+  function pbCollideLineSegment(w) {
+    const ex = w.x2 - w.x1, ey = w.y2 - w.y1;
+    const len = Math.sqrt(ex * ex + ey * ey);
+    if (len === 0) return;
+    const nx = -ey / len, ny = ex / len;
+    const dx = pbBall.x - w.x1, dy = pbBall.y - w.y1;
+    const dist = dx * nx + dy * ny;
+    if (Math.abs(dist) > PB_BALL_R) return;
+    const t = (dx * ex + dy * ey) / (len * len);
+    if (t < 0 || t > 1) return;
+    const dot = pbBall.vx * nx + pbBall.vy * ny;
+    if (dot > 0) return;
+    pbBall.vx -= 2 * dot * nx * PB_WALL_REST;
+    pbBall.vy -= 2 * dot * ny * PB_WALL_REST;
+    pbBall.x += nx * (PB_BALL_R - dist);
+    pbBall.y += ny * (PB_BALL_R - dist);
+  }
+
+  function pbCollideWithFlipper(pivot, angle, dir, isActive) {
+    const tipX = pivot.x + Math.cos(angle * dir) * PB_FLIPPER_LEN * dir;
+    const tipY = pivot.y + Math.sin(angle * dir) * PB_FLIPPER_LEN;
+    const d = pbPointToSegmentDist(pbBall.x, pbBall.y, pivot.x, pivot.y, tipX, tipY);
+    if (d < PB_BALL_R + PB_FLIPPER_HW) {
+      // Push ball away from flipper
+      const mx = (pivot.x + tipX) / 2, my = (pivot.y + tipY) / 2;
+      const awayX = pbBall.x - mx, awayY = pbBall.y - my;
+      const awayLen = Math.sqrt(awayX * awayX + awayY * awayY) || 1;
+      pbBall.x += (awayX / awayLen) * 3;
+      pbBall.y += (awayY / awayLen) * 3;
+      if (isActive) {
+        // Calculate distance from pivot (0-1)
+        const fx = pbBall.x - pivot.x, fy = pbBall.y - pivot.y;
+        const fDist = Math.sqrt(fx * fx + fy * fy) / PB_FLIPPER_LEN;
+        const kickStrength = 8 + fDist * 10;
+        pbBall.vy = -kickStrength;
+        pbBall.vx += dir * fDist * 5;
+      } else {
+        const dot = pbBall.vx * (awayX / awayLen) + pbBall.vy * (awayY / awayLen);
+        if (dot < 0) {
+          pbBall.vx -= 2 * dot * (awayX / awayLen) * 0.5;
+          pbBall.vy -= 2 * dot * (awayY / awayLen) * 0.5;
+        }
+      }
+    }
+  }
+
+  function pbPointToSegmentDist(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+    let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const cx = x1 + t * dx, cy = y1 + t * dy;
+    return Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
+  }
+
+  function pbAddScore(base) {
+    pbScore += base * pbMultiplier;
+    pbConsecutiveHits++;
+    if (pbConsecutiveHits % 5 === 0 && pbMultiplier < 10) {
+      pbMultiplier++;
+      $('pbMultiplier').textContent = pbMultiplier + 'x';
+    }
+    $('pbScore').textContent = pbScore;
+  }
+
+  function pbBallDrained() {
+    pbBallNum++;
+    if (pbBallNum > PB_MAX_BALLS) {
+      pbGameOver = true;
+      pbShowGameOver();
+      return;
+    }
+    pbMultiplier = 1;
+    pbConsecutiveHits = 0;
+    pbBallInPlunger = true;
+    pbPlungerCharge = 0;
+    pbPlungerCharging = false;
+    pbBall = { x: 440, y: 700, vx: 0, vy: 0 };
+    $('pbBallNum').textContent = pbBallNum + ' / 3';
+    $('pbMultiplier').textContent = '1x';
+    const info = $('pinballInfo');
+    if (info) info.textContent = 'Ball ' + pbBallNum + ' — Hold SPACE to launch!';
+  }
+
+  function pbShowGameOver() {
+    $('gameOverTitle').textContent = 'Game Over';
+    $('gameOverReason').textContent = 'Final Score: ' + pbScore;
+    const rc = $('gameOverRating');
+    if (rc) rc.innerHTML = '';
+    const coinEl = $('gameOverCoins');
+    if (coinEl) coinEl.textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    if (pbScore >= 5000) {
+      if (typeof startConfetti === 'function') startConfetti();
+    }
+    const btn = $('btnBackToLobby');
+    if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); pbGameLoopActive = false; document.removeEventListener('keydown', pbKeyDown); document.removeEventListener('keyup', pbKeyUp); showScreen('lobby'); };
+    const pa = $('btnPlayAgain');
+    if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startPinballGame(); };
+  }
+
+  function pbRender() {
+    if (!pbCtx) return;
+    const ctx = pbCtx;
+
+    // Dark background
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, PB_W, PB_H);
+
+    // Table surface
+    ctx.fillStyle = '#1a1030';
+    ctx.beginPath();
+    ctx.moveTo(40, 60);
+    ctx.lineTo(40, 700);
+    ctx.lineTo(120, 740);
+    ctx.lineTo(380, 740);
+    ctx.lineTo(420, 700);
+    ctx.lineTo(420, 60);
+    ctx.lineTo(460, 60);
+    ctx.lineTo(460, 10);
+    ctx.lineTo(40, 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // Walls — neon blue with glow
+    ctx.strokeStyle = '#00ccff';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#00ccff';
+    ctx.shadowBlur = 10;
+    for (const w of pbWalls) {
+      ctx.beginPath();
+      ctx.moveTo(w.x1, w.y1);
+      ctx.lineTo(w.x2, w.y2);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    // Drain area
+    ctx.fillStyle = 'rgba(200, 0, 0, 0.15)';
+    ctx.fillRect(120, 740, 260, 20);
+
+    // Bumpers
+    for (let i = 0; i < pbBumpers.length; i++) {
+      const b = pbBumpers[i];
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      if (pbBumperFlash[i] > 0) {
+        ctx.fillStyle = '#ff44aa';
+        ctx.shadowColor = '#ff44aa';
+        ctx.shadowBlur = 20;
+      } else {
+        ctx.fillStyle = '#6633aa';
+        ctx.shadowColor = '#6633aa';
+        ctx.shadowBlur = 8;
+      }
+      ctx.fill();
+      ctx.strokeStyle = '#cc88ff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    // Targets
+    for (let i = 0; i < pbTargets.length; i++) {
+      const t = pbTargets[i];
+      ctx.strokeStyle = pbTargetCooldown[i] > 0 ? '#332200' : '#ff8800';
+      ctx.lineWidth = 4;
+      if (pbTargetCooldown[i] === 0) {
+        ctx.shadowColor = '#ff8800';
+        ctx.shadowBlur = 8;
+      }
+      ctx.beginPath();
+      ctx.moveTo(t.x1, t.y1);
+      ctx.lineTo(t.x2, t.y2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    // Flippers
+    pbDrawFlipper(ctx, pbLeftFlipperPivot, pbLeftFlipperAngle, 1);
+    pbDrawFlipper(ctx, pbRightFlipperPivot, pbRightFlipperAngle, -1);
+
+    // Plunger
+    const plungerX = 440;
+    const plungerBaseY = 760;
+    const plungerHeadY = 700 + (pbPlungerCharging ? pbPlungerCharge * 1.5 : 0);
+    // Spring coils
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 2;
+    const springSegs = 8;
+    const springH = plungerBaseY - plungerHeadY - 10;
+    for (let i = 0; i < springSegs; i++) {
+      const sy = plungerHeadY + 10 + (springH / springSegs) * i;
+      const sy2 = plungerHeadY + 10 + (springH / springSegs) * (i + 0.5);
+      ctx.beginPath();
+      ctx.moveTo(plungerX - 8, sy);
+      ctx.lineTo(plungerX + 8, sy2);
+      ctx.stroke();
+    }
+    // Plunger head
+    ctx.fillStyle = '#cc2222';
+    ctx.shadowColor = '#ff4444';
+    ctx.shadowBlur = 6;
+    ctx.fillRect(plungerX - 10, plungerHeadY - 5, 20, 10);
+    ctx.shadowBlur = 0;
+    // Power bar
+    if (pbPlungerCharging) {
+      const pct = pbPlungerCharge / PB_PLUNGER_MAX;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(470, 600, 15, 150);
+      ctx.fillStyle = pct > 0.7 ? '#ff2222' : pct > 0.4 ? '#ffaa00' : '#00cc44';
+      ctx.fillRect(470, 600 + 150 * (1 - pct), 15, 150 * pct);
+    }
+
+    // Ball
+    if (!pbGameOver) {
+      const grad = ctx.createRadialGradient(pbBall.x - 2, pbBall.y - 2, 1, pbBall.x, pbBall.y, PB_BALL_R);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.5, '#cccccc');
+      grad.addColorStop(1, '#888888');
+      ctx.fillStyle = grad;
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(pbBall.x, pbBall.y, PB_BALL_R, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  function pbDrawFlipper(ctx, pivot, angle, dir) {
+    const tipX = pivot.x + Math.cos(angle * dir) * PB_FLIPPER_LEN * dir;
+    const tipY = pivot.y + Math.sin(angle * dir) * PB_FLIPPER_LEN;
+    const perpX = -Math.sin(angle * dir) * dir;
+    const perpY = Math.cos(angle * dir);
+
+    ctx.fillStyle = '#cc3333';
+    ctx.shadowColor = '#ff4444';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.moveTo(pivot.x + perpX * PB_FLIPPER_HW, pivot.y + perpY * PB_FLIPPER_HW);
+    ctx.lineTo(pivot.x - perpX * PB_FLIPPER_HW, pivot.y - perpY * PB_FLIPPER_HW);
+    ctx.lineTo(tipX - perpX * 4, tipY - perpY * 4);
+    ctx.lineTo(tipX + perpX * 4, tipY + perpY * 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Pivot dot
+    ctx.fillStyle = '#ff6666';
+    ctx.beginPath();
+    ctx.arc(pivot.x, pivot.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /* ================================================
+     JEZZBALL — Single Player
+     ================================================ */
+  const JB_W = 600, JB_H = 500, JB_CELL = 10;
+  const JB_COLS = JB_W / JB_CELL, JB_ROWS = JB_H / JB_CELL;
+
+  let jbCanvas = null, jbCtx = null, jbGameLoopActive = false;
+  let jbGrid = [], jbBalls = [], jbWalls = [];
+  let jbLevel = 1, jbLives = 3, jbScore = 0, jbGameOver = false;
+  let jbHorizontal = true;
+
+  function setupJezzballCanvas() {
+    jbCanvas = $('jezzballCanvas');
+    if (jbCanvas) { jbCanvas.width = JB_W; jbCanvas.height = JB_H; jbCtx = jbCanvas.getContext('2d'); }
+  }
+
+  function startJezzballGameLoop() {
+    jbGameLoopActive = true;
+    function loop() {
+      if (!jbGameLoopActive) return;
+      if (!jbGameOver) jbUpdate();
+      jbRender();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function startJezzballGame() {
+    jbLevel = 1; jbLives = 3; jbScore = 0; jbGameOver = false; jbHorizontal = true;
+    $('gameOverOverlay').classList.add('hidden');
+    jbInitLevel();
+    showScreen('jezzball');
+    if (jbCanvas) {
+      jbCanvas.onclick = jbHandleClick;
+      jbCanvas.oncontextmenu = (e) => { e.preventDefault(); jbHorizontal = !jbHorizontal; };
+    }
+    document.addEventListener('keydown', jbKeyHandler);
+    const newBtn = $('btnJbNewGame'); if (newBtn) newBtn.onclick = startJezzballGame;
+    const quitBtn = $('btnJbQuit'); if (quitBtn) quitBtn.onclick = () => { jbGameLoopActive = false; document.removeEventListener('keydown', jbKeyHandler); showScreen('lobby'); };
+  }
+
+  function jbKeyHandler(e) { if (e.key === 'v' || e.key === 'V') jbHorizontal = !jbHorizontal; }
+
+  function jbInitLevel() {
+    jbGrid = [];
+    for (let r = 0; r < JB_ROWS; r++) {
+      jbGrid[r] = [];
+      for (let c = 0; c < JB_COLS; c++) jbGrid[r][c] = (r === 0 || r === JB_ROWS - 1 || c === 0 || c === JB_COLS - 1) ? 1 : 0;
+    }
+    jbBalls = [];
+    const numBalls = jbLevel + 1;
+    for (let i = 0; i < numBalls; i++) {
+      jbBalls.push({
+        x: 100 + Math.random() * (JB_W - 200), y: 100 + Math.random() * (JB_H - 200),
+        vx: (Math.random() > 0.5 ? 1 : -1) * (1.5 + Math.random()), vy: (Math.random() > 0.5 ? 1 : -1) * (1.5 + Math.random()),
+        r: 6
+      });
+    }
+    jbWalls = [];
+    jbUpdateHud();
+  }
+
+  function jbUpdateHud() {
+    $('jbLevel').textContent = jbLevel;
+    $('jbLives').textContent = jbLives;
+    $('jbFilled').textContent = jbCalcFilled() + '%';
+    $('jbScore').textContent = jbScore;
+    const info = $('jezzballInfo');
+    if (info) info.textContent = (jbHorizontal ? 'Horizontal' : 'Vertical') + ' mode — Click to place wall. V or right-click to toggle.';
+  }
+
+  function jbCalcFilled() {
+    let filled = 0, total = 0;
+    for (let r = 1; r < JB_ROWS - 1; r++) for (let c = 1; c < JB_COLS - 1; c++) { total++; if (jbGrid[r][c]) filled++; }
+    return Math.round(filled / total * 100);
+  }
+
+  function jbHandleClick(e) {
+    if (jbGameOver) return;
+    const rect = jbCanvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (JB_W / rect.width);
+    const my = (e.clientY - rect.top) * (JB_H / rect.height);
+    const gc = Math.floor(mx / JB_CELL), gr = Math.floor(my / JB_CELL);
+    if (gr <= 0 || gr >= JB_ROWS - 1 || gc <= 0 || gc >= JB_COLS - 1) return;
+    if (jbGrid[gr][gc]) return;
+    jbWalls.push({ r: gr, c: gc, horizontal: jbHorizontal, segments: [{ r: gr, c: gc }], growing: true, speed: 0.5, progress: 0 });
+  }
+
+  function jbUpdate() {
+    // Move balls
+    for (const b of jbBalls) {
+      b.x += b.vx; b.y += b.vy;
+      const gc = Math.floor(b.x / JB_CELL), gr = Math.floor(b.y / JB_CELL);
+      const gcx = Math.floor((b.x + (b.vx > 0 ? b.r : -b.r)) / JB_CELL);
+      const gry = Math.floor((b.y + (b.vy > 0 ? b.r : -b.r)) / JB_CELL);
+      if (gcx >= 0 && gcx < JB_COLS && gr >= 0 && gr < JB_ROWS && jbGrid[gr][gcx]) b.vx = -b.vx;
+      if (gc >= 0 && gc < JB_COLS && gry >= 0 && gry < JB_ROWS && jbGrid[gry][gc]) b.vy = -b.vy;
+      b.x = Math.max(JB_CELL + b.r, Math.min(JB_W - JB_CELL - b.r, b.x));
+      b.y = Math.max(JB_CELL + b.r, Math.min(JB_H - JB_CELL - b.r, b.y));
+    }
+
+    // Grow walls
+    for (let wi = jbWalls.length - 1; wi >= 0; wi--) {
+      const w = jbWalls[wi];
+      if (!w.growing) continue;
+      w.progress += w.speed;
+      while (w.progress >= 1) {
+        w.progress -= 1;
+        let expanded = false;
+        const segs = w.segments;
+        const first = segs[0], last = segs[segs.length - 1];
+        if (w.horizontal) {
+          if (first.c > 0 && !jbGrid[first.r][first.c - 1]) { segs.unshift({ r: first.r, c: first.c - 1 }); expanded = true; }
+          if (last.c < JB_COLS - 1 && !jbGrid[last.r][last.c + 1]) { segs.push({ r: last.r, c: last.c + 1 }); expanded = true; }
+        } else {
+          if (first.r > 0 && !jbGrid[first.r - 1][first.c]) { segs.unshift({ r: first.r - 1, c: first.c }); expanded = true; }
+          if (last.r < JB_ROWS - 1 && !jbGrid[last.r + 1][last.c]) { segs.push({ r: last.r + 1, c: last.c }); expanded = true; }
+        }
+        if (!expanded) {
+          for (const s of segs) jbGrid[s.r][s.c] = 1;
+          w.growing = false;
+          jbFillEnclosed();
+          jbUpdateHud();
+          if (jbCalcFilled() >= 75) { jbLevel++; jbScore += 1000; jbInitLevel(); }
+          break;
+        }
+      }
+
+      // Check ball collision with growing wall
+      if (w.growing) {
+        let hit = false;
+        for (const b of jbBalls) {
+          for (const s of w.segments) {
+            const sx = s.c * JB_CELL, sy = s.r * JB_CELL;
+            if (b.x + b.r > sx && b.x - b.r < sx + JB_CELL && b.y + b.r > sy && b.y - b.r < sy + JB_CELL) {
+              hit = true; break;
+            }
+          }
+          if (hit) break;
+        }
+        if (hit) {
+          jbWalls.splice(wi, 1);
+          jbLives--;
+          $('jbLives').textContent = jbLives;
+          if (jbLives <= 0) { jbGameOver = true; jbShowGameOver(); }
+        }
+      }
+    }
+  }
+
+  function jbFillEnclosed() {
+    // Find all connected empty regions, fill ones without balls
+    const visited = [];
+    for (let r = 0; r < JB_ROWS; r++) { visited[r] = []; for (let c = 0; c < JB_COLS; c++) visited[r][c] = false; }
+    const regions = [];
+    for (let r = 1; r < JB_ROWS - 1; r++) {
+      for (let c = 1; c < JB_COLS - 1; c++) {
+        if (jbGrid[r][c] || visited[r][c]) continue;
+        const region = [];
+        const stack = [{ r, c }];
+        visited[r][c] = true;
+        while (stack.length) {
+          const p = stack.pop();
+          region.push(p);
+          for (const [dr, dc] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+            const nr = p.r + dr, nc = p.c + dc;
+            if (nr >= 0 && nr < JB_ROWS && nc >= 0 && nc < JB_COLS && !jbGrid[nr][nc] && !visited[nr][nc]) {
+              visited[nr][nc] = true; stack.push({ r: nr, c: nc });
+            }
+          }
+        }
+        regions.push(region);
+      }
+    }
+    for (const region of regions) {
+      let hasBall = false;
+      for (const b of jbBalls) {
+        const bc = Math.floor(b.x / JB_CELL), br = Math.floor(b.y / JB_CELL);
+        if (region.some(p => p.r === br && p.c === bc)) { hasBall = true; break; }
+      }
+      if (!hasBall) {
+        for (const p of region) jbGrid[p.r][p.c] = 1;
+        jbScore += region.length;
+      }
+    }
+  }
+
+  function jbShowGameOver() {
+    $('gameOverTitle').textContent = 'Game Over';
+    $('gameOverReason').textContent = 'Level: ' + jbLevel + ' | Score: ' + jbScore;
+    $('gameOverRating').innerHTML = '';
+    $('gameOverCoins').textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    const btn = $('btnBackToLobby'); if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); jbGameLoopActive = false; document.removeEventListener('keydown', jbKeyHandler); showScreen('lobby'); };
+    const pa = $('btnPlayAgain'); if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startJezzballGame(); };
+  }
+
+  function jbRender() {
+    if (!jbCtx) return;
+    const ctx = jbCtx;
+    ctx.fillStyle = '#0a0a2a'; ctx.fillRect(0, 0, JB_W, JB_H);
+
+    // Draw filled cells
+    for (let r = 0; r < JB_ROWS; r++) {
+      for (let c = 0; c < JB_COLS; c++) {
+        if (jbGrid[r][c]) {
+          ctx.fillStyle = '#1a3a1a';
+          ctx.fillRect(c * JB_CELL, r * JB_CELL, JB_CELL, JB_CELL);
+        }
+      }
+    }
+
+    // Grid border
+    ctx.strokeStyle = '#00ff66'; ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, JB_W, JB_H);
+
+    // Growing walls
+    for (const w of jbWalls) {
+      if (!w.growing) continue;
+      ctx.fillStyle = '#ffcc00';
+      ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 8;
+      for (const s of w.segments) ctx.fillRect(s.c * JB_CELL, s.r * JB_CELL, JB_CELL, JB_CELL);
+      ctx.shadowBlur = 0;
+    }
+
+    // Balls
+    ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 10;
+    for (const b of jbBalls) {
+      ctx.fillStyle = '#00ffff';
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    // Direction indicator
+    ctx.fillStyle = '#ffffff'; ctx.font = '12px monospace';
+    ctx.fillText(jbHorizontal ? '— Horizontal' : '| Vertical', 10, JB_H - 10);
+  }
+
+  /* ================================================
+     MINESWEEPER — Single Player
+     ================================================ */
+  const MS_CELL = 30;
+  let msCanvas = null, msCtx = null, msGameLoopActive = false;
+  let msGrid = [], msCols = 9, msRows = 9, msMines = 10, msDiff = 'Easy';
+  let msRevealed = 0, msFlagged = 0, msGameOver = false, msWon = false, msFirstClick = true;
+  let msTimer = null, msTime = 0;
+
+  const MS_NUM_COLORS = ['', '#3333ff', '#008800', '#ff0000', '#000088', '#884400', '#00aaaa', '#000000', '#888888'];
+
+  function setupMinesweeperCanvas() {
+    msCanvas = $('minesweeperCanvas');
+    if (msCanvas) { msCtx = msCanvas.getContext('2d'); }
+  }
+
+  function startMinesweeperGameLoop() {
+    msGameLoopActive = true;
+    function loop() { if (!msGameLoopActive) return; msRender(); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  }
+
+  function startMinesweeperGame(cols, rows, mines, diff) {
+    msCols = cols; msRows = rows; msMines = mines; msDiff = diff;
+    msGameOver = false; msWon = false; msFirstClick = true;
+    msRevealed = 0; msFlagged = 0; msTime = 0;
+    if (msTimer) clearInterval(msTimer);
+    msTimer = null;
+    msGrid = [];
+    for (let r = 0; r < msRows; r++) {
+      msGrid[r] = [];
+      for (let c = 0; c < msCols; c++) msGrid[r][c] = { mine: false, revealed: false, flagged: false, adj: 0 };
+    }
+    if (msCanvas) {
+      msCanvas.width = msCols * MS_CELL; msCanvas.height = msRows * MS_CELL;
+      msCanvas.onclick = msHandleClick;
+      msCanvas.oncontextmenu = msHandleRightClick;
+      msCanvas.onauxclick = msHandleMiddleClick;
+    }
+    $('msRemaining').textContent = msMines;
+    $('msTime').textContent = '0:00';
+    $('msDifficulty').textContent = msDiff;
+    $('gameOverOverlay').classList.add('hidden');
+    showScreen('minesweeper');
+    const newBtn = $('btnMsNewGame'); if (newBtn) newBtn.onclick = () => startMinesweeperGame(msCols, msRows, msMines, msDiff);
+    const quitBtn = $('btnMsQuit'); if (quitBtn) quitBtn.onclick = () => { msGameLoopActive = false; if (msTimer) clearInterval(msTimer); showScreen('lobby'); };
+  }
+
+  function msPlaceMines(exR, exC) {
+    let placed = 0;
+    while (placed < msMines) {
+      const r = Math.floor(Math.random() * msRows), c = Math.floor(Math.random() * msCols);
+      if (msGrid[r][c].mine || (Math.abs(r - exR) <= 1 && Math.abs(c - exC) <= 1)) continue;
+      msGrid[r][c].mine = true; placed++;
+    }
+    for (let r = 0; r < msRows; r++) for (let c = 0; c < msCols; c++) {
+      if (msGrid[r][c].mine) continue;
+      let count = 0;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < msRows && nc >= 0 && nc < msCols && msGrid[nr][nc].mine) count++;
+      }
+      msGrid[r][c].adj = count;
+    }
+  }
+
+  function msHandleClick(e) {
+    if (msGameOver) return;
+    const rect = msCanvas.getBoundingClientRect();
+    const c = Math.floor((e.clientX - rect.left) * (msCanvas.width / rect.width) / MS_CELL);
+    const r = Math.floor((e.clientY - rect.top) * (msCanvas.height / rect.height) / MS_CELL);
+    if (r < 0 || r >= msRows || c < 0 || c >= msCols) return;
+    if (msGrid[r][c].flagged) return;
+    if (msGrid[r][c].revealed) { msChord(r, c); return; }
+    if (msFirstClick) { msPlaceMines(r, c); msFirstClick = false; msTimer = setInterval(() => { msTime++; $('msTime').textContent = Math.floor(msTime/60) + ':' + String(msTime%60).padStart(2,'0'); }, 1000); }
+    msRevealCell(r, c);
+  }
+
+  function msHandleRightClick(e) {
+    e.preventDefault();
+    if (msGameOver) return;
+    const rect = msCanvas.getBoundingClientRect();
+    const c = Math.floor((e.clientX - rect.left) * (msCanvas.width / rect.width) / MS_CELL);
+    const r = Math.floor((e.clientY - rect.top) * (msCanvas.height / rect.height) / MS_CELL);
+    if (r < 0 || r >= msRows || c < 0 || c >= msCols) return;
+    if (msGrid[r][c].revealed) return;
+    msGrid[r][c].flagged = !msGrid[r][c].flagged;
+    msFlagged += msGrid[r][c].flagged ? 1 : -1;
+    $('msRemaining').textContent = msMines - msFlagged;
+  }
+
+  function msHandleMiddleClick(e) {
+    if (e.button !== 1) return;
+    if (msGameOver) return;
+    const rect = msCanvas.getBoundingClientRect();
+    const c = Math.floor((e.clientX - rect.left) * (msCanvas.width / rect.width) / MS_CELL);
+    const r = Math.floor((e.clientY - rect.top) * (msCanvas.height / rect.height) / MS_CELL);
+    if (r < 0 || r >= msRows || c < 0 || c >= msCols) return;
+    if (msGrid[r][c].revealed) msChord(r, c);
+  }
+
+  function msRevealCell(r, c) {
+    if (r < 0 || r >= msRows || c < 0 || c >= msCols) return;
+    const cell = msGrid[r][c];
+    if (cell.revealed || cell.flagged) return;
+    cell.revealed = true; msRevealed++;
+    if (cell.mine) { msGameLost(); return; }
+    if (cell.adj === 0) {
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        msRevealCell(r + dr, c + dc);
+      }
+    }
+    if (msRevealed === msCols * msRows - msMines) { msWon = true; msGameOver = true; if (msTimer) clearInterval(msTimer); msShowGameOver(true); }
+  }
+
+  function msChord(r, c) {
+    const cell = msGrid[r][c];
+    if (!cell.revealed || cell.adj === 0) return;
+    let flags = 0;
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < msRows && nc >= 0 && nc < msCols && msGrid[nr][nc].flagged) flags++;
+    }
+    if (flags === cell.adj) {
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < msRows && nc >= 0 && nc < msCols && !msGrid[nr][nc].flagged) msRevealCell(nr, nc);
+      }
+    }
+  }
+
+  function msGameLost() {
+    msGameOver = true; if (msTimer) clearInterval(msTimer);
+    for (let r = 0; r < msRows; r++) for (let c = 0; c < msCols; c++) {
+      if (msGrid[r][c].mine) msGrid[r][c].revealed = true;
+    }
+    msShowGameOver(false);
+  }
+
+  function msShowGameOver(won) {
+    $('gameOverTitle').textContent = won ? 'You Win!' : 'Game Over';
+    $('gameOverReason').textContent = won ? 'Cleared in ' + msTime + 's!' : 'You hit a mine!';
+    $('gameOverRating').innerHTML = ''; $('gameOverCoins').textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    if (won && typeof startConfetti === 'function') startConfetti();
+    const btn = $('btnBackToLobby'); if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); msGameLoopActive = false; if (msTimer) clearInterval(msTimer); showScreen('lobby'); };
+    const pa = $('btnPlayAgain'); if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startMinesweeperGame(msCols, msRows, msMines, msDiff); };
+  }
+
+  function msRender() {
+    if (!msCtx) return;
+    const ctx = msCtx;
+    ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, msCanvas.width, msCanvas.height);
+    for (let r = 0; r < msRows; r++) {
+      for (let c = 0; c < msCols; c++) {
+        const x = c * MS_CELL, y = r * MS_CELL, cell = msGrid[r][c];
+        if (cell.revealed) {
+          ctx.fillStyle = '#222233'; ctx.fillRect(x + 1, y + 1, MS_CELL - 2, MS_CELL - 2);
+          if (cell.mine) {
+            ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.arc(x + MS_CELL/2, y + MS_CELL/2, 8, 0, Math.PI * 2); ctx.fill();
+          } else if (cell.adj > 0) {
+            ctx.fillStyle = MS_NUM_COLORS[cell.adj]; ctx.font = 'bold 18px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(cell.adj, x + MS_CELL/2, y + MS_CELL/2);
+          }
+        } else {
+          ctx.fillStyle = '#444466'; ctx.fillRect(x + 1, y + 1, MS_CELL - 2, MS_CELL - 2);
+          ctx.fillStyle = '#555577'; ctx.fillRect(x + 1, y + 1, MS_CELL - 3, 2); ctx.fillRect(x + 1, y + 1, 2, MS_CELL - 3);
+          ctx.fillStyle = '#333355'; ctx.fillRect(x + MS_CELL - 3, y + 1, 2, MS_CELL - 2); ctx.fillRect(x + 1, y + MS_CELL - 3, MS_CELL - 2, 2);
+          if (cell.flagged) {
+            ctx.fillStyle = '#ff3333'; ctx.beginPath();
+            ctx.moveTo(x + MS_CELL/2 - 2, y + 6); ctx.lineTo(x + MS_CELL/2 + 8, y + 12); ctx.lineTo(x + MS_CELL/2 - 2, y + 18); ctx.fill();
+            ctx.fillRect(x + MS_CELL/2 - 3, y + 6, 2, 18);
+          }
+          if (msGameOver && cell.flagged && !cell.mine) {
+            ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + MS_CELL - 4, y + MS_CELL - 4); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + MS_CELL - 4, y + 4); ctx.lineTo(x + 4, y + MS_CELL - 4); ctx.stroke();
+          }
+        }
+      }
+    }
+  }
+
+  /* ================================================
+     SPACE INVADERS — Single Player
+     ================================================ */
+  const SI_W = 600, SI_H = 500;
+  let siCanvas = null, siCtx = null, siGameLoopActive = false;
+  let siPlayer = {}, siBullets = [], siAliens = [], siAlienBullets = [];
+  let siScore = 0, siWave = 1, siLives = 3, siGameOver = false;
+  let siAlienDir = 1, siAlienTimer = 0, siAlienSpeed = 30, siShootCooldown = 0;
+  let siKeysDown = {};
+
+  function siKeyDown(e) { siKeysDown[e.key] = true; if (e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') e.preventDefault(); }
+  function siKeyUp(e) { siKeysDown[e.key] = false; }
+
+  function setupSICanvas() {
+    siCanvas = $('spaceinvadersCanvas');
+    if (siCanvas) { siCanvas.width = SI_W; siCanvas.height = SI_H; siCtx = siCanvas.getContext('2d'); }
+  }
+
+  function startSIGameLoop() {
+    siGameLoopActive = true;
+    function loop() { if (!siGameLoopActive) return; if (!siGameOver) siUpdate(); siRender(); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  }
+
+  function startSIGame() {
+    siScore = 0; siWave = 1; siLives = 3; siGameOver = false;
+    siPlayer = { x: SI_W / 2, y: SI_H - 30, w: 40, h: 15 };
+    siBullets = []; siAlienBullets = []; siKeysDown = {};
+    $('gameOverOverlay').classList.add('hidden');
+    siSpawnWave();
+    siUpdateHud();
+    document.removeEventListener('keydown', siKeyDown); document.removeEventListener('keyup', siKeyUp);
+    document.addEventListener('keydown', siKeyDown); document.addEventListener('keyup', siKeyUp);
+    showScreen('spaceinvaders');
+    const newBtn = $('btnSiNewGame'); if (newBtn) newBtn.onclick = startSIGame;
+    const quitBtn = $('btnSiQuit'); if (quitBtn) quitBtn.onclick = () => { siGameLoopActive = false; document.removeEventListener('keydown', siKeyDown); document.removeEventListener('keyup', siKeyUp); showScreen('lobby'); };
+  }
+
+  function siSpawnWave() {
+    siAliens = []; siAlienDir = 1; siAlienSpeed = Math.max(10, 30 - siWave * 3); siAlienTimer = 0;
+    const rows = Math.min(5, 3 + Math.floor(siWave / 2));
+    const cols = Math.min(11, 8 + Math.floor(siWave / 3));
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      siAliens.push({ x: 60 + c * 45, y: 40 + r * 35, w: 30, h: 20, type: r, alive: true });
+    }
+  }
+
+  function siUpdateHud() {
+    $('siScore').textContent = siScore; $('siWave').textContent = siWave; $('siLives').textContent = siLives;
+  }
+
+  function siUpdate() {
+    // Player movement
+    if (siKeysDown['ArrowLeft'] || siKeysDown['a'] || siKeysDown['A']) siPlayer.x = Math.max(siPlayer.w/2, siPlayer.x - 4);
+    if (siKeysDown['ArrowRight'] || siKeysDown['d'] || siKeysDown['D']) siPlayer.x = Math.min(SI_W - siPlayer.w/2, siPlayer.x + 4);
+
+    // Shooting
+    if (siShootCooldown > 0) siShootCooldown--;
+    if ((siKeysDown[' '] || siKeysDown['ArrowUp']) && siShootCooldown === 0) {
+      siBullets.push({ x: siPlayer.x, y: siPlayer.y - 10, vy: -7 }); siShootCooldown = 15;
+    }
+
+    // Move bullets
+    for (let i = siBullets.length - 1; i >= 0; i--) {
+      siBullets[i].y += siBullets[i].vy;
+      if (siBullets[i].y < 0) { siBullets.splice(i, 1); continue; }
+      // Check alien hits
+      for (const a of siAliens) {
+        if (!a.alive) continue;
+        if (siBullets[i] && Math.abs(siBullets[i].x - a.x - a.w/2) < a.w/2 && Math.abs(siBullets[i].y - a.y - a.h/2) < a.h/2) {
+          a.alive = false; siBullets.splice(i, 1); siScore += (5 - a.type) * 10; siUpdateHud(); break;
+        }
+      }
+    }
+
+    // Alien movement
+    siAlienTimer++;
+    if (siAlienTimer >= siAlienSpeed) {
+      siAlienTimer = 0;
+      let hitEdge = false;
+      for (const a of siAliens) { if (!a.alive) continue; if ((a.x + a.w + 10 * siAlienDir > SI_W) || (a.x + 10 * siAlienDir < 0)) { hitEdge = true; break; } }
+      if (hitEdge) {
+        siAlienDir = -siAlienDir;
+        for (const a of siAliens) { if (a.alive) a.y += 15; }
+      } else {
+        for (const a of siAliens) { if (a.alive) a.x += 10 * siAlienDir; }
+      }
+    }
+
+    // Alien shooting
+    const alive = siAliens.filter(a => a.alive);
+    if (alive.length > 0 && Math.random() < 0.02 + siWave * 0.005) {
+      const shooter = alive[Math.floor(Math.random() * alive.length)];
+      siAlienBullets.push({ x: shooter.x + shooter.w/2, y: shooter.y + shooter.h, vy: 3 + siWave * 0.3 });
+    }
+
+    // Move alien bullets
+    for (let i = siAlienBullets.length - 1; i >= 0; i--) {
+      siAlienBullets[i].y += siAlienBullets[i].vy;
+      if (siAlienBullets[i].y > SI_H) { siAlienBullets.splice(i, 1); continue; }
+      if (Math.abs(siAlienBullets[i].x - siPlayer.x) < siPlayer.w/2 && Math.abs(siAlienBullets[i].y - siPlayer.y) < siPlayer.h) {
+        siAlienBullets.splice(i, 1); siLives--; siUpdateHud();
+        if (siLives <= 0) { siGameOver = true; siShowGameOver(); return; }
+      }
+    }
+
+    // Check aliens reaching bottom
+    for (const a of alive) { if (a.y + a.h >= siPlayer.y - 10) { siGameOver = true; siShowGameOver(); return; } }
+
+    // Check wave clear
+    if (alive.length === 0) { siWave++; siSpawnWave(); siUpdateHud(); }
+  }
+
+  function siShowGameOver() {
+    $('gameOverTitle').textContent = 'Game Over';
+    $('gameOverReason').textContent = 'Score: ' + siScore + ' | Wave: ' + siWave;
+    $('gameOverRating').innerHTML = ''; $('gameOverCoins').textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    if (siScore >= 3000 && typeof startConfetti === 'function') startConfetti();
+    const btn = $('btnBackToLobby'); if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); siGameLoopActive = false; document.removeEventListener('keydown', siKeyDown); document.removeEventListener('keyup', siKeyUp); showScreen('lobby'); };
+    const pa = $('btnPlayAgain'); if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startSIGame(); };
+  }
+
+  function siRender() {
+    if (!siCtx) return;
+    const ctx = siCtx;
+    ctx.fillStyle = '#000011'; ctx.fillRect(0, 0, SI_W, SI_H);
+
+    // Stars
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 50; i++) {
+      const sx = (i * 127 + 53) % SI_W, sy = (i * 89 + 31) % SI_H;
+      ctx.fillRect(sx, sy, 1, 1);
+    }
+
+    // Player ship
+    ctx.fillStyle = '#00ff88';
+    ctx.beginPath();
+    ctx.moveTo(siPlayer.x, siPlayer.y - siPlayer.h);
+    ctx.lineTo(siPlayer.x - siPlayer.w/2, siPlayer.y + 5);
+    ctx.lineTo(siPlayer.x + siPlayer.w/2, siPlayer.y + 5);
+    ctx.closePath(); ctx.fill();
+
+    // Aliens
+    const alienColors = ['#ff4444', '#ff8844', '#ffcc44', '#44ff44', '#4488ff'];
+    for (const a of siAliens) {
+      if (!a.alive) continue;
+      ctx.fillStyle = alienColors[a.type % alienColors.length];
+      ctx.fillRect(a.x + 2, a.y + 2, a.w - 4, a.h - 4);
+      // Eyes
+      ctx.fillStyle = '#000'; ctx.fillRect(a.x + 7, a.y + 6, 4, 4); ctx.fillRect(a.x + a.w - 11, a.y + 6, 4, 4);
+      // Legs
+      ctx.fillStyle = alienColors[a.type % alienColors.length];
+      ctx.fillRect(a.x + 3, a.y + a.h - 2, 4, 4); ctx.fillRect(a.x + a.w - 7, a.y + a.h - 2, 4, 4);
+    }
+
+    // Player bullets
+    ctx.fillStyle = '#00ffff'; ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 6;
+    for (const b of siBullets) ctx.fillRect(b.x - 1, b.y, 3, 8);
+    ctx.shadowBlur = 0;
+
+    // Alien bullets
+    ctx.fillStyle = '#ff4444'; ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 4;
+    for (const b of siAlienBullets) ctx.fillRect(b.x - 1, b.y, 3, 8);
+    ctx.shadowBlur = 0;
+  }
+
+  /* ================================================
+     TETRIS — Single Player
+     ================================================ */
+  const TET_COLS = 10, TET_ROWS = 20, TET_CELL = 30;
+  const TET_W = TET_COLS * TET_CELL + 150, TET_H = TET_ROWS * TET_CELL;
+  const TET_SHAPES = [
+    [[1,1,1,1]],
+    [[1,1],[1,1]],
+    [[0,1,0],[1,1,1]],
+    [[1,0,0],[1,1,1]],
+    [[0,0,1],[1,1,1]],
+    [[1,1,0],[0,1,1]],
+    [[0,1,1],[1,1,0]]
+  ];
+  const TET_COLORS = ['#00ffff','#ffff00','#aa00ff','#0000ff','#ff8800','#00ff00','#ff0000'];
+
+  let tetCanvas = null, tetCtx = null, tetGameLoopActive = false;
+  let tetBoard = [], tetPiece = null, tetNext = null;
+  let tetScore = 0, tetLevel = 1, tetLines = 0, tetGameOver = false;
+  let tetDropTimer = 0, tetDropInterval = 45, tetLockDelay = 0;
+  let tetFrameCount = 0;
+
+  function setupTetrisCanvas() {
+    tetCanvas = $('tetrisCanvas');
+    if (tetCanvas) { tetCanvas.width = TET_W; tetCanvas.height = TET_H; tetCtx = tetCanvas.getContext('2d'); }
+  }
+
+  function startTetrisGameLoop() {
+    tetGameLoopActive = true;
+    function loop() { if (!tetGameLoopActive) return; if (!tetGameOver) tetUpdate(); tetRender(); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  }
+
+  function tetKeyDown(e) {
+    if (tetGameOver) return;
+    if (e.key === 'ArrowLeft' || e.key === 'a') { tetMovePiece(-1, 0); e.preventDefault(); }
+    else if (e.key === 'ArrowRight' || e.key === 'd') { tetMovePiece(1, 0); e.preventDefault(); }
+    else if (e.key === 'ArrowDown' || e.key === 's') { tetMovePiece(0, 1); tetScore++; e.preventDefault(); }
+    else if (e.key === 'ArrowUp' || e.key === 'w') { tetRotate(); e.preventDefault(); }
+    else if (e.key === ' ') { tetHardDrop(); e.preventDefault(); }
+  }
+
+  function startTetrisGame() {
+    tetBoard = [];
+    for (let r = 0; r < TET_ROWS; r++) { tetBoard[r] = []; for (let c = 0; c < TET_COLS; c++) tetBoard[r][c] = 0; }
+    tetScore = 0; tetLevel = 1; tetLines = 0; tetGameOver = false;
+    tetDropTimer = 0; tetDropInterval = 45; tetFrameCount = 0;
+    tetNext = tetRandomPiece();
+    tetSpawnPiece();
+    $('gameOverOverlay').classList.add('hidden');
+    document.removeEventListener('keydown', tetKeyDown);
+    document.addEventListener('keydown', tetKeyDown);
+    showScreen('tetris');
+    tetUpdateHud();
+    const newBtn = $('btnTetNewGame'); if (newBtn) newBtn.onclick = startTetrisGame;
+    const quitBtn = $('btnTetQuit'); if (quitBtn) quitBtn.onclick = () => { tetGameLoopActive = false; document.removeEventListener('keydown', tetKeyDown); showScreen('lobby'); };
+  }
+
+  function tetUpdateHud() { $('tetScore').textContent = tetScore; $('tetLevel').textContent = tetLevel; $('tetLines').textContent = tetLines; }
+
+  function tetRandomPiece() {
+    const i = Math.floor(Math.random() * TET_SHAPES.length);
+    return { shape: TET_SHAPES[i].map(r => [...r]), color: i, x: Math.floor(TET_COLS / 2) - 1, y: 0 };
+  }
+
+  function tetSpawnPiece() {
+    tetPiece = tetNext; tetNext = tetRandomPiece();
+    tetPiece.x = Math.floor(TET_COLS / 2) - Math.floor(tetPiece.shape[0].length / 2); tetPiece.y = 0;
+    if (tetCollides(tetPiece.shape, tetPiece.x, tetPiece.y)) { tetGameOver = true; tetShowGameOver(); }
+  }
+
+  function tetCollides(shape, px, py) {
+    for (let r = 0; r < shape.length; r++) for (let c = 0; c < shape[r].length; c++) {
+      if (!shape[r][c]) continue;
+      const nr = py + r, nc = px + c;
+      if (nc < 0 || nc >= TET_COLS || nr >= TET_ROWS) return true;
+      if (nr >= 0 && tetBoard[nr][nc]) return true;
+    }
+    return false;
+  }
+
+  function tetMovePiece(dx, dy) {
+    if (!tetPiece) return false;
+    if (!tetCollides(tetPiece.shape, tetPiece.x + dx, tetPiece.y + dy)) {
+      tetPiece.x += dx; tetPiece.y += dy; return true;
+    }
+    return false;
+  }
+
+  function tetRotate() {
+    if (!tetPiece) return;
+    const s = tetPiece.shape;
+    const newShape = [];
+    for (let c = 0; c < s[0].length; c++) { newShape[c] = []; for (let r = s.length - 1; r >= 0; r--) newShape[c].push(s[r][c]); }
+    if (!tetCollides(newShape, tetPiece.x, tetPiece.y)) tetPiece.shape = newShape;
+    else if (!tetCollides(newShape, tetPiece.x - 1, tetPiece.y)) { tetPiece.shape = newShape; tetPiece.x--; }
+    else if (!tetCollides(newShape, tetPiece.x + 1, tetPiece.y)) { tetPiece.shape = newShape; tetPiece.x++; }
+  }
+
+  function tetHardDrop() {
+    if (!tetPiece) return;
+    let dropped = 0;
+    while (!tetCollides(tetPiece.shape, tetPiece.x, tetPiece.y + 1)) { tetPiece.y++; dropped++; }
+    tetScore += dropped * 2;
+    tetLockPiece();
+  }
+
+  function tetLockPiece() {
+    const s = tetPiece.shape;
+    for (let r = 0; r < s.length; r++) for (let c = 0; c < s[r].length; c++) {
+      if (s[r][c] && tetPiece.y + r >= 0) tetBoard[tetPiece.y + r][tetPiece.x + c] = tetPiece.color + 1;
+    }
+    // Clear lines
+    let cleared = 0;
+    for (let r = TET_ROWS - 1; r >= 0; r--) {
+      if (tetBoard[r].every(c => c !== 0)) {
+        tetBoard.splice(r, 1);
+        tetBoard.unshift(new Array(TET_COLS).fill(0));
+        cleared++; r++;
+      }
+    }
+    if (cleared > 0) {
+      const pts = [0, 100, 300, 500, 800];
+      tetScore += (pts[cleared] || 800) * tetLevel;
+      tetLines += cleared;
+      tetLevel = Math.floor(tetLines / 10) + 1;
+      tetDropInterval = Math.max(5, 45 - (tetLevel - 1) * 4);
+    }
+    tetUpdateHud();
+    tetSpawnPiece();
+  }
+
+  function tetUpdate() {
+    tetFrameCount++;
+    tetDropTimer++;
+    if (tetDropTimer >= tetDropInterval) {
+      tetDropTimer = 0;
+      if (!tetMovePiece(0, 1)) tetLockPiece();
+    }
+  }
+
+  function tetShowGameOver() {
+    $('gameOverTitle').textContent = 'Game Over';
+    $('gameOverReason').textContent = 'Score: ' + tetScore + ' | Lines: ' + tetLines;
+    $('gameOverRating').innerHTML = ''; $('gameOverCoins').textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    if (tetLines >= 20 && typeof startConfetti === 'function') startConfetti();
+    const btn = $('btnBackToLobby'); if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); tetGameLoopActive = false; document.removeEventListener('keydown', tetKeyDown); showScreen('lobby'); };
+    const pa = $('btnPlayAgain'); if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startTetrisGame(); };
+  }
+
+  function tetRender() {
+    if (!tetCtx) return;
+    const ctx = tetCtx;
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, TET_W, TET_H);
+
+    // Board
+    for (let r = 0; r < TET_ROWS; r++) for (let c = 0; c < TET_COLS; c++) {
+      const x = c * TET_CELL, y = r * TET_CELL;
+      if (tetBoard[r][c]) {
+        ctx.fillStyle = TET_COLORS[tetBoard[r][c] - 1]; ctx.fillRect(x + 1, y + 1, TET_CELL - 2, TET_CELL - 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(x + 1, y + 1, TET_CELL - 2, 3);
+      } else {
+        ctx.strokeStyle = '#1a1a2e'; ctx.strokeRect(x, y, TET_CELL, TET_CELL);
+      }
+    }
+
+    // Ghost piece
+    if (tetPiece) {
+      let ghostY = tetPiece.y;
+      while (!tetCollides(tetPiece.shape, tetPiece.x, ghostY + 1)) ghostY++;
+      ctx.globalAlpha = 0.2;
+      for (let r = 0; r < tetPiece.shape.length; r++) for (let c = 0; c < tetPiece.shape[r].length; c++) {
+        if (tetPiece.shape[r][c]) {
+          ctx.fillStyle = TET_COLORS[tetPiece.color];
+          ctx.fillRect((tetPiece.x + c) * TET_CELL + 1, (ghostY + r) * TET_CELL + 1, TET_CELL - 2, TET_CELL - 2);
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // Current piece
+      for (let r = 0; r < tetPiece.shape.length; r++) for (let c = 0; c < tetPiece.shape[r].length; c++) {
+        if (tetPiece.shape[r][c]) {
+          const px = (tetPiece.x + c) * TET_CELL, py = (tetPiece.y + r) * TET_CELL;
+          ctx.fillStyle = TET_COLORS[tetPiece.color]; ctx.fillRect(px + 1, py + 1, TET_CELL - 2, TET_CELL - 2);
+          ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(px + 1, py + 1, TET_CELL - 2, 3);
+        }
+      }
+    }
+
+    // Next piece panel
+    const panelX = TET_COLS * TET_CELL + 10;
+    ctx.fillStyle = '#1a1a2e'; ctx.fillRect(panelX, 0, 140, 120);
+    ctx.fillStyle = '#ffffff'; ctx.font = '14px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('NEXT', panelX + 10, 20);
+    if (tetNext) {
+      for (let r = 0; r < tetNext.shape.length; r++) for (let c = 0; c < tetNext.shape[r].length; c++) {
+        if (tetNext.shape[r][c]) {
+          ctx.fillStyle = TET_COLORS[tetNext.color];
+          ctx.fillRect(panelX + 20 + c * 25, 35 + r * 25, 23, 23);
+        }
+      }
+    }
+    ctx.fillStyle = '#ffffff'; ctx.font = '12px monospace';
+    ctx.fillText('Score: ' + tetScore, panelX + 10, 150);
+    ctx.fillText('Level: ' + tetLevel, panelX + 10, 170);
+    ctx.fillText('Lines: ' + tetLines, panelX + 10, 190);
+  }
+
+  /* ================================================
+     COLUMNS — Single Player (Sega-style gem matching)
+     ================================================ */
+  const COL_COLS = 6, COL_ROWS = 13, COL_CELL = 35;
+  const COL_W = COL_COLS * COL_CELL + 140, COL_H = COL_ROWS * COL_CELL;
+  const COL_GEMS = ['#ff0044', '#00cc44', '#3344ff', '#ffcc00', '#ff44ff', '#00cccc'];
+
+  let colCanvas = null, colCtx = null, colGameLoopActive = false;
+  let colBoard = [], colPiece = null, colNext = null;
+  let colScore = 0, colLevel = 1, colJewels = 0, colGameOver = false;
+  let colDropTimer = 0, colDropInterval = 40, colFrameCount = 0;
+  let colClearing = false, colClearTimer = 0;
+
+  function setupColumnsCanvas() {
+    colCanvas = $('columnsCanvas');
+    if (colCanvas) { colCanvas.width = COL_W; colCanvas.height = COL_H; colCtx = colCanvas.getContext('2d'); }
+  }
+
+  function startColumnsGameLoop() {
+    colGameLoopActive = true;
+    function loop() { if (!colGameLoopActive) return; if (!colGameOver) colUpdate(); colRender(); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  }
+
+  function colKeyDown(e) {
+    if (colGameOver || !colPiece) return;
+    if (e.key === 'ArrowLeft' || e.key === 'a') { if (colPiece.x > 0 && !colBoard[colPiece.y][colPiece.x - 1] && !colBoard[colPiece.y + 1][colPiece.x - 1] && !colBoard[colPiece.y + 2][colPiece.x - 1]) colPiece.x--; e.preventDefault(); }
+    else if (e.key === 'ArrowRight' || e.key === 'd') { if (colPiece.x < COL_COLS - 1 && !colBoard[colPiece.y][colPiece.x + 1] && !colBoard[colPiece.y + 1][colPiece.x + 1] && !colBoard[colPiece.y + 2][colPiece.x + 1]) colPiece.x++; e.preventDefault(); }
+    else if (e.key === 'ArrowDown' || e.key === 's') { colDropTimer = colDropInterval; e.preventDefault(); }
+    else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') { colPiece.gems.unshift(colPiece.gems.pop()); e.preventDefault(); }
+  }
+
+  function startColumnsGame() {
+    colBoard = [];
+    for (let r = 0; r < COL_ROWS; r++) { colBoard[r] = []; for (let c = 0; c < COL_COLS; c++) colBoard[r][c] = 0; }
+    colScore = 0; colLevel = 1; colJewels = 0; colGameOver = false;
+    colDropTimer = 0; colDropInterval = 40; colFrameCount = 0;
+    colClearing = false; colClearTimer = 0;
+    colNext = colRandomPiece();
+    colSpawnPiece();
+    $('gameOverOverlay').classList.add('hidden');
+    document.removeEventListener('keydown', colKeyDown);
+    document.addEventListener('keydown', colKeyDown);
+    showScreen('columns');
+    colUpdateHud();
+    const newBtn = $('btnColNewGame'); if (newBtn) newBtn.onclick = startColumnsGame;
+    const quitBtn = $('btnColQuit'); if (quitBtn) quitBtn.onclick = () => { colGameLoopActive = false; document.removeEventListener('keydown', colKeyDown); showScreen('lobby'); };
+  }
+
+  function colUpdateHud() { $('colScore').textContent = colScore; $('colLevel').textContent = colLevel; $('colJewels').textContent = colJewels; }
+
+  function colRandomPiece() {
+    return { x: Math.floor(COL_COLS / 2), y: 0, gems: [
+      Math.floor(Math.random() * COL_GEMS.length) + 1,
+      Math.floor(Math.random() * COL_GEMS.length) + 1,
+      Math.floor(Math.random() * COL_GEMS.length) + 1
+    ]};
+  }
+
+  function colSpawnPiece() {
+    colPiece = colNext; colNext = colRandomPiece();
+    colPiece.x = Math.floor(COL_COLS / 2); colPiece.y = 0;
+    if (colBoard[0][colPiece.x] || colBoard[1][colPiece.x] || colBoard[2][colPiece.x]) {
+      colGameOver = true; colShowGameOver();
+    }
+  }
+
+  function colUpdate() {
+    colFrameCount++;
+
+    if (colClearing) {
+      colClearTimer--;
+      if (colClearTimer <= 0) {
+        // Remove marked cells
+        for (let r = 0; r < COL_ROWS; r++) for (let c = 0; c < COL_COLS; c++) {
+          if (colBoard[r][c] < 0) colBoard[r][c] = 0;
+        }
+        // Apply gravity
+        for (let c = 0; c < COL_COLS; c++) {
+          let writeR = COL_ROWS - 1;
+          for (let r = COL_ROWS - 1; r >= 0; r--) {
+            if (colBoard[r][c]) { colBoard[writeR][c] = colBoard[r][c]; if (writeR !== r) colBoard[r][c] = 0; writeR--; }
+          }
+          for (let r = writeR; r >= 0; r--) colBoard[r][c] = 0;
+        }
+        colClearing = false;
+        if (colCheckMatches()) { colClearing = true; colClearTimer = 20; }
+        else colSpawnPiece();
+      }
+      return;
+    }
+
+    if (!colPiece) return;
+    colDropTimer++;
+    if (colDropTimer >= colDropInterval) {
+      colDropTimer = 0;
+      if (colPiece.y + 3 < COL_ROWS && !colBoard[colPiece.y + 3][colPiece.x]) {
+        colPiece.y++;
+      } else {
+        // Lock piece
+        for (let i = 0; i < 3; i++) {
+          if (colPiece.y + i >= 0 && colPiece.y + i < COL_ROWS) colBoard[colPiece.y + i][colPiece.x] = colPiece.gems[i];
+        }
+        colPiece = null;
+        if (colCheckMatches()) { colClearing = true; colClearTimer = 20; }
+        else colSpawnPiece();
+      }
+    }
+  }
+
+  function colCheckMatches() {
+    let found = false;
+    const toRemove = [];
+    // Check all directions: horizontal, vertical, diagonal
+    for (let r = 0; r < COL_ROWS; r++) for (let c = 0; c < COL_COLS; c++) {
+      if (!colBoard[r][c] || colBoard[r][c] < 0) continue;
+      const v = Math.abs(colBoard[r][c]);
+      for (const [dr, dc] of [[0,1],[1,0],[1,1],[1,-1]]) {
+        let count = 1;
+        let nr = r + dr, nc = c + dc;
+        while (nr >= 0 && nr < COL_ROWS && nc >= 0 && nc < COL_COLS && Math.abs(colBoard[nr][nc]) === v) { count++; nr += dr; nc += dc; }
+        if (count >= 3) {
+          for (let i = 0; i < count; i++) toRemove.push({ r: r + dr * i, c: c + dc * i });
+          found = true;
+        }
+      }
+    }
+    for (const p of toRemove) {
+      if (colBoard[p.r][p.c] > 0) { colBoard[p.r][p.c] = -colBoard[p.r][p.c]; colJewels++; colScore += 10 * colLevel; }
+    }
+    if (found) {
+      colLevel = Math.floor(colJewels / 30) + 1;
+      colDropInterval = Math.max(8, 40 - (colLevel - 1) * 4);
+      colUpdateHud();
+    }
+    return found;
+  }
+
+  function colShowGameOver() {
+    $('gameOverTitle').textContent = 'Game Over';
+    $('gameOverReason').textContent = 'Score: ' + colScore + ' | Jewels: ' + colJewels;
+    $('gameOverRating').innerHTML = ''; $('gameOverCoins').textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    if (colJewels >= 50 && typeof startConfetti === 'function') startConfetti();
+    const btn = $('btnBackToLobby'); if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); colGameLoopActive = false; document.removeEventListener('keydown', colKeyDown); showScreen('lobby'); };
+    const pa = $('btnPlayAgain'); if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startColumnsGame(); };
+  }
+
+  function colRender() {
+    if (!colCtx) return;
+    const ctx = colCtx;
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, COL_W, COL_H);
+
+    // Board
+    for (let r = 0; r < COL_ROWS; r++) for (let c = 0; c < COL_COLS; c++) {
+      const x = c * COL_CELL, y = r * COL_CELL;
+      ctx.strokeStyle = '#1a1a2e'; ctx.strokeRect(x, y, COL_CELL, COL_CELL);
+      if (colBoard[r][c]) {
+        const gi = Math.abs(colBoard[r][c]) - 1;
+        const flashing = colBoard[r][c] < 0 && colFrameCount % 6 < 3;
+        ctx.fillStyle = flashing ? '#ffffff' : COL_GEMS[gi];
+        ctx.shadowColor = COL_GEMS[gi]; ctx.shadowBlur = 6;
+        ctx.beginPath(); ctx.arc(x + COL_CELL/2, y + COL_CELL/2, COL_CELL/2 - 4, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // Gem highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.beginPath(); ctx.arc(x + COL_CELL/2 - 4, y + COL_CELL/2 - 4, 5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // Current piece
+    if (colPiece && !colClearing) {
+      for (let i = 0; i < 3; i++) {
+        const gi = colPiece.gems[i] - 1;
+        const px = colPiece.x * COL_CELL, py = (colPiece.y + i) * COL_CELL;
+        ctx.fillStyle = COL_GEMS[gi]; ctx.shadowColor = COL_GEMS[gi]; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(px + COL_CELL/2, py + COL_CELL/2, COL_CELL/2 - 3, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.beginPath(); ctx.arc(px + COL_CELL/2 - 4, py + COL_CELL/2 - 4, 5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // Next piece panel
+    const panelX = COL_COLS * COL_CELL + 10;
+    ctx.fillStyle = '#1a1a2e'; ctx.fillRect(panelX, 0, 130, 140);
+    ctx.fillStyle = '#ffffff'; ctx.font = '14px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('NEXT', panelX + 10, 20);
+    if (colNext) {
+      for (let i = 0; i < 3; i++) {
+        const gi = colNext.gems[i] - 1;
+        ctx.fillStyle = COL_GEMS[gi];
+        ctx.beginPath(); ctx.arc(panelX + 40, 45 + i * 32, 12, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.fillStyle = '#ffffff'; ctx.font = '12px monospace';
+    ctx.fillText('Score: ' + colScore, panelX + 10, 170);
+    ctx.fillText('Level: ' + colLevel, panelX + 10, 190);
   }
 
   /* ================================================

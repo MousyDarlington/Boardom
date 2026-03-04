@@ -102,6 +102,54 @@
                   </div>
                   <div class="game-card-badge">1 mode</div>
                 </div>
+                <div class="game-card glass" id="cardPinball" data-game="pinball">
+                  <div class="game-card-icon">&#127923;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Pinball</h3>
+                    <p class="game-card-desc">Classic arcade pinball!</p>
+                  </div>
+                  <div class="game-card-badge">1 mode</div>
+                </div>
+                <div class="game-card glass" id="cardJezzball" data-game="jezzball">
+                  <div class="game-card-icon">&#127934;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">JezzBall</h3>
+                    <p class="game-card-desc">Trap the bouncing balls!</p>
+                  </div>
+                  <div class="game-card-badge">1 mode</div>
+                </div>
+                <div class="game-card glass" id="cardMinesweeper" data-game="minesweeper">
+                  <div class="game-card-icon">&#128163;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Minesweeper</h3>
+                    <p class="game-card-desc">Find the mines!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" id="cardSpaceinvaders" data-game="spaceinvaders">
+                  <div class="game-card-icon">&#128126;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Space Invaders</h3>
+                    <p class="game-card-desc">Defend Earth from aliens!</p>
+                  </div>
+                  <div class="game-card-badge">1 mode</div>
+                </div>
+                <div class="game-card glass" id="cardTetris" data-game="tetris">
+                  <div class="game-card-icon">&#129513;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Tetris</h3>
+                    <p class="game-card-desc">Stack and clear lines!</p>
+                  </div>
+                  <div class="game-card-badge">1 mode</div>
+                </div>
+                <div class="game-card glass" id="cardColumns" data-game="columns">
+                  <div class="game-card-icon">&#128142;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Columns</h3>
+                    <p class="game-card-desc">Match 3 gems in a row!</p>
+                  </div>
+                  <div class="game-card-badge">1 mode</div>
+                </div>
               </div>
             </div>
 
@@ -796,6 +844,121 @@
           <button class="btn btn-small btn-ghost" id="btnSolUndo">Undo</button>
           <button class="btn btn-small btn-ghost" id="btnSolNewGame">New Game</button>
           <button class="btn btn-small btn-ghost" id="btnSolQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PINBALL GAME SCREEN ===== -->
+  <div id="pinballGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud glass" id="pinballHud">
+          <span class="hud-stat">Score: <b id="pbScore">0</b></span>
+          <span class="hud-stat">Ball: <b id="pbBallNum">1 / 3</b></span>
+          <span class="hud-stat">Multiplier: <b id="pbMultiplier">1x</b></span>
+        </div>
+        <canvas id="pinballCanvas"></canvas>
+        <div class="pool-info" id="pinballInfo">Hold SPACE to charge, release to launch!</div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnPbNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnPbQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== JEZZBALL GAME SCREEN ===== -->
+  <div id="jezzballGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud glass" id="jezzballHud">
+          <span class="hud-stat">Level: <b id="jbLevel">1</b></span>
+          <span class="hud-stat">Lives: <b id="jbLives">3</b></span>
+          <span class="hud-stat">Filled: <b id="jbFilled">0%</b></span>
+          <span class="hud-stat">Score: <b id="jbScore">0</b></span>
+        </div>
+        <canvas id="jezzballCanvas"></canvas>
+        <div class="pool-info" id="jezzballInfo">Click to place walls — fill 75% to advance! Press V to toggle direction.</div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnJbNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnJbQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MINESWEEPER GAME SCREEN ===== -->
+  <div id="minesweeperGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud glass" id="minesweeperHud">
+          <span class="hud-stat">Mines: <b id="msRemaining">10</b></span>
+          <span class="hud-stat">Time: <b id="msTime">0:00</b></span>
+          <span class="hud-stat">Difficulty: <b id="msDifficulty">Easy</b></span>
+        </div>
+        <canvas id="minesweeperCanvas"></canvas>
+        <div class="pool-info" id="minesweeperInfo">Left-click to reveal, right-click to flag</div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnMsNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnMsQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SPACE INVADERS GAME SCREEN ===== -->
+  <div id="spaceinvadersGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud glass" id="siHud">
+          <span class="hud-stat">Score: <b id="siScore">0</b></span>
+          <span class="hud-stat">Wave: <b id="siWave">1</b></span>
+          <span class="hud-stat">Lives: <b id="siLives">3</b></span>
+        </div>
+        <canvas id="spaceinvadersCanvas"></canvas>
+        <div class="pool-info" id="siInfo">Arrow keys to move, SPACE to shoot!</div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnSiNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnSiQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TETRIS GAME SCREEN ===== -->
+  <div id="tetrisGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud glass" id="tetrisHud">
+          <span class="hud-stat">Score: <b id="tetScore">0</b></span>
+          <span class="hud-stat">Level: <b id="tetLevel">1</b></span>
+          <span class="hud-stat">Lines: <b id="tetLines">0</b></span>
+        </div>
+        <canvas id="tetrisCanvas"></canvas>
+        <div class="pool-info" id="tetrisInfo">Arrow keys to move, Up to rotate, Space to hard drop!</div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnTetNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnTetQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COLUMNS GAME SCREEN ===== -->
+  <div id="columnsGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud glass" id="columnsHud">
+          <span class="hud-stat">Score: <b id="colScore">0</b></span>
+          <span class="hud-stat">Level: <b id="colLevel">1</b></span>
+          <span class="hud-stat">Jewels: <b id="colJewels">0</b></span>
+        </div>
+        <canvas id="columnsCanvas"></canvas>
+        <div class="pool-info" id="columnsInfo">Arrow keys to move, Up to cycle gems, Space to drop!</div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnColNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnColQuit">Quit</button>
         </div>
       </div>
     </div>
