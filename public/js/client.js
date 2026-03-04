@@ -1267,7 +1267,7 @@
     if (name !== 'mahjong') mjGameLoopActive = false;
     if (name !== 'pinball') { pbGameLoopActive = false; document.removeEventListener('keydown', pbKeyDown); document.removeEventListener('keyup', pbKeyUp); }
     if (name !== 'jezzball') jbGameLoopActive = false;
-    if (name !== 'minesweeper') msGameLoopActive = false;
+    if (name !== 'minesweeper') { msGameLoopActive = false; if (typeof msTimer !== 'undefined' && msTimer) { clearInterval(msTimer); msTimer = null; } }
     if (name !== 'spaceinvaders') { siGameLoopActive = false; document.removeEventListener('keydown', siKeyDown); document.removeEventListener('keyup', siKeyUp); }
     if (name !== 'tetris') { tetGameLoopActive = false; document.removeEventListener('keydown', tetKeyDown); }
     if (name !== 'columns') { colGameLoopActive = false; document.removeEventListener('keydown', colKeyDown); }
@@ -9000,7 +9000,7 @@
   const PB_MAX_BALLS = 3;
 
   let pbCanvas = null, pbCtx = null;
-  let pbGameLoopActive = false;
+  let pbGameLoopActive = false, pbLastTime = 0;
   let pbKeysDown = {};
   let pbBall = { x: 440, y: 700, vx: 0, vy: 0 };
   let pbScore = 0, pbBallNum = 1, pbMultiplier = 1, pbConsecutiveHits = 0;
@@ -9086,9 +9086,12 @@
 
   function startPinballGameLoop() {
     pbGameLoopActive = true;
-    function loop() {
+    pbLastTime = performance.now();
+    function loop(now) {
       if (!pbGameLoopActive) return;
-      if (!pbGameOver) pbUpdate();
+      const dt = Math.min((now - pbLastTime) / 16.667, 3);
+      pbLastTime = now;
+      if (!pbGameOver) pbUpdate(dt);
       pbRender();
       requestAnimationFrame(loop);
     }
@@ -9129,20 +9132,21 @@
     if (quitBtn) quitBtn.onclick = () => { pbGameLoopActive = false; document.removeEventListener('keydown', pbKeyDown); document.removeEventListener('keyup', pbKeyUp); showScreen('lobby'); };
   }
 
-  function pbUpdate() {
+  function pbUpdate(dt) {
+    if (!dt || dt <= 0) dt = 1;
     // Update flippers
     const leftActive = pbKeysDown['ArrowLeft'] || pbKeysDown['a'] || pbKeysDown['A'] || pbKeysDown['z'] || pbKeysDown['Z'];
     const rightActive = pbKeysDown['ArrowRight'] || pbKeysDown['d'] || pbKeysDown['D'] || pbKeysDown['/'];
     const leftTarget = leftActive ? PB_FLIPPER_ACTIVE : PB_FLIPPER_REST;
     const rightTarget = rightActive ? PB_FLIPPER_ACTIVE : PB_FLIPPER_REST;
-    if (pbLeftFlipperAngle < leftTarget) pbLeftFlipperAngle = Math.min(pbLeftFlipperAngle + PB_FLIPPER_SPEED, leftTarget);
-    else if (pbLeftFlipperAngle > leftTarget) pbLeftFlipperAngle = Math.max(pbLeftFlipperAngle - PB_FLIPPER_SPEED, leftTarget);
-    if (pbRightFlipperAngle < rightTarget) pbRightFlipperAngle = Math.min(pbRightFlipperAngle + PB_FLIPPER_SPEED, rightTarget);
-    else if (pbRightFlipperAngle > rightTarget) pbRightFlipperAngle = Math.max(pbRightFlipperAngle - PB_FLIPPER_SPEED, rightTarget);
+    if (pbLeftFlipperAngle < leftTarget) pbLeftFlipperAngle = Math.min(pbLeftFlipperAngle + PB_FLIPPER_SPEED * dt, leftTarget);
+    else if (pbLeftFlipperAngle > leftTarget) pbLeftFlipperAngle = Math.max(pbLeftFlipperAngle - PB_FLIPPER_SPEED * dt, leftTarget);
+    if (pbRightFlipperAngle < rightTarget) pbRightFlipperAngle = Math.min(pbRightFlipperAngle + PB_FLIPPER_SPEED * dt, rightTarget);
+    else if (pbRightFlipperAngle > rightTarget) pbRightFlipperAngle = Math.max(pbRightFlipperAngle - PB_FLIPPER_SPEED * dt, rightTarget);
 
     // Plunger charge
     if (pbPlungerCharging) {
-      pbPlungerCharge = Math.min(pbPlungerCharge + PB_PLUNGER_RATE, PB_PLUNGER_MAX);
+      pbPlungerCharge = Math.min(pbPlungerCharge + PB_PLUNGER_RATE * dt, PB_PLUNGER_MAX);
     }
 
     if (pbBallInPlunger) {
@@ -9152,11 +9156,12 @@
     }
 
     // Physics
-    pbBall.vy += PB_GRAVITY;
-    pbBall.vx *= PB_FRICTION;
-    pbBall.vy *= PB_FRICTION;
-    pbBall.x += pbBall.vx;
-    pbBall.y += pbBall.vy;
+    pbBall.vy += PB_GRAVITY * dt;
+    const frictionDt = Math.pow(PB_FRICTION, dt);
+    pbBall.vx *= frictionDt;
+    pbBall.vy *= frictionDt;
+    pbBall.x += pbBall.vx * dt;
+    pbBall.y += pbBall.vy * dt;
 
     // Wall collisions
     for (const w of pbWalls) {
@@ -9185,7 +9190,7 @@
 
     // Target collisions
     for (let i = 0; i < pbTargets.length; i++) {
-      if (pbTargetCooldown[i] > 0) { pbTargetCooldown[i]--; continue; }
+      if (pbTargetCooldown[i] > 0) { pbTargetCooldown[i] -= dt; continue; }
       const t = pbTargets[i];
       const d = pbPointToSegmentDist(pbBall.x, pbBall.y, t.x1, t.y1, t.x2, t.y2);
       if (d < PB_BALL_R + 5) {
@@ -9200,7 +9205,7 @@
 
     // Decrement bumper flash timers
     for (let i = 0; i < pbBumperFlash.length; i++) {
-      if (pbBumperFlash[i] > 0) pbBumperFlash[i]--;
+      if (pbBumperFlash[i] > 0) pbBumperFlash[i] -= dt;
     }
 
     // Drain detection
@@ -9471,7 +9476,7 @@
   const JB_W = 600, JB_H = 500, JB_CELL = 10;
   const JB_COLS = JB_W / JB_CELL, JB_ROWS = JB_H / JB_CELL;
 
-  let jbCanvas = null, jbCtx = null, jbGameLoopActive = false;
+  let jbCanvas = null, jbCtx = null, jbGameLoopActive = false, jbLastTime = 0;
   let jbGrid = [], jbBalls = [], jbWalls = [];
   let jbLevel = 1, jbLives = 3, jbScore = 0, jbGameOver = false;
   let jbHorizontal = true;
@@ -9483,9 +9488,12 @@
 
   function startJezzballGameLoop() {
     jbGameLoopActive = true;
-    function loop() {
+    jbLastTime = performance.now();
+    function loop(now) {
       if (!jbGameLoopActive) return;
-      if (!jbGameOver) jbUpdate();
+      const dt = Math.min((now - jbLastTime) / 16.667, 3);
+      jbLastTime = now;
+      if (!jbGameOver) jbUpdate(dt);
       jbRender();
       requestAnimationFrame(loop);
     }
@@ -9553,10 +9561,11 @@
     jbWalls.push({ r: gr, c: gc, horizontal: jbHorizontal, segments: [{ r: gr, c: gc }], growing: true, speed: 0.5, progress: 0 });
   }
 
-  function jbUpdate() {
+  function jbUpdate(dt) {
+    if (!dt || dt <= 0) dt = 1;
     // Move balls
     for (const b of jbBalls) {
-      b.x += b.vx; b.y += b.vy;
+      b.x += b.vx * dt; b.y += b.vy * dt;
       const gc = Math.floor(b.x / JB_CELL), gr = Math.floor(b.y / JB_CELL);
       const gcx = Math.floor((b.x + (b.vx > 0 ? b.r : -b.r)) / JB_CELL);
       const gry = Math.floor((b.y + (b.vy > 0 ? b.r : -b.r)) / JB_CELL);
@@ -9570,7 +9579,7 @@
     for (let wi = jbWalls.length - 1; wi >= 0; wi--) {
       const w = jbWalls[wi];
       if (!w.growing) continue;
-      w.progress += w.speed;
+      w.progress += w.speed * dt;
       while (w.progress >= 1) {
         w.progress -= 1;
         let expanded = false;
@@ -9891,7 +9900,7 @@
      SPACE INVADERS — Single Player
      ================================================ */
   const SI_W = 600, SI_H = 500;
-  let siCanvas = null, siCtx = null, siGameLoopActive = false;
+  let siCanvas = null, siCtx = null, siGameLoopActive = false, siLastTime = 0;
   let siPlayer = {}, siBullets = [], siAliens = [], siAlienBullets = [];
   let siScore = 0, siWave = 1, siLives = 3, siGameOver = false;
   let siAlienDir = 1, siAlienTimer = 0, siAlienSpeed = 30, siShootCooldown = 0;
@@ -9907,7 +9916,8 @@
 
   function startSIGameLoop() {
     siGameLoopActive = true;
-    function loop() { if (!siGameLoopActive) return; if (!siGameOver) siUpdate(); siRender(); requestAnimationFrame(loop); }
+    siLastTime = performance.now();
+    function loop(now) { if (!siGameLoopActive) return; const dt = Math.min((now - siLastTime) / 16.667, 3); siLastTime = now; if (!siGameOver) siUpdate(dt); siRender(); requestAnimationFrame(loop); }
     requestAnimationFrame(loop);
   }
 
@@ -9938,20 +9948,21 @@
     $('siScore').textContent = siScore; $('siWave').textContent = siWave; $('siLives').textContent = siLives;
   }
 
-  function siUpdate() {
+  function siUpdate(dt) {
+    if (!dt || dt <= 0) dt = 1;
     // Player movement
-    if (siKeysDown['ArrowLeft'] || siKeysDown['a'] || siKeysDown['A']) siPlayer.x = Math.max(siPlayer.w/2, siPlayer.x - 4);
-    if (siKeysDown['ArrowRight'] || siKeysDown['d'] || siKeysDown['D']) siPlayer.x = Math.min(SI_W - siPlayer.w/2, siPlayer.x + 4);
+    if (siKeysDown['ArrowLeft'] || siKeysDown['a'] || siKeysDown['A']) siPlayer.x = Math.max(siPlayer.w/2, siPlayer.x - 4 * dt);
+    if (siKeysDown['ArrowRight'] || siKeysDown['d'] || siKeysDown['D']) siPlayer.x = Math.min(SI_W - siPlayer.w/2, siPlayer.x + 4 * dt);
 
     // Shooting
-    if (siShootCooldown > 0) siShootCooldown--;
-    if ((siKeysDown[' '] || siKeysDown['ArrowUp']) && siShootCooldown === 0) {
+    if (siShootCooldown > 0) siShootCooldown -= dt;
+    if ((siKeysDown[' '] || siKeysDown['ArrowUp']) && siShootCooldown <= 0) {
       siBullets.push({ x: siPlayer.x, y: siPlayer.y - 10, vy: -7 }); siShootCooldown = 15;
     }
 
     // Move bullets
     for (let i = siBullets.length - 1; i >= 0; i--) {
-      siBullets[i].y += siBullets[i].vy;
+      siBullets[i].y += siBullets[i].vy * dt;
       if (siBullets[i].y < 0) { siBullets.splice(i, 1); continue; }
       // Check alien hits
       for (const a of siAliens) {
@@ -9963,7 +9974,7 @@
     }
 
     // Alien movement
-    siAlienTimer++;
+    siAlienTimer += dt;
     if (siAlienTimer >= siAlienSpeed) {
       siAlienTimer = 0;
       let hitEdge = false;
@@ -9978,14 +9989,14 @@
 
     // Alien shooting
     const alive = siAliens.filter(a => a.alive);
-    if (alive.length > 0 && Math.random() < 0.02 + siWave * 0.005) {
+    if (alive.length > 0 && Math.random() < (0.02 + siWave * 0.005) * dt) {
       const shooter = alive[Math.floor(Math.random() * alive.length)];
       siAlienBullets.push({ x: shooter.x + shooter.w/2, y: shooter.y + shooter.h, vy: 3 + siWave * 0.3 });
     }
 
     // Move alien bullets
     for (let i = siAlienBullets.length - 1; i >= 0; i--) {
-      siAlienBullets[i].y += siAlienBullets[i].vy;
+      siAlienBullets[i].y += siAlienBullets[i].vy * dt;
       if (siAlienBullets[i].y > SI_H) { siAlienBullets.splice(i, 1); continue; }
       if (Math.abs(siAlienBullets[i].x - siPlayer.x) < siPlayer.w/2 && Math.abs(siAlienBullets[i].y - siPlayer.y) < siPlayer.h) {
         siAlienBullets.splice(i, 1); siLives--; siUpdateHud();
@@ -10070,7 +10081,7 @@
   ];
   const TET_COLORS = ['#00ffff','#ffff00','#aa00ff','#0000ff','#ff8800','#00ff00','#ff0000'];
 
-  let tetCanvas = null, tetCtx = null, tetGameLoopActive = false;
+  let tetCanvas = null, tetCtx = null, tetGameLoopActive = false, tetLastTime = 0;
   let tetBoard = [], tetPiece = null, tetNext = null;
   let tetScore = 0, tetLevel = 1, tetLines = 0, tetGameOver = false;
   let tetDropTimer = 0, tetDropInterval = 45, tetLockDelay = 0;
@@ -10083,7 +10094,8 @@
 
   function startTetrisGameLoop() {
     tetGameLoopActive = true;
-    function loop() { if (!tetGameLoopActive) return; if (!tetGameOver) tetUpdate(); tetRender(); requestAnimationFrame(loop); }
+    tetLastTime = performance.now();
+    function loop(now) { if (!tetGameLoopActive) return; const dt = Math.min((now - tetLastTime) / 16.667, 3); tetLastTime = now; if (!tetGameOver) tetUpdate(dt); tetRender(); requestAnimationFrame(loop); }
     requestAnimationFrame(loop);
   }
 
@@ -10186,9 +10198,10 @@
     tetSpawnPiece();
   }
 
-  function tetUpdate() {
-    tetFrameCount++;
-    tetDropTimer++;
+  function tetUpdate(dt) {
+    if (!dt || dt <= 0) dt = 1;
+    tetFrameCount += dt;
+    tetDropTimer += dt;
     if (tetDropTimer >= tetDropInterval) {
       tetDropTimer = 0;
       if (!tetMovePiece(0, 1)) tetLockPiece();
@@ -10270,7 +10283,7 @@
   const COL_W = COL_COLS * COL_CELL + 140, COL_H = COL_ROWS * COL_CELL;
   const COL_GEMS = ['#ff0044', '#00cc44', '#3344ff', '#ffcc00', '#ff44ff', '#00cccc'];
 
-  let colCanvas = null, colCtx = null, colGameLoopActive = false;
+  let colCanvas = null, colCtx = null, colGameLoopActive = false, colLastTime = 0;
   let colBoard = [], colPiece = null, colNext = null;
   let colScore = 0, colLevel = 1, colJewels = 0, colGameOver = false;
   let colDropTimer = 0, colDropInterval = 40, colFrameCount = 0;
@@ -10283,7 +10296,8 @@
 
   function startColumnsGameLoop() {
     colGameLoopActive = true;
-    function loop() { if (!colGameLoopActive) return; if (!colGameOver) colUpdate(); colRender(); requestAnimationFrame(loop); }
+    colLastTime = performance.now();
+    function loop(now) { if (!colGameLoopActive) return; const dt = Math.min((now - colLastTime) / 16.667, 3); colLastTime = now; if (!colGameOver) colUpdate(dt); colRender(); requestAnimationFrame(loop); }
     requestAnimationFrame(loop);
   }
 
@@ -10330,11 +10344,12 @@
     }
   }
 
-  function colUpdate() {
-    colFrameCount++;
+  function colUpdate(dt) {
+    if (!dt || dt <= 0) dt = 1;
+    colFrameCount += dt;
 
     if (colClearing) {
-      colClearTimer--;
+      colClearTimer -= dt;
       if (colClearTimer <= 0) {
         // Remove marked cells
         for (let r = 0; r < COL_ROWS; r++) for (let c = 0; c < COL_COLS; c++) {
@@ -10356,7 +10371,7 @@
     }
 
     if (!colPiece) return;
-    colDropTimer++;
+    colDropTimer += dt;
     if (colDropTimer >= colDropInterval) {
       colDropTimer = 0;
       if (colPiece.y + 3 < COL_ROWS && !colBoard[colPiece.y + 3][colPiece.x]) {
@@ -10578,7 +10593,7 @@
   /* ================================================
      HELICOPTER
      ================================================ */
-  let hcCanvas, hcCtx, hcGameLoopActive = false;
+  let hcCanvas, hcCtx, hcGameLoopActive = false, hcLastTime = 0;
   const HC_W = 600, HC_H = 400;
   let hcFlying, hcX, hcY, hcVy, hcScore, hcBest = 0, hcSpeed, hcDead;
   let hcTopTerrain, hcBottomTerrain, hcPillars, hcParticles;
@@ -10592,7 +10607,8 @@
 
   function startHelicopterGameLoop() {
     hcGameLoopActive = true;
-    function loop() { if (!hcGameLoopActive) return; hcUpdate(); hcRender(); requestAnimationFrame(loop); }
+    hcLastTime = performance.now();
+    function loop(now) { if (!hcGameLoopActive) return; const dt = Math.min((now - hcLastTime) / 16.667, 3); hcLastTime = now; hcUpdate(dt); hcRender(); requestAnimationFrame(loop); }
     requestAnimationFrame(loop);
   }
 
@@ -10610,7 +10626,9 @@
     hcPillars = []; hcParticles = [];
     showScreen('helicopter');
     $('hcScore').textContent = '0'; $('hcBest').textContent = hcBest; $('hcSpeed').textContent = '1x';
-    // Input
+    // Input (remove first to avoid duplicates on restart)
+    document.removeEventListener('keydown', hcKeyDown);
+    document.removeEventListener('keyup', hcKeyUp);
     document.addEventListener('keydown', hcKeyDown);
     document.addEventListener('keyup', hcKeyUp);
     if (hcCanvas) {
@@ -10626,19 +10644,20 @@
   function hcKeyDown(e) { if (e.code === 'Space') { e.preventDefault(); if (!hcDead) hcFlying = true; } }
   function hcKeyUp(e) { if (e.code === 'Space') { hcFlying = false; } }
 
-  function hcUpdate() {
+  function hcUpdate(dt) {
+    if (!dt || dt <= 0) dt = 1;
     if (hcDead) return;
     // Physics
-    if (hcFlying) hcVy += HC_LIFT; else hcVy += HC_GRAVITY;
+    if (hcFlying) hcVy += HC_LIFT * dt; else hcVy += HC_GRAVITY * dt;
     hcVy = Math.max(-6, Math.min(6, hcVy));
-    hcY += hcVy;
-    hcScore += Math.ceil(hcSpeed);
-    hcSpeed += 0.001;
+    hcY += hcVy * dt;
+    hcScore += Math.ceil(hcSpeed * dt);
+    hcSpeed += 0.001 * dt;
     $('hcScore').textContent = hcScore;
     $('hcSpeed').textContent = hcSpeed.toFixed(1) + 'x';
 
     // Scroll terrain
-    const scrollAmt = Math.ceil(hcSpeed);
+    const scrollAmt = Math.max(1, Math.ceil(hcSpeed * dt));
     // Shift terrain left
     for (let i = 0; i < scrollAmt; i++) {
       hcTopTerrain.shift();
@@ -10655,7 +10674,7 @@
       hcBottomTerrain.push(newBot);
     }
     // Gradually shrink gap
-    if (hcGapSize > 80) hcGapSize -= 0.005;
+    if (hcGapSize > 80) hcGapSize -= 0.005 * dt;
 
     // Pillars
     hcPillarTimer += scrollAmt;
@@ -10676,9 +10695,9 @@
     // Particles
     hcParticles.push({ x: hcX - HC_HELI_W/2, y: hcY + Math.random() * 6 - 3, life: 15, vx: -2, vy: Math.random() * 2 - 1 });
     for (let i = hcParticles.length - 1; i >= 0; i--) {
-      hcParticles[i].x += hcParticles[i].vx;
-      hcParticles[i].y += hcParticles[i].vy;
-      hcParticles[i].life--;
+      hcParticles[i].x += hcParticles[i].vx * dt;
+      hcParticles[i].y += hcParticles[i].vy * dt;
+      hcParticles[i].life -= dt;
       if (hcParticles[i].life <= 0) hcParticles.splice(i, 1);
     }
 
@@ -11006,7 +11025,7 @@
   /* ================================================
      MISSILE COMMAND
      ================================================ */
-  let mcCanvas, mcCtx, mcGameLoopActive = false;
+  let mcCanvas, mcCtx, mcGameLoopActive = false, mcLastTime = 0;
   const MC_W = 600, MC_H = 500;
   let mcScore, mcWave, mcCities, mcBatteries, mcMissiles, mcCounters, mcExplosions;
   let mcGameOver, mcWaveActive, mcWaveTimer, mcMissilesLeft, mcStars;
@@ -11018,7 +11037,8 @@
 
   function startMissileCommandGameLoop() {
     mcGameLoopActive = true;
-    function loop() { if (!mcGameLoopActive) return; mcUpdate(); mcRender(); requestAnimationFrame(loop); }
+    mcLastTime = performance.now();
+    function loop(now) { if (!mcGameLoopActive) return; const dt = Math.min((now - mcLastTime) / 16.667, 3); mcLastTime = now; mcUpdate(dt); mcRender(); requestAnimationFrame(loop); }
     requestAnimationFrame(loop);
   }
 
@@ -11077,11 +11097,14 @@
     });
   }
 
-  function mcUpdate() {
+  function mcUpdate(dt) {
+    if (!dt || dt <= 0) dt = 1;
     if (mcGameOver) return;
     // Spawn incoming missiles
-    mcWaveTimer++;
-    if (mcWaveActive && mcMissilesLeft > 0 && mcWaveTimer % Math.max(20, 80 - mcWave * 5) === 0) {
+    mcWaveTimer += dt;
+    const spawnInterval = Math.max(20, 80 - mcWave * 5);
+    if (mcWaveActive && mcMissilesLeft > 0 && mcWaveTimer >= spawnInterval) {
+      mcWaveTimer -= spawnInterval;
       mcMissilesLeft--;
       const tx = mcCities.filter(c => c.alive);
       if (tx.length === 0) { mcEndGame(); return; }
@@ -11098,7 +11121,7 @@
       const m = mcMissiles[i];
       m.trail.push({ x: m.x, y: m.y });
       if (m.trail.length > 30) m.trail.shift();
-      m.x += m.vx; m.y += m.vy;
+      m.x += m.vx * dt; m.y += m.vy * dt;
       // Hit ground
       if (m.y >= MC_H - 30) {
         // Check city damage
@@ -11130,7 +11153,7 @@
       const c = mcCounters[i];
       c.trail.push({ x: c.x, y: c.y });
       if (c.trail.length > 15) c.trail.shift();
-      c.x += c.vx; c.y += c.vy;
+      c.x += c.vx * dt; c.y += c.vy * dt;
       const dx = c.x - c.tx, dy = c.y - c.ty;
       if (Math.sqrt(dx*dx + dy*dy) < 8) {
         mcExplosions.push({ x: c.tx, y: c.ty, r: 0, maxR: 35, growing: true });
@@ -11142,10 +11165,10 @@
     for (let i = mcExplosions.length - 1; i >= 0; i--) {
       const ex = mcExplosions[i];
       if (ex.growing) {
-        ex.r += 1.2;
+        ex.r += 1.2 * dt;
         if (ex.r >= ex.maxR) ex.growing = false;
       } else {
-        ex.r -= 0.8;
+        ex.r -= 0.8 * dt;
         if (ex.r <= 0) { mcExplosions.splice(i, 1); }
       }
     }
