@@ -7,12 +7,12 @@ const TABLE_W = 800;
 const TABLE_H = 400;
 const BALL_R = 10;
 const POCKET_R = 18;
-const FRICTION = 0.99;
-const STOP_SPEED = 0.2;
+const FRICTION = 0.993;
+const STOP_SPEED = 0.3;
 const DT = 1 / 120;
-const MAX_STEPS = 10000;
+const MAX_STEPS = 15000;
 const MAX_POWER = 20;
-const POWER_SCALE = 50;
+const POWER_SCALE = 60;
 
 // 6 pocket positions (relative to table origin 0,0)
 const POCKETS = [

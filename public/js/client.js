@@ -6631,12 +6631,12 @@
   const PT_W = 800, PT_H = 400;
   const POOL_R = 10;
   const POOL_POCKET_R = 18;
-  const POOL_FRICTION = 0.99;
-  const POOL_STOP = 0.2;
+  const POOL_FRICTION = 0.993;
+  const POOL_STOP = 0.3;
   const POOL_DT = 1 / 120;
   const POOL_MAX_POWER = 20;
-  const POOL_POWER_SCALE = 50;
-  const MAX_STEPS_LOCAL = 10000;
+  const POOL_POWER_SCALE = 60;
+  const MAX_STEPS_LOCAL = 15000;
   const POOL_POCKETS = [
     { x: 0, y: 0 }, { x: PT_W / 2, y: 0 }, { x: PT_W, y: 0 },
     { x: 0, y: PT_H }, { x: PT_W / 2, y: PT_H }, { x: PT_W, y: PT_H }
@@ -6675,6 +6675,9 @@
   let poolMatchCode = null;
   let poolOpponentInfo = null;
   let poolAnimStepsLeft = 0;
+  // Cue stroke animation state
+  let poolCueStroke = null;       // { angle, power, startTime, duration, cx, cy }
+  let poolPendingUpdate = null;   // server response buffered until stroke finishes
 
   function setupPoolCanvas() {
     poolCanvas = $('poolCanvas');
@@ -6692,6 +6695,19 @@
     poolGameLoopActive = true;
     function loop() {
       if (!poolGameLoopActive) return;
+      // Cue stroke phase: check if stroke finished
+      if (poolCueStroke) {
+        const elapsed = performance.now() - poolCueStroke.startTime;
+        if (elapsed >= poolCueStroke.duration) {
+          poolCueStroke = null;
+          // Stroke done — start ball simulation if server result arrived
+          if (poolPendingUpdate) {
+            poolStartAnimation(poolPendingUpdate);
+            poolPendingUpdate = null;
+          }
+        }
+      }
+      // Ball physics phase
       if (poolAnimating && poolAnimBalls) poolStepAnimation();
       renderPool();
       requestAnimationFrame(loop);
@@ -6852,7 +6868,7 @@
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist > 2) {
           const angle = Math.atan2(dy, dx);
-          const power = Math.min(dist / 8, POOL_MAX_POWER);
+          const power = Math.min(dist / 5, POOL_MAX_POWER);
           const powerFrac = power / POOL_MAX_POWER;
 
           // Aim line (dotted)
@@ -6908,6 +6924,41 @@
       }
     }
 
+    // Cue stroke animation
+    if (poolCueStroke && !poolAnimating) {
+      const s = poolCueStroke;
+      const elapsed = performance.now() - s.startTime;
+      const t = Math.min(1, elapsed / s.duration);
+      // Ease-in curve for acceleration feel
+      const ease = t * t;
+      const cx = PT_X + s.cx, cy = PT_Y + s.cy;
+      const stickLen = 180;
+      const powerFrac = s.power / POOL_MAX_POWER;
+      const pullBack = 10 + powerFrac * 60;
+      // Interpolate from pulled-back to contact (offset 0)
+      const offset = pullBack * (1 - ease);
+      const sx = cx - Math.cos(s.angle) * offset;
+      const sy = cy - Math.sin(s.angle) * offset;
+      const ex = sx - Math.cos(s.angle) * stickLen;
+      const ey = sy - Math.sin(s.angle) * stickLen;
+
+      // Cue stick body
+      ctx.strokeStyle = '#d4a55a';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+      // Cue tip
+      ctx.strokeStyle = '#eee';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx - Math.cos(s.angle) * 6, sy - Math.sin(s.angle) * 6);
+      ctx.stroke();
+    }
+
     // Pocketed ball tally on sides
     if (ps && ps.playerGroups) {
       const allBalls = ps.balls || balls;
@@ -6947,7 +6998,7 @@
     }
 
     // Info text
-    if (ps && ps.turnMessage && !poolAnimating) {
+    if (ps && ps.turnMessage && !poolAnimating && !poolCueStroke) {
       const info = $('poolInfo');
       if (info) info.textContent = ps.turnMessage;
     }
@@ -6964,7 +7015,7 @@
   }
 
   function poolHandleMouseDown(e) {
-    if (poolAnimating) return;
+    if (poolAnimating || poolCueStroke) return;
     const ps = poolLocal ? poolLocal.state : poolState;
     if (!ps || ps.gameOver) return;
     const isMyTurn = poolLocal ? true : (ps.currentTurn === poolMyIndex);
@@ -7025,66 +7076,73 @@
     if (dist < 5) return; // too short, ignore
 
     const angle = Math.atan2(dy, dx);
-    const power = Math.min(dist / 8, POOL_MAX_POWER);
+    const power = Math.min(dist / 5, POOL_MAX_POWER);
 
     if (poolLocal) {
+      // Capture cue position before simulation mutates it
+      const cuePre = poolLocal.state.balls.find(b => b.id === 0 && !b.pocketed);
+      const cueCx = cuePre ? cuePre.x : 0, cueCy = cuePre ? cuePre.y : 0;
       const result = poolLocalShoot(angle, power);
       if (result && result.valid) {
-        poolStartAnimation(result);
+        poolCueStroke = {
+          angle, power, startTime: performance.now(),
+          duration: 250 + (1 - power / POOL_MAX_POWER) * 150,
+          cx: cueCx, cy: cueCy
+        };
+        poolPendingUpdate = result;
       }
     } else {
-      // Start animation immediately (optimistic) so balls move without waiting for server
-      poolStartAnimationOptimistic(angle, power);
+      // Online: send shot, play cue stroke while waiting for server
+      const ps = poolState;
+      const cue = ps && ps.balls ? ps.balls.find(b => b.id === 0 && !b.pocketed) : null;
+      if (cue) {
+        poolCueStroke = {
+          angle, power, startTime: performance.now(),
+          duration: 250 + (1 - power / POOL_MAX_POWER) * 150,
+          cx: cue.x, cy: cue.y
+        };
+      }
       socket.emit('pool:shoot', { angle, power });
     }
   }
 
   /* ---- Pool animation ---- */
 
-  function poolStartAnimationOptimistic(angle, power) {
-    // Start animation immediately using client-side physics (no server wait)
-    const ps = poolState;
-    if (!ps || !ps.balls) return;
-    const preBalls = ps.balls.map(b => ({ ...b }));
-    const cue = preBalls.find(b => b.id === 0 && !b.pocketed);
-    if (!cue) return;
-    cue.vx = Math.cos(angle) * power * POOL_POWER_SCALE;
-    cue.vy = Math.sin(angle) * power * POOL_POWER_SCALE;
-    poolAnimBalls = preBalls;
-    poolAnimating = true;
-    poolAnimStepsLeft = 1500;
-  }
-
   function poolStartAnimation(data) {
     if (!data || data.shotAngle === undefined) {
       // Non-shot update (e.g., placeCue) — just apply state
-      if (poolLocal) {
-        // already updated
-      } else {
+      if (!poolLocal) {
         poolState = { ...poolState, ...data };
       }
       return;
     }
 
-    // Get pre-shot ball positions for animation
-    const ps = poolLocal ? poolLocal.state : poolState;
-    const preBalls = (ps && ps.balls) ? ps.balls.map(b => ({ ...b })) : [];
+    // For local mode, data.balls = pre-shot snapshot (poolLocalShoot saves it).
+    // For online mode, data.balls = server final positions; poolState.balls is still
+    // pre-shot (we buffered during cue stroke, never applied to poolState yet).
+    let preBalls;
+    if (poolLocal) {
+      // data.balls is the pre-shot snapshot from poolLocalShoot
+      preBalls = data.balls.map(b => ({ ...b }));
+    } else {
+      // poolState still has pre-shot positions (update was buffered)
+      preBalls = (poolState && poolState.balls) ? poolState.balls.map(b => ({ ...b })) : [];
+    }
 
-    // Apply shot to animation balls
+    // Apply shot velocity to cue ball for animation
     const cue = preBalls.find(b => b.id === 0 && !b.pocketed);
-    if (cue && data.shotAngle !== undefined) {
+    if (cue) {
       cue.vx = Math.cos(data.shotAngle) * data.shotPower * POOL_POWER_SCALE;
       cue.vy = Math.sin(data.shotAngle) * data.shotPower * POOL_POWER_SCALE;
       poolAnimBalls = preBalls;
       poolAnimating = true;
-      poolAnimStepsLeft = 1500; // max anim steps
+      poolAnimStepsLeft = 2500;
 
-      // Update authoritative state (will snap to when animation ends)
+      // Save authoritative end state (snapped to when animation finishes)
       if (!poolLocal) {
         poolState = { ...poolState, ...data };
-      } else {
-        poolLocal.state = { ...poolLocal.state, ...data };
       }
+      // For local mode, poolLocal.state is already post-simulation
     } else {
       if (!poolLocal) poolState = { ...poolState, ...data };
     }
@@ -7493,6 +7551,8 @@
       poolAnimating = false;
       poolAnimBalls = null;
       poolAiming = false;
+      poolCueStroke = null;
+      poolPendingUpdate = null;
       poolOpponentInfo = data.players[1 - poolMyIndex] || { username: 'Opponent' };
 
       $('poolMyName').textContent = data.players[poolMyIndex]?.username || 'You';
@@ -7506,12 +7566,27 @@
 
     s.on('pool:update', (data) => {
       if (data.shotAngle !== undefined && data.shotPower !== undefined) {
-        if (poolAnimating) {
-          // Already animating optimistically — just save authoritative end state
+        if (poolCueStroke) {
+          // Our shot: stroke still playing, buffer the result
+          poolPendingUpdate = data;
+        } else if (poolAnimating) {
+          // Already animating — just update authoritative state
           poolState = { ...poolState, ...data };
         } else {
-          // Opponent's shot or missed optimistic start — animate now
-          poolStartAnimation(data);
+          // Opponent's shot — play stroke then simulation
+          const balls = poolState ? poolState.balls : null;
+          const cue = balls ? balls.find(b => b.id === 0 && !b.pocketed) : null;
+          if (cue) {
+            poolCueStroke = {
+              angle: data.shotAngle, power: data.shotPower,
+              startTime: performance.now(),
+              duration: 250 + (1 - data.shotPower / POOL_MAX_POWER) * 150,
+              cx: cue.x, cy: cue.y
+            };
+            poolPendingUpdate = data;
+          } else {
+            poolStartAnimation(data);
+          }
         }
       } else {
         poolState = { ...poolState, ...data };
