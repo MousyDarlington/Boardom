@@ -337,6 +337,25 @@ class Matchmaker {
       }
       for (const p of gd.players) this._decrementTrials(p.username);
 
+    } else if (gd.gameType === 'c4' || gd.gameType === 'battleship' || gd.gameType === 'mancala') {
+      // 2-player games: 10 coins winner, 3 loser
+      const winnerIdx = gd.gameType === 'c4' ? overPayload.winnerIdx : overPayload.winner;
+      if (typeof winnerIdx === 'number') {
+        for (let i = 0; i < gd.players.length; i++) {
+          const p = gd.players[i];
+          if (p.isBot) continue;
+          const user = this.userStore.getUser(p.username);
+          if (!user) continue;
+          const isWinner = i === winnerIdx;
+          this.userStore.updateUser(p.username, {
+            coins: (user.coins || 0) + (isWinner ? 10 : 3),
+            wins: isWinner ? (user.wins || 0) + 1 : user.wins,
+            losses: isWinner ? user.losses : (user.losses || 0) + 1
+          });
+        }
+      }
+      for (const p of gd.players) this._decrementTrials(p.username);
+
     } else if (['war', 'crazy8', 'gofish', 'blackjack', 'ginrummy', 'hearts', 'spades', 'poker', 'higherlower', 'pool'].includes(gd.gameType)) {
       // Card games: give winner coins
       const { winner } = overPayload;
