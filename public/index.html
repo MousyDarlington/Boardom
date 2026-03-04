@@ -150,6 +150,38 @@
                   </div>
                   <div class="game-card-badge">1 mode</div>
                 </div>
+                <div class="game-card glass" id="cardLightsout" data-game="lightsout">
+                  <div class="game-card-icon">&#128161;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Lights Out</h3>
+                    <p class="game-card-desc">Turn all the lights off!</p>
+                  </div>
+                  <div class="game-card-badge">3 modes</div>
+                </div>
+                <div class="game-card glass" id="cardHelicopter" data-game="helicopter">
+                  <div class="game-card-icon">&#128641;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Helicopter</h3>
+                    <p class="game-card-desc">Fly through the cave!</p>
+                  </div>
+                  <div class="game-card-badge">1 mode</div>
+                </div>
+                <div class="game-card glass" id="cardDopewars" data-game="dopewars">
+                  <div class="game-card-icon">&#128176;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Dope Wars</h3>
+                    <p class="game-card-desc">Buy low, sell high!</p>
+                  </div>
+                  <div class="game-card-badge">1 mode</div>
+                </div>
+                <div class="game-card glass" id="cardMissilecommand" data-game="missilecommand">
+                  <div class="game-card-icon">&#128640;</div>
+                  <div class="game-card-info">
+                    <h3 class="game-card-title">Missile Command</h3>
+                    <p class="game-card-desc">Defend your cities!</p>
+                  </div>
+                  <div class="game-card-badge">1 mode</div>
+                </div>
               </div>
             </div>
 
@@ -996,6 +1028,85 @@
         <div class="game-controls">
           <button class="btn btn-small btn-ghost" id="btnColNewGame">New Game</button>
           <button class="btn btn-small btn-ghost" id="btnColQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LIGHTS OUT GAME SCREEN ===== -->
+  <div id="lightsoutGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud glass" id="loHud">
+          <span class="hud-stat">Moves: <b id="loMoves">0</b></span>
+          <span class="hud-stat">Time: <b id="loTime">0:00</b></span>
+          <span class="hud-stat">Size: <b id="loSize">5x5</b></span>
+        </div>
+        <canvas id="lightsoutCanvas"></canvas>
+        <div class="pool-info" id="loInfo">Click a cell to toggle it and its neighbors!</div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnLoNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnLoQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HELICOPTER GAME SCREEN ===== -->
+  <div id="helicopterGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud glass" id="hcHud">
+          <span class="hud-stat">Score: <b id="hcScore">0</b></span>
+          <span class="hud-stat">Best: <b id="hcBest">0</b></span>
+          <span class="hud-stat">Speed: <b id="hcSpeed">1x</b></span>
+        </div>
+        <canvas id="helicopterCanvas"></canvas>
+        <div class="pool-info" id="hcInfo">Hold SPACE or click/tap to fly up!</div>
+        <div class="touch-controls" id="hcTouch">
+          <button class="touch-btn touch-btn-wide touch-btn-hold" id="tchHcFly">&#9650; FLY</button>
+        </div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnHcNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnHcQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DOPE WARS GAME SCREEN ===== -->
+  <div id="dopewarsGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud glass" id="dwHud">
+          <span class="hud-stat">Cash: <b id="dwCash">$2000</b></span>
+          <span class="hud-stat">Day: <b id="dwDay">1/30</b></span>
+          <span class="hud-stat">Space: <b id="dwSpace">100</b></span>
+        </div>
+        <canvas id="dopewarsCanvas"></canvas>
+        <div class="pool-info" id="dwInfo">Travel between locations, buy low and sell high!</div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnDwNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnDwQuit">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MISSILE COMMAND GAME SCREEN ===== -->
+  <div id="missilecommandGameScreen" class="screen">
+    <div class="game-layout">
+      <div class="game-area">
+        <div class="pool-hud glass" id="mcHud">
+          <span class="hud-stat">Score: <b id="mcScore">0</b></span>
+          <span class="hud-stat">Wave: <b id="mcWave">1</b></span>
+          <span class="hud-stat">Cities: <b id="mcCities">6</b></span>
+        </div>
+        <canvas id="missilecommandCanvas"></canvas>
+        <div class="pool-info" id="mcInfo">Click/tap to fire counter-missiles!</div>
+        <div class="game-controls">
+          <button class="btn btn-small btn-ghost" id="btnMcNewGame">New Game</button>
+          <button class="btn btn-small btn-ghost" id="btnMcQuit">Quit</button>
         </div>
       </div>
     </div>

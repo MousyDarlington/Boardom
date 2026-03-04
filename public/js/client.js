@@ -210,6 +210,40 @@
         { id: 'columnsPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
       ]
     },
+    lightsout: {
+      title: 'Lights Out',
+      icon: '\uD83D\uDCA1',
+      desc: 'Single player \u2014 Turn all the lights off!',
+      modes: [
+        { id: 'loEasy', icon: '\uD83D\uDE0A', name: 'Easy', desc: '5\u00d75 grid' },
+        { id: 'loMedium', icon: '\uD83D\uDE10', name: 'Medium', desc: '7\u00d77 grid' },
+        { id: 'loHard', icon: '\uD83D\uDE08', name: 'Hard', desc: '9\u00d79 grid' }
+      ]
+    },
+    helicopter: {
+      title: 'Helicopter',
+      icon: '\uD83D\uDE81',
+      desc: 'Single player \u2014 Fly through the cave!',
+      modes: [
+        { id: 'hcPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
+      ]
+    },
+    dopewars: {
+      title: 'Dope Wars',
+      icon: '\uD83D\uDCB0',
+      desc: 'Single player \u2014 Buy low, sell high!',
+      modes: [
+        { id: 'dwPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
+      ]
+    },
+    missilecommand: {
+      title: 'Missile Command',
+      icon: '\uD83D\uDE80',
+      desc: 'Single player \u2014 Defend your cities!',
+      modes: [
+        { id: 'mcPlay', icon: '\uD83C\uDFAE', name: 'Play', desc: 'Start a new game' }
+      ]
+    },
     blackjack: {
       title: 'Blackjack',
       icon: '\uD83C\uDCCF',
@@ -1191,6 +1225,7 @@
     'cahHostScreen', 'cahGameScreen', 'c4GameScreen', 'bsGameScreen', 'mancalaGameScreen',
     'mahjongGameScreen', 'solitaireGameScreen', 'pinballGameScreen', 'jezzballGameScreen',
     'minesweeperGameScreen', 'spaceinvadersGameScreen', 'tetrisGameScreen', 'columnsGameScreen',
+    'lightsoutGameScreen', 'helicopterGameScreen', 'dopewarsGameScreen', 'missilecommandGameScreen',
     'cardGameScreen', 'poolGameScreen'];
 
   function showScreen(name) {
@@ -1206,6 +1241,8 @@
       pinball: 'pinballGameScreen', jezzball: 'jezzballGameScreen',
       minesweeper: 'minesweeperGameScreen', spaceinvaders: 'spaceinvadersGameScreen',
       tetris: 'tetrisGameScreen', columns: 'columnsGameScreen',
+      lightsout: 'lightsoutGameScreen', helicopter: 'helicopterGameScreen',
+      dopewars: 'dopewarsGameScreen', missilecommand: 'missilecommandGameScreen',
       cardgame: 'cardGameScreen', pool: 'poolGameScreen'
     };
     for (const id of screenIds) {
@@ -1216,7 +1253,7 @@
     if (target) target.classList.add('active');
 
     // Hide game over overlay when switching screens
-    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala' && name !== 'mahjong' && name !== 'solitaire' && name !== 'pinball' && name !== 'jezzball' && name !== 'minesweeper' && name !== 'spaceinvaders' && name !== 'tetris' && name !== 'columns' && name !== 'cardgame' && name !== 'pool') {
+    if (name !== 'game' && name !== 'trouble' && name !== 'scrabble' && name !== 'cah' && name !== 'c4' && name !== 'battleship' && name !== 'mancala' && name !== 'mahjong' && name !== 'solitaire' && name !== 'pinball' && name !== 'jezzball' && name !== 'minesweeper' && name !== 'spaceinvaders' && name !== 'tetris' && name !== 'columns' && name !== 'lightsout' && name !== 'helicopter' && name !== 'dopewars' && name !== 'missilecommand' && name !== 'cardgame' && name !== 'pool') {
       $('gameOverOverlay').classList.add('hidden');
       confettiActive = false;
     }
@@ -1234,6 +1271,10 @@
     if (name !== 'spaceinvaders') { siGameLoopActive = false; document.removeEventListener('keydown', siKeyDown); document.removeEventListener('keyup', siKeyUp); }
     if (name !== 'tetris') { tetGameLoopActive = false; document.removeEventListener('keydown', tetKeyDown); }
     if (name !== 'columns') { colGameLoopActive = false; document.removeEventListener('keydown', colKeyDown); }
+    if (name !== 'lightsout') loGameLoopActive = false;
+    if (name !== 'helicopter') { hcGameLoopActive = false; document.removeEventListener('keydown', hcKeyDown); document.removeEventListener('keyup', hcKeyUp); }
+    if (name !== 'dopewars') dwGameLoopActive = false;
+    if (name !== 'missilecommand') mcGameLoopActive = false;
     if (name !== 'pool') poolGameLoopActive = false;
 
     if (name === 'game') {
@@ -1290,6 +1331,22 @@
     if (name === 'columns') {
       setupColumnsCanvas();
       startColumnsGameLoop();
+    }
+    if (name === 'lightsout') {
+      setupLightsOutCanvas();
+      startLightsOutGameLoop();
+    }
+    if (name === 'helicopter') {
+      setupHelicopterCanvas();
+      startHelicopterGameLoop();
+    }
+    if (name === 'dopewars') {
+      setupDopeWarsCanvas();
+      startDopeWarsGameLoop();
+    }
+    if (name === 'missilecommand') {
+      setupMissileCommandCanvas();
+      startMissileCommandGameLoop();
     }
     if (name === 'pool') {
       setupPoolCanvas();
@@ -2691,6 +2748,24 @@
     } else if (gameId === 'columns') {
       switch (modeId) {
         case 'columnsPlay': startColumnsGame(); break;
+      }
+    } else if (gameId === 'lightsout') {
+      switch (modeId) {
+        case 'loEasy': startLightsOutGame(5); break;
+        case 'loMedium': startLightsOutGame(7); break;
+        case 'loHard': startLightsOutGame(9); break;
+      }
+    } else if (gameId === 'helicopter') {
+      switch (modeId) {
+        case 'hcPlay': startHelicopterGame(); break;
+      }
+    } else if (gameId === 'dopewars') {
+      switch (modeId) {
+        case 'dwPlay': startDopeWarsGame(); break;
+      }
+    } else if (gameId === 'missilecommand') {
+      switch (modeId) {
+        case 'mcPlay': startMissileCommandGame(); break;
       }
     } else if (gameId === 'blackjack') {
       switch (modeId) {
@@ -8403,6 +8478,12 @@
     }, 120);
     touchTapBtn('tchColCycle', () => { if (colPiece) colPiece.gems.unshift(colPiece.gems.pop()); });
     touchRepeatBtn('tchColDown', () => { if (colPiece) colDropTimer = colDropInterval; }, 80);
+
+    // --- Helicopter ---
+    touchHoldBtn('tchHcFly',
+      () => { if (!hcDead) hcFlying = true; },
+      () => { hcFlying = false; }
+    );
   }
 
   /* ================================================
@@ -10380,6 +10461,798 @@
     ctx.fillStyle = '#ffffff'; ctx.font = '12px monospace';
     ctx.fillText('Score: ' + colScore, panelX + 10, 170);
     ctx.fillText('Level: ' + colLevel, panelX + 10, 190);
+  }
+
+  /* ================================================
+     LIGHTS OUT
+     ================================================ */
+  let loCanvas, loCtx, loGameLoopActive = false;
+  let loGrid, loSize, loMoves, loStartTime, loWon;
+  const LO_CELL = 50, LO_PAD = 2;
+
+  function setupLightsOutCanvas() {
+    loCanvas = $('lightsoutCanvas');
+    if (!loCanvas) return;
+    loCtx = loCanvas.getContext('2d');
+  }
+
+  function startLightsOutGameLoop() {
+    loGameLoopActive = true;
+    function loop() { if (!loGameLoopActive) return; loRender(); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  }
+
+  function startLightsOutGame(size) {
+    loSize = size || 5;
+    const dim = loSize * LO_CELL + (loSize + 1) * LO_PAD;
+    if (loCanvas) { loCanvas.width = dim; loCanvas.height = dim; }
+    loMoves = 0; loStartTime = Date.now(); loWon = false;
+    // Generate solvable puzzle: start all off, do random toggles
+    loGrid = [];
+    for (let r = 0; r < loSize; r++) { loGrid[r] = []; for (let c = 0; c < loSize; c++) loGrid[r][c] = false; }
+    const toggleCount = Math.floor(loSize * loSize * 0.4) + Math.floor(Math.random() * loSize);
+    for (let i = 0; i < toggleCount; i++) {
+      loToggle(Math.floor(Math.random() * loSize), Math.floor(Math.random() * loSize), true);
+    }
+    // Ensure at least some lights are on
+    let anyOn = loGrid.some(row => row.some(v => v));
+    if (!anyOn) { loToggle(Math.floor(loSize/2), Math.floor(loSize/2), true); }
+    loMoves = 0;
+    showScreen('lightsout');
+    $('loMoves').textContent = '0'; $('loTime').textContent = '0:00'; $('loSize').textContent = loSize + 'x' + loSize;
+    // Bind click
+    if (loCanvas) {
+      loCanvas.onclick = function(e) { if (loWon) return; loHandleClick(e); };
+      loCanvas.ontouchstart = function(e) { e.preventDefault(); if (loWon) return; const t = e.touches[0]; const rect = loCanvas.getBoundingClientRect(); loHandleClickAt(t.clientX - rect.left, t.clientY - rect.top); };
+    }
+    const newBtn = $('btnLoNewGame'); if (newBtn) newBtn.onclick = () => startLightsOutGame(loSize);
+    const quitBtn = $('btnLoQuit'); if (quitBtn) quitBtn.onclick = () => { loGameLoopActive = false; showScreen('lobby'); };
+  }
+
+  function loToggle(r, c, setup) {
+    const dirs = [[0,0],[-1,0],[1,0],[0,-1],[0,1]];
+    for (const [dr, dc] of dirs) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < loSize && nc >= 0 && nc < loSize) loGrid[nr][nc] = !loGrid[nr][nc];
+    }
+    if (!setup) {
+      loMoves++;
+      $('loMoves').textContent = loMoves;
+      // Check win
+      if (loGrid.every(row => row.every(v => !v))) {
+        loWon = true;
+        loShowGameOver();
+      }
+    }
+  }
+
+  function loHandleClick(e) {
+    const rect = loCanvas.getBoundingClientRect();
+    loHandleClickAt(e.clientX - rect.left, e.clientY - rect.top);
+  }
+
+  function loHandleClickAt(mx, my) {
+    const c = Math.floor(mx / (LO_CELL + LO_PAD));
+    const r = Math.floor(my / (LO_CELL + LO_PAD));
+    if (r >= 0 && r < loSize && c >= 0 && c < loSize) loToggle(r, c, false);
+  }
+
+  function loShowGameOver() {
+    const elapsed = Math.floor((Date.now() - loStartTime) / 1000);
+    $('gameOverTitle').textContent = 'You Win!';
+    $('gameOverReason').textContent = 'Moves: ' + loMoves + ' | Time: ' + Math.floor(elapsed/60) + ':' + String(elapsed%60).padStart(2,'0');
+    $('gameOverRating').innerHTML = ''; $('gameOverCoins').textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    if (typeof startConfetti === 'function') startConfetti();
+    const btn = $('btnBackToLobby'); if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); loGameLoopActive = false; showScreen('lobby'); };
+    const pa = $('btnPlayAgain'); if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startLightsOutGame(loSize); };
+  }
+
+  function loRender() {
+    if (!loCtx) return;
+    const ctx = loCtx;
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, loCanvas.width, loCanvas.height);
+    for (let r = 0; r < loSize; r++) {
+      for (let c = 0; c < loSize; c++) {
+        const x = c * (LO_CELL + LO_PAD) + LO_PAD;
+        const y = r * (LO_CELL + LO_PAD) + LO_PAD;
+        if (loGrid && loGrid[r][c]) {
+          ctx.fillStyle = '#ffdd44'; ctx.shadowColor = '#ffdd44'; ctx.shadowBlur = 12;
+          ctx.fillRect(x, y, LO_CELL, LO_CELL);
+          ctx.shadowBlur = 0;
+          // Highlight
+          ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(x + 4, y + 4, LO_CELL - 8, 8);
+        } else {
+          ctx.fillStyle = '#1a1a2e'; ctx.fillRect(x, y, LO_CELL, LO_CELL);
+          ctx.strokeStyle = '#2a2a4e'; ctx.strokeRect(x, y, LO_CELL, LO_CELL);
+        }
+      }
+    }
+    // Update timer
+    if (!loWon && loStartTime) {
+      const elapsed = Math.floor((Date.now() - loStartTime) / 1000);
+      $('loTime').textContent = Math.floor(elapsed/60) + ':' + String(elapsed%60).padStart(2,'0');
+    }
+  }
+
+  /* ================================================
+     HELICOPTER
+     ================================================ */
+  let hcCanvas, hcCtx, hcGameLoopActive = false;
+  const HC_W = 600, HC_H = 400;
+  let hcFlying, hcX, hcY, hcVy, hcScore, hcBest = 0, hcSpeed, hcDead;
+  let hcTopTerrain, hcBottomTerrain, hcPillars, hcParticles;
+  let hcGapSize, hcPillarTimer;
+  const HC_GRAVITY = 0.35, HC_LIFT = -0.55, HC_HELI_W = 30, HC_HELI_H = 14;
+
+  function setupHelicopterCanvas() {
+    hcCanvas = $('helicopterCanvas');
+    if (hcCanvas) { hcCanvas.width = HC_W; hcCanvas.height = HC_H; hcCtx = hcCanvas.getContext('2d'); }
+  }
+
+  function startHelicopterGameLoop() {
+    hcGameLoopActive = true;
+    function loop() { if (!hcGameLoopActive) return; hcUpdate(); hcRender(); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  }
+
+  function startHelicopterGame() {
+    hcX = 80; hcY = HC_H / 2; hcVy = 0; hcScore = 0; hcSpeed = 2; hcDead = false; hcFlying = false;
+    hcGapSize = 160; hcPillarTimer = 0;
+    // Init terrain
+    hcTopTerrain = []; hcBottomTerrain = [];
+    let top = 40, bot = HC_H - 40;
+    for (let i = 0; i <= HC_W + 10; i += 5) {
+      top += (Math.random() - 0.5) * 4; top = Math.max(10, Math.min(HC_H / 2 - 50, top));
+      bot += (Math.random() - 0.5) * 4; bot = Math.max(HC_H / 2 + 50, Math.min(HC_H - 10, bot));
+      hcTopTerrain.push(top); hcBottomTerrain.push(bot);
+    }
+    hcPillars = []; hcParticles = [];
+    showScreen('helicopter');
+    $('hcScore').textContent = '0'; $('hcBest').textContent = hcBest; $('hcSpeed').textContent = '1x';
+    // Input
+    document.addEventListener('keydown', hcKeyDown);
+    document.addEventListener('keyup', hcKeyUp);
+    if (hcCanvas) {
+      hcCanvas.onmousedown = () => { if (!hcDead) hcFlying = true; };
+      hcCanvas.onmouseup = () => { hcFlying = false; };
+      hcCanvas.ontouchstart = (e) => { e.preventDefault(); if (!hcDead) hcFlying = true; };
+      hcCanvas.ontouchend = (e) => { e.preventDefault(); hcFlying = false; };
+    }
+    const newBtn = $('btnHcNewGame'); if (newBtn) newBtn.onclick = startHelicopterGame;
+    const quitBtn = $('btnHcQuit'); if (quitBtn) quitBtn.onclick = () => { hcGameLoopActive = false; document.removeEventListener('keydown', hcKeyDown); document.removeEventListener('keyup', hcKeyUp); showScreen('lobby'); };
+  }
+
+  function hcKeyDown(e) { if (e.code === 'Space') { e.preventDefault(); if (!hcDead) hcFlying = true; } }
+  function hcKeyUp(e) { if (e.code === 'Space') { hcFlying = false; } }
+
+  function hcUpdate() {
+    if (hcDead) return;
+    // Physics
+    if (hcFlying) hcVy += HC_LIFT; else hcVy += HC_GRAVITY;
+    hcVy = Math.max(-6, Math.min(6, hcVy));
+    hcY += hcVy;
+    hcScore += Math.ceil(hcSpeed);
+    hcSpeed += 0.001;
+    $('hcScore').textContent = hcScore;
+    $('hcSpeed').textContent = hcSpeed.toFixed(1) + 'x';
+
+    // Scroll terrain
+    const scrollAmt = Math.ceil(hcSpeed);
+    // Shift terrain left
+    for (let i = 0; i < scrollAmt; i++) {
+      hcTopTerrain.shift();
+      hcBottomTerrain.shift();
+      const lastTop = hcTopTerrain[hcTopTerrain.length - 1] || 40;
+      const lastBot = hcBottomTerrain[hcBottomTerrain.length - 1] || HC_H - 40;
+      let newTop = lastTop + (Math.random() - 0.5) * 6;
+      let newBot = lastBot + (Math.random() - 0.5) * 6;
+      const minGap = hcGapSize;
+      newTop = Math.max(10, Math.min(HC_H / 2 - 30, newTop));
+      newBot = Math.max(HC_H / 2 + 30, Math.min(HC_H - 10, newBot));
+      if (newBot - newTop < minGap) { newTop = (newBot + newTop) / 2 - minGap / 2; newBot = newTop + minGap; }
+      hcTopTerrain.push(newTop);
+      hcBottomTerrain.push(newBot);
+    }
+    // Gradually shrink gap
+    if (hcGapSize > 80) hcGapSize -= 0.005;
+
+    // Pillars
+    hcPillarTimer += scrollAmt;
+    if (hcPillarTimer > 200) {
+      hcPillarTimer = 0;
+      const terrIdx = Math.min(hcTopTerrain.length - 1, Math.floor(HC_W / 5));
+      const tTop = hcTopTerrain[terrIdx] || 50;
+      const tBot = hcBottomTerrain[terrIdx] || HC_H - 50;
+      const fromTop = Math.random() > 0.5;
+      const pH = 30 + Math.random() * 60;
+      hcPillars.push({ x: HC_W + 10, fromTop, h: pH, top: tTop, bot: tBot });
+    }
+    for (let i = hcPillars.length - 1; i >= 0; i--) {
+      hcPillars[i].x -= scrollAmt;
+      if (hcPillars[i].x < -30) hcPillars.splice(i, 1);
+    }
+
+    // Particles
+    hcParticles.push({ x: hcX - HC_HELI_W/2, y: hcY + Math.random() * 6 - 3, life: 15, vx: -2, vy: Math.random() * 2 - 1 });
+    for (let i = hcParticles.length - 1; i >= 0; i--) {
+      hcParticles[i].x += hcParticles[i].vx;
+      hcParticles[i].y += hcParticles[i].vy;
+      hcParticles[i].life--;
+      if (hcParticles[i].life <= 0) hcParticles.splice(i, 1);
+    }
+
+    // Collision with terrain
+    const tIdx = Math.floor(hcX / 5);
+    if (tIdx >= 0 && tIdx < hcTopTerrain.length) {
+      if (hcY - HC_HELI_H/2 < hcTopTerrain[tIdx] || hcY + HC_HELI_H/2 > hcBottomTerrain[tIdx]) {
+        hcDie();
+        return;
+      }
+    }
+    // Collision with pillars
+    for (const p of hcPillars) {
+      if (hcX + HC_HELI_W/2 > p.x && hcX - HC_HELI_W/2 < p.x + 20) {
+        if (p.fromTop) {
+          if (hcY - HC_HELI_H/2 < p.top + p.h) { hcDie(); return; }
+        } else {
+          if (hcY + HC_HELI_H/2 > p.bot - p.h) { hcDie(); return; }
+        }
+      }
+    }
+    // Off screen
+    if (hcY < 0 || hcY > HC_H) { hcDie(); return; }
+  }
+
+  function hcDie() {
+    hcDead = true;
+    if (hcScore > hcBest) hcBest = hcScore;
+    $('hcBest').textContent = hcBest;
+    hcShowGameOver();
+  }
+
+  function hcShowGameOver() {
+    $('gameOverTitle').textContent = 'Crash!';
+    $('gameOverReason').textContent = 'Score: ' + hcScore + ' | Best: ' + hcBest;
+    $('gameOverRating').innerHTML = ''; $('gameOverCoins').textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    const btn = $('btnBackToLobby'); if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); hcGameLoopActive = false; document.removeEventListener('keydown', hcKeyDown); document.removeEventListener('keyup', hcKeyUp); showScreen('lobby'); };
+    const pa = $('btnPlayAgain'); if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startHelicopterGame(); };
+  }
+
+  function hcRender() {
+    if (!hcCtx) return;
+    const ctx = hcCtx;
+    // Sky gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, HC_H);
+    grad.addColorStop(0, '#0a0a2e'); grad.addColorStop(1, '#1a1a3e');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, HC_W, HC_H);
+
+    // Top terrain
+    ctx.fillStyle = '#228833';
+    ctx.beginPath(); ctx.moveTo(0, 0);
+    for (let i = 0; i < hcTopTerrain.length && i * 5 <= HC_W; i++) ctx.lineTo(i * 5, hcTopTerrain[i]);
+    ctx.lineTo(HC_W, 0); ctx.closePath(); ctx.fill();
+
+    // Bottom terrain
+    ctx.beginPath(); ctx.moveTo(0, HC_H);
+    for (let i = 0; i < hcBottomTerrain.length && i * 5 <= HC_W; i++) ctx.lineTo(i * 5, hcBottomTerrain[i]);
+    ctx.lineTo(HC_W, HC_H); ctx.closePath(); ctx.fill();
+
+    // Pillars
+    ctx.fillStyle = '#664422';
+    for (const p of hcPillars) {
+      if (p.fromTop) ctx.fillRect(p.x, p.top, 20, p.h);
+      else ctx.fillRect(p.x, p.bot - p.h, 20, p.h);
+    }
+
+    // Particles
+    for (const pt of hcParticles) {
+      const a = pt.life / 15;
+      ctx.fillStyle = 'rgba(255,' + Math.floor(150 * a) + ',0,' + a.toFixed(2) + ')';
+      ctx.fillRect(pt.x, pt.y, 3, 3);
+    }
+
+    // Helicopter
+    if (!hcDead) {
+      ctx.fillStyle = '#33cc33';
+      ctx.fillRect(hcX - HC_HELI_W/2, hcY - HC_HELI_H/2, HC_HELI_W, HC_HELI_H);
+      // Rotor
+      ctx.strokeStyle = '#aaffaa'; ctx.lineWidth = 2;
+      const rotorW = 24 + Math.sin(Date.now() * 0.05) * 10;
+      ctx.beginPath(); ctx.moveTo(hcX - rotorW/2, hcY - HC_HELI_H/2 - 3);
+      ctx.lineTo(hcX + rotorW/2, hcY - HC_HELI_H/2 - 3); ctx.stroke();
+      // Tail
+      ctx.fillStyle = '#228822';
+      ctx.fillRect(hcX - HC_HELI_W/2 - 10, hcY - 3, 12, 6);
+    }
+  }
+
+  /* ================================================
+     DOPE WARS
+     ================================================ */
+  let dwCanvas, dwCtx, dwGameLoopActive = false;
+  const DW_W = 500, DW_H = 600;
+  let dwCash, dwDay, dwMaxDays, dwInventory, dwMaxSlots, dwPrices;
+  let dwLocation, dwScreen, dwSelectedGood, dwQuantity, dwEventText;
+  let dwDebt, dwBank;
+  const DW_LOCATIONS = ['Bronx', 'Ghetto', 'Central Park', 'Manhattan', 'Brooklyn', 'Queens'];
+  const DW_GOODS = [
+    { name: 'Lemonade', min: 15, max: 80 },
+    { name: 'Brownies', min: 40, max: 200 },
+    { name: 'Comics', min: 100, max: 600 },
+    { name: 'Vinyl', min: 300, max: 1200 },
+    { name: 'Sneakers', min: 600, max: 3000 },
+    { name: 'Gadgets', min: 1500, max: 8000 }
+  ];
+  let dwHolding; // { [goodIndex]: count }
+  let dwButtons; // clickable regions on canvas
+
+  function setupDopeWarsCanvas() {
+    dwCanvas = $('dopewarsCanvas');
+    if (dwCanvas) { dwCanvas.width = DW_W; dwCanvas.height = DW_H; dwCtx = dwCanvas.getContext('2d'); }
+  }
+
+  function startDopeWarsGameLoop() {
+    dwGameLoopActive = true;
+    function loop() { if (!dwGameLoopActive) return; dwRender(); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  }
+
+  function startDopeWarsGame() {
+    dwCash = 2000; dwDay = 1; dwMaxDays = 30; dwMaxSlots = 100;
+    dwLocation = 0; dwScreen = 'main'; dwSelectedGood = -1; dwQuantity = 0;
+    dwEventText = null; dwDebt = 5000; dwBank = 0;
+    dwHolding = {};
+    dwButtons = [];
+    dwGeneratePrices();
+    showScreen('dopewars');
+    $('dwCash').textContent = '$' + dwCash; $('dwDay').textContent = dwDay + '/' + dwMaxDays; $('dwSpace').textContent = dwUsedSlots() + '/' + dwMaxSlots;
+    if (dwCanvas) {
+      dwCanvas.onclick = dwHandleClick;
+      dwCanvas.ontouchstart = function(e) { e.preventDefault(); const t = e.touches[0]; const rect = dwCanvas.getBoundingClientRect(); dwHandleClickAt(t.clientX - rect.left, t.clientY - rect.top); };
+    }
+    const newBtn = $('btnDwNewGame'); if (newBtn) newBtn.onclick = startDopeWarsGame;
+    const quitBtn = $('btnDwQuit'); if (quitBtn) quitBtn.onclick = () => { dwGameLoopActive = false; showScreen('lobby'); };
+  }
+
+  function dwUsedSlots() {
+    let total = 0; for (const k in dwHolding) total += dwHolding[k]; return total;
+  }
+
+  function dwGeneratePrices() {
+    dwPrices = DW_GOODS.map(g => g.min + Math.floor(Math.random() * (g.max - g.min)));
+  }
+
+  function dwHandleClick(e) {
+    const rect = dwCanvas.getBoundingClientRect();
+    dwHandleClickAt(e.clientX - rect.left, e.clientY - rect.top);
+  }
+
+  function dwHandleClickAt(mx, my) {
+    for (const b of dwButtons) {
+      if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+        b.action();
+        return;
+      }
+    }
+  }
+
+  function dwTravel(locIdx) {
+    dwLocation = locIdx; dwDay++;
+    dwGeneratePrices();
+    // Random event
+    const ev = Math.random();
+    if (ev < 0.08) {
+      const gi = Math.floor(Math.random() * DW_GOODS.length);
+      dwPrices[gi] = Math.floor(dwPrices[gi] * 0.2);
+      dwEventText = DW_GOODS[gi].name + ' prices crashed!';
+      dwScreen = 'event';
+    } else if (ev < 0.16) {
+      const gi = Math.floor(Math.random() * DW_GOODS.length);
+      dwPrices[gi] = Math.floor(dwPrices[gi] * 4);
+      dwEventText = DW_GOODS[gi].name + ' prices skyrocketed!';
+      dwScreen = 'event';
+    } else if (ev < 0.22) {
+      const lost = Math.floor(dwCash * 0.15);
+      dwCash = Math.max(0, dwCash - lost);
+      dwEventText = 'You got mugged! Lost $' + lost;
+      dwScreen = 'event';
+    } else if (ev < 0.28) {
+      const found = 200 + Math.floor(Math.random() * 800);
+      dwCash += found;
+      dwEventText = 'You found $' + found + ' on the ground!';
+      dwScreen = 'event';
+    } else {
+      dwScreen = 'main';
+    }
+    // Daily interest on debt
+    if (dwDebt > 0) dwDebt = Math.floor(dwDebt * 1.05);
+    if (dwDay > dwMaxDays) { dwEndGame(); return; }
+    dwUpdateHUD();
+  }
+
+  function dwUpdateHUD() {
+    $('dwCash').textContent = '$' + dwCash;
+    $('dwDay').textContent = dwDay + '/' + dwMaxDays;
+    $('dwSpace').textContent = dwUsedSlots() + '/' + dwMaxSlots;
+  }
+
+  function dwEndGame() {
+    // Sell all remaining at current prices
+    let sellValue = 0;
+    for (const k in dwHolding) sellValue += (dwHolding[k] || 0) * dwPrices[k];
+    const finalCash = dwCash + sellValue + dwBank - dwDebt;
+    $('gameOverTitle').textContent = 'Game Over';
+    $('gameOverReason').textContent = 'Final Worth: $' + finalCash;
+    $('gameOverRating').innerHTML = ''; $('gameOverCoins').textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    if (finalCash > 20000 && typeof startConfetti === 'function') startConfetti();
+    const btn = $('btnBackToLobby'); if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); dwGameLoopActive = false; showScreen('lobby'); };
+    const pa = $('btnPlayAgain'); if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startDopeWarsGame(); };
+  }
+
+  function dwDrawButton(ctx, x, y, w, h, text, color) {
+    ctx.fillStyle = color || '#2a2a4e';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#5a5a8e'; ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = '#ffffff'; ctx.font = '14px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(text, x + w/2, y + h/2 + 5);
+    dwButtons.push({ x, y, w, h, action: null });
+    return dwButtons[dwButtons.length - 1];
+  }
+
+  function dwRender() {
+    if (!dwCtx) return;
+    const ctx = dwCtx;
+    dwButtons = [];
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, DW_W, DW_H);
+
+    ctx.textAlign = 'left'; ctx.fillStyle = '#ffcc00'; ctx.font = 'bold 18px monospace';
+    ctx.fillText('Day ' + dwDay + '/' + dwMaxDays + '  |  ' + DW_LOCATIONS[dwLocation], 15, 30);
+    ctx.fillStyle = '#aaaaaa'; ctx.font = '14px monospace';
+    ctx.fillText('Cash: $' + dwCash + '  Debt: $' + dwDebt + '  Bank: $' + dwBank, 15, 52);
+    ctx.fillText('Inventory: ' + dwUsedSlots() + '/' + dwMaxSlots, 15, 70);
+
+    if (dwScreen === 'event') {
+      ctx.fillStyle = '#ff6644'; ctx.font = 'bold 20px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('EVENT!', DW_W/2, 150);
+      ctx.fillStyle = '#ffffff'; ctx.font = '16px monospace';
+      const lines = dwEventText.length > 40 ? [dwEventText.substring(0, 40), dwEventText.substring(40)] : [dwEventText];
+      lines.forEach((line, i) => ctx.fillText(line, DW_W/2, 190 + i * 24));
+      const b = dwDrawButton(ctx, DW_W/2 - 60, 260, 120, 36, 'Continue');
+      b.action = () => { dwScreen = 'main'; };
+      return;
+    }
+
+    if (dwScreen === 'buy' || dwScreen === 'sell') {
+      const gi = dwSelectedGood;
+      const good = DW_GOODS[gi];
+      const price = dwPrices[gi];
+      const held = dwHolding[gi] || 0;
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center';
+      ctx.fillText((dwScreen === 'buy' ? 'Buy ' : 'Sell ') + good.name, DW_W/2, 120);
+      ctx.fillText('Price: $' + price + '  |  Holding: ' + held, DW_W/2, 150);
+      const maxBuy = Math.min(Math.floor(dwCash / price), dwMaxSlots - dwUsedSlots());
+      const maxSell = held;
+      const maxQty = dwScreen === 'buy' ? maxBuy : maxSell;
+      ctx.fillText('Quantity: ' + dwQuantity + '  (max ' + maxQty + ')', DW_W/2, 190);
+      // +1, +10, +Max, -1, -10
+      const bw = 60, bh = 32, bsy = 210;
+      const b1 = dwDrawButton(ctx, 40, bsy, bw, bh, '+1'); b1.action = () => { dwQuantity = Math.min(dwQuantity + 1, maxQty); };
+      const b2 = dwDrawButton(ctx, 110, bsy, bw, bh, '+10'); b2.action = () => { dwQuantity = Math.min(dwQuantity + 10, maxQty); };
+      const b3 = dwDrawButton(ctx, 180, bsy, bw, bh, 'Max'); b3.action = () => { dwQuantity = maxQty; };
+      const b4 = dwDrawButton(ctx, 260, bsy, bw, bh, '-1'); b4.action = () => { dwQuantity = Math.max(0, dwQuantity - 1); };
+      const b5 = dwDrawButton(ctx, 340, bsy, bw, bh, '-10'); b5.action = () => { dwQuantity = Math.max(0, dwQuantity - 10); };
+      // Confirm / Cancel
+      const bc = dwDrawButton(ctx, 100, 270, 120, 36, 'Confirm', '#336633');
+      bc.action = () => {
+        if (dwQuantity <= 0) return;
+        if (dwScreen === 'buy') {
+          const cost = dwQuantity * price;
+          if (cost > dwCash || dwUsedSlots() + dwQuantity > dwMaxSlots) return;
+          dwCash -= cost; dwHolding[gi] = (dwHolding[gi] || 0) + dwQuantity;
+        } else {
+          if (dwQuantity > held) return;
+          dwCash += dwQuantity * price; dwHolding[gi] -= dwQuantity;
+          if (dwHolding[gi] <= 0) delete dwHolding[gi];
+        }
+        dwUpdateHUD(); dwScreen = 'main'; dwQuantity = 0;
+      };
+      const bx = dwDrawButton(ctx, 260, 270, 120, 36, 'Cancel', '#663333');
+      bx.action = () => { dwScreen = 'main'; dwQuantity = 0; };
+      return;
+    }
+
+    // Main screen - goods list
+    ctx.fillStyle = '#cccccc'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('GOOD', 20, 100); ctx.fillText('PRICE', 150, 100); ctx.fillText('HELD', 250, 100);
+    for (let i = 0; i < DW_GOODS.length; i++) {
+      const y = 120 + i * 40;
+      ctx.fillStyle = '#ffffff'; ctx.font = '14px monospace'; ctx.textAlign = 'left';
+      ctx.fillText(DW_GOODS[i].name, 20, y + 14);
+      ctx.fillText('$' + dwPrices[i], 150, y + 14);
+      ctx.fillText('' + (dwHolding[i] || 0), 250, y + 14);
+      const bb = dwDrawButton(ctx, 310, y - 2, 55, 26, 'Buy');
+      bb.action = ((idx) => () => { dwSelectedGood = idx; dwQuantity = 0; dwScreen = 'buy'; })(i);
+      const bs = dwDrawButton(ctx, 375, y - 2, 55, 26, 'Sell');
+      bs.action = ((idx) => () => { dwSelectedGood = idx; dwQuantity = 0; dwScreen = 'sell'; })(i);
+    }
+
+    // Bank & Debt
+    const bankY = 370;
+    ctx.fillStyle = '#aaaaaa'; ctx.font = '13px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('Bank: $' + dwBank + '  |  Debt: $' + dwDebt, 20, bankY);
+    const bDep = dwDrawButton(ctx, 20, bankY + 10, 80, 28, 'Deposit');
+    bDep.action = () => { const amt = Math.min(dwCash, 1000); if (amt > 0) { dwCash -= amt; dwBank += amt; dwUpdateHUD(); } };
+    const bWith = dwDrawButton(ctx, 110, bankY + 10, 80, 28, 'Withdraw');
+    bWith.action = () => { const amt = Math.min(dwBank, 1000); if (amt > 0) { dwBank -= amt; dwCash += amt; dwUpdateHUD(); } };
+    const bPay = dwDrawButton(ctx, 200, bankY + 10, 100, 28, 'Pay Debt');
+    bPay.action = () => { const amt = Math.min(dwCash, dwDebt); if (amt > 0) { dwCash -= amt; dwDebt -= amt; dwUpdateHUD(); } };
+
+    // Travel buttons
+    ctx.fillStyle = '#ffcc00'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('TRAVEL TO:', 20, 440);
+    for (let i = 0; i < DW_LOCATIONS.length; i++) {
+      if (i === dwLocation) continue;
+      const col = Math.floor(i > dwLocation ? i - 1 : i) % 3;
+      const row = Math.floor((i > dwLocation ? i - 1 : i) / 3);
+      const bx = 20 + col * 155, by = 460 + row * 40;
+      const bt = dwDrawButton(ctx, bx, by, 145, 32, DW_LOCATIONS[i], '#1a3a5e');
+      bt.action = ((idx) => () => dwTravel(idx))(i);
+    }
+  }
+
+  /* ================================================
+     MISSILE COMMAND
+     ================================================ */
+  let mcCanvas, mcCtx, mcGameLoopActive = false;
+  const MC_W = 600, MC_H = 500;
+  let mcScore, mcWave, mcCities, mcBatteries, mcMissiles, mcCounters, mcExplosions;
+  let mcGameOver, mcWaveActive, mcWaveTimer, mcMissilesLeft, mcStars;
+
+  function setupMissileCommandCanvas() {
+    mcCanvas = $('missilecommandCanvas');
+    if (mcCanvas) { mcCanvas.width = MC_W; mcCanvas.height = MC_H; mcCtx = mcCanvas.getContext('2d'); }
+  }
+
+  function startMissileCommandGameLoop() {
+    mcGameLoopActive = true;
+    function loop() { if (!mcGameLoopActive) return; mcUpdate(); mcRender(); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  }
+
+  function startMissileCommandGame() {
+    mcScore = 0; mcWave = 1; mcGameOver = false; mcWaveActive = true; mcWaveTimer = 0;
+    mcMissiles = []; mcCounters = []; mcExplosions = [];
+    // 6 cities
+    mcCities = [];
+    const cityPositions = [60, 130, 200, 380, 450, 520];
+    for (const x of cityPositions) mcCities.push({ x, alive: true });
+    // 3 batteries
+    mcBatteries = [
+      { x: 30, ammo: 10 },
+      { x: MC_W / 2, ammo: 10 },
+      { x: MC_W - 30, ammo: 10 }
+    ];
+    // Stars
+    mcStars = [];
+    for (let i = 0; i < 60; i++) mcStars.push({ x: Math.random() * MC_W, y: Math.random() * (MC_H - 80), bright: Math.random() });
+    mcMissilesLeft = 5 + mcWave * 2;
+    showScreen('missilecommand');
+    $('mcScore').textContent = '0'; $('mcWave').textContent = '1'; $('mcCities').textContent = '6';
+    if (mcCanvas) {
+      mcCanvas.onclick = mcHandleClick;
+      mcCanvas.ontouchstart = function(e) { e.preventDefault(); const t = e.touches[0]; const rect = mcCanvas.getBoundingClientRect(); mcFireAt(t.clientX - rect.left, t.clientY - rect.top); };
+    }
+    const newBtn = $('btnMcNewGame'); if (newBtn) newBtn.onclick = startMissileCommandGame;
+    const quitBtn = $('btnMcQuit'); if (quitBtn) quitBtn.onclick = () => { mcGameLoopActive = false; showScreen('lobby'); };
+  }
+
+  function mcHandleClick(e) {
+    if (mcGameOver) return;
+    const rect = mcCanvas.getBoundingClientRect();
+    mcFireAt(e.clientX - rect.left, e.clientY - rect.top);
+  }
+
+  function mcFireAt(tx, ty) {
+    if (mcGameOver || ty > MC_H - 60) return;
+    // Find nearest battery with ammo
+    let best = -1, bestDist = Infinity;
+    for (let i = 0; i < mcBatteries.length; i++) {
+      if (mcBatteries[i].ammo <= 0) continue;
+      const d = Math.abs(mcBatteries[i].x - tx);
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    if (best < 0) return;
+    mcBatteries[best].ammo--;
+    const bx = mcBatteries[best].x, by = MC_H - 50;
+    const dx = tx - bx, dy = ty - by;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const speed = 5;
+    mcCounters.push({
+      x: bx, y: by, tx, ty,
+      vx: (dx / dist) * speed, vy: (dy / dist) * speed,
+      trail: []
+    });
+  }
+
+  function mcUpdate() {
+    if (mcGameOver) return;
+    // Spawn incoming missiles
+    mcWaveTimer++;
+    if (mcWaveActive && mcMissilesLeft > 0 && mcWaveTimer % Math.max(20, 80 - mcWave * 5) === 0) {
+      mcMissilesLeft--;
+      const tx = mcCities.filter(c => c.alive);
+      if (tx.length === 0) { mcEndGame(); return; }
+      const target = tx[Math.floor(Math.random() * tx.length)];
+      const sx = Math.random() * MC_W;
+      const speed = 0.5 + mcWave * 0.15;
+      const dx = target.x - sx, dy = (MC_H - 30) - 0;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      mcMissiles.push({ x: sx, y: 0, vx: (dx/dist)*speed, vy: (dy/dist)*speed, trail: [] });
+    }
+
+    // Update incoming missiles
+    for (let i = mcMissiles.length - 1; i >= 0; i--) {
+      const m = mcMissiles[i];
+      m.trail.push({ x: m.x, y: m.y });
+      if (m.trail.length > 30) m.trail.shift();
+      m.x += m.vx; m.y += m.vy;
+      // Hit ground
+      if (m.y >= MC_H - 30) {
+        // Check city damage
+        for (const c of mcCities) {
+          if (c.alive && Math.abs(c.x - m.x) < 25) c.alive = false;
+        }
+        mcExplosions.push({ x: m.x, y: m.y, r: 0, maxR: 25, growing: true });
+        mcMissiles.splice(i, 1);
+        $('mcCities').textContent = mcCities.filter(c => c.alive).length;
+        continue;
+      }
+      // Check if hit by explosion
+      let destroyed = false;
+      for (const ex of mcExplosions) {
+        const dx = m.x - ex.x, dy = m.y - ex.y;
+        if (Math.sqrt(dx*dx + dy*dy) < ex.r) {
+          mcScore += 25;
+          mcExplosions.push({ x: m.x, y: m.y, r: 0, maxR: 20, growing: true });
+          mcMissiles.splice(i, 1);
+          destroyed = true;
+          break;
+        }
+      }
+      if (destroyed) continue;
+    }
+
+    // Update counter-missiles
+    for (let i = mcCounters.length - 1; i >= 0; i--) {
+      const c = mcCounters[i];
+      c.trail.push({ x: c.x, y: c.y });
+      if (c.trail.length > 15) c.trail.shift();
+      c.x += c.vx; c.y += c.vy;
+      const dx = c.x - c.tx, dy = c.y - c.ty;
+      if (Math.sqrt(dx*dx + dy*dy) < 8) {
+        mcExplosions.push({ x: c.tx, y: c.ty, r: 0, maxR: 35, growing: true });
+        mcCounters.splice(i, 1);
+      }
+    }
+
+    // Update explosions
+    for (let i = mcExplosions.length - 1; i >= 0; i--) {
+      const ex = mcExplosions[i];
+      if (ex.growing) {
+        ex.r += 1.2;
+        if (ex.r >= ex.maxR) ex.growing = false;
+      } else {
+        ex.r -= 0.8;
+        if (ex.r <= 0) { mcExplosions.splice(i, 1); }
+      }
+    }
+
+    // Check wave complete
+    if (mcMissilesLeft <= 0 && mcMissiles.length === 0 && mcExplosions.length === 0) {
+      // Wave bonus
+      const alive = mcCities.filter(c => c.alive).length;
+      if (alive === 0) { mcEndGame(); return; }
+      mcScore += alive * 100;
+      mcWave++;
+      $('mcScore').textContent = mcScore; $('mcWave').textContent = mcWave;
+      mcMissilesLeft = 5 + mcWave * 2;
+      // Refill ammo
+      for (const b of mcBatteries) b.ammo = 10;
+      mcWaveTimer = 0;
+    }
+
+    // Check all cities dead
+    if (!mcCities.some(c => c.alive)) mcEndGame();
+    $('mcScore').textContent = mcScore;
+  }
+
+  function mcEndGame() {
+    mcGameOver = true;
+    $('gameOverTitle').textContent = 'Game Over';
+    $('gameOverReason').textContent = 'Score: ' + mcScore + ' | Waves: ' + mcWave;
+    $('gameOverRating').innerHTML = ''; $('gameOverCoins').textContent = '';
+    $('gameOverOverlay').classList.remove('hidden');
+    if (mcScore > 2000 && typeof startConfetti === 'function') startConfetti();
+    const btn = $('btnBackToLobby'); if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); mcGameLoopActive = false; showScreen('lobby'); };
+    const pa = $('btnPlayAgain'); if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startMissileCommandGame(); };
+  }
+
+  function mcRender() {
+    if (!mcCtx) return;
+    const ctx = mcCtx;
+    // Night sky
+    ctx.fillStyle = '#050520'; ctx.fillRect(0, 0, MC_W, MC_H);
+    // Stars
+    if (mcStars) for (const s of mcStars) {
+      const b = 0.3 + s.bright * 0.7;
+      ctx.fillStyle = 'rgba(255,255,255,' + b.toFixed(2) + ')';
+      ctx.fillRect(s.x, s.y, 2, 2);
+    }
+    // Ground
+    ctx.fillStyle = '#1a3300'; ctx.fillRect(0, MC_H - 30, MC_W, 30);
+
+    // Cities
+    if (mcCities) for (const c of mcCities) {
+      if (c.alive) {
+        ctx.fillStyle = '#3366ff';
+        // Simple building silhouettes
+        ctx.fillRect(c.x - 12, MC_H - 50, 8, 20);
+        ctx.fillRect(c.x - 2, MC_H - 55, 10, 25);
+        ctx.fillRect(c.x + 10, MC_H - 45, 7, 15);
+      } else {
+        ctx.fillStyle = '#333333';
+        ctx.fillRect(c.x - 8, MC_H - 35, 16, 5);
+      }
+    }
+
+    // Batteries
+    if (mcBatteries) for (const b of mcBatteries) {
+      ctx.fillStyle = '#33cc33';
+      ctx.beginPath(); ctx.moveTo(b.x - 12, MC_H - 30); ctx.lineTo(b.x, MC_H - 50); ctx.lineTo(b.x + 12, MC_H - 30); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#aaffaa'; ctx.font = '10px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(b.ammo, b.x, MC_H - 18);
+    }
+
+    // Incoming missile trails
+    for (const m of mcMissiles) {
+      ctx.strokeStyle = '#ff3333'; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (m.trail.length > 0) {
+        ctx.moveTo(m.trail[0].x, m.trail[0].y);
+        for (const p of m.trail) ctx.lineTo(p.x, p.y);
+        ctx.lineTo(m.x, m.y);
+      }
+      ctx.stroke();
+      ctx.fillStyle = '#ff6666'; ctx.beginPath(); ctx.arc(m.x, m.y, 3, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Counter-missile trails
+    for (const c of mcCounters) {
+      ctx.strokeStyle = '#33aaff'; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (c.trail.length > 0) {
+        ctx.moveTo(c.trail[0].x, c.trail[0].y);
+        for (const p of c.trail) ctx.lineTo(p.x, p.y);
+        ctx.lineTo(c.x, c.y);
+      }
+      ctx.stroke();
+      ctx.fillStyle = '#66ccff'; ctx.beginPath(); ctx.arc(c.x, c.y, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Explosions
+    for (const ex of mcExplosions) {
+      const a = ex.r / ex.maxR;
+      ctx.fillStyle = 'rgba(255,' + Math.floor(150 * a) + ',0,' + (0.8 * a).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,200,50,' + (0.5 * a).toFixed(2) + ')'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ex.x, ex.y, ex.r * 1.1, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // Crosshair cursor indicator
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
   }
 
   /* ================================================
