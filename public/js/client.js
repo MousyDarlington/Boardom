@@ -6631,11 +6631,11 @@
   const PT_W = 800, PT_H = 400;
   const POOL_R = 10;
   const POOL_POCKET_R = 18;
-  const POOL_FRICTION = 0.985;
-  const POOL_STOP = 0.1;
+  const POOL_FRICTION = 0.99;
+  const POOL_STOP = 0.2;
   const POOL_DT = 1 / 120;
   const POOL_MAX_POWER = 20;
-  const POOL_POWER_SCALE = 40;
+  const POOL_POWER_SCALE = 50;
   const MAX_STEPS_LOCAL = 10000;
   const POOL_POCKETS = [
     { x: 0, y: 0 }, { x: PT_W / 2, y: 0 }, { x: PT_W, y: 0 },
@@ -7061,7 +7061,7 @@
       cue.vy = Math.sin(data.shotAngle) * data.shotPower * POOL_POWER_SCALE;
       poolAnimBalls = preBalls;
       poolAnimating = true;
-      poolAnimStepsLeft = 600; // max frames
+      poolAnimStepsLeft = 1500; // max anim steps
 
       // Update authoritative state (will snap to when animation ends)
       if (!poolLocal) {
@@ -7078,7 +7078,7 @@
     if (!poolAnimBalls) { poolAnimating = false; return; }
 
     // Run multiple physics substeps per frame for smooth animation
-    const subsPerFrame = 4;
+    const subsPerFrame = 8;
     for (let sub = 0; sub < subsPerFrame; sub++) {
       let allStopped = true;
 
