@@ -7179,7 +7179,7 @@
       cue.vy = Math.sin(data.shotAngle) * data.shotPower * POOL_POWER_SCALE;
       poolAnimBalls = preBalls;
       poolAnimating = true;
-      poolAnimStepsLeft = 2500;
+      poolAnimStepsLeft = 4000;
 
       // Save authoritative end state (snapped to when animation finishes)
       if (!poolLocal) {
@@ -7202,8 +7202,8 @@
       const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
       if (spd > maxSpd) maxSpd = spd;
     }
-    // sqrt mapping: fast (1200) → ~14, medium (100) → ~6, slow (10) → ~3, crawl → 2
-    const subsPerFrame = Math.max(2, Math.min(16, Math.round(2 + Math.sqrt(maxSpd) * 0.35)));
+    // Gentle curve: fast (1200) → 4, medium (200) → 3, slow → 2 (near real-time)
+    const subsPerFrame = Math.max(2, Math.min(4, Math.round(2 + Math.sqrt(maxSpd) * 0.05)));
 
     for (let sub = 0; sub < subsPerFrame; sub++) {
       let allStopped = true;
