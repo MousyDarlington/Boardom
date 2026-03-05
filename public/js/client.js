@@ -4328,6 +4328,7 @@
   }
 
   function startScrabbleGameLoop() {
+    if (scrabbleGameLoopActive) return;
     scrabbleGameLoopActive = true;
     scrabbleLastFrame = performance.now();
     requestAnimationFrame(scrabbleGameLoop);
@@ -5970,6 +5971,7 @@
   }
 
   function startC4GameLoop() {
+    if (c4GameLoopActive) return;
     c4GameLoopActive = true;
     function loop() {
       if (!c4GameLoopActive) return;
@@ -6319,6 +6321,7 @@
   }
 
   function startBSGameLoop() {
+    if (bsGameLoopActive) return;
     bsGameLoopActive = true;
     function loop() {
       if (!bsGameLoopActive) return;
@@ -6557,6 +6560,7 @@
   }
 
   function startMancalaGameLoop() {
+    if (mnGameLoopActive) return;
     mnGameLoopActive = true;
     function loop() {
       if (!mnGameLoopActive) return;
@@ -6909,6 +6913,7 @@
   }
 
   function startPoolGameLoop() {
+    if (poolGameLoopActive) return;
     poolGameLoopActive = true;
     function loop() {
       if (!poolGameLoopActive) return;
@@ -8121,6 +8126,7 @@
   }
 
   function startMahjongGameLoop() {
+    if (mjGameLoopActive) return;
     mjGameLoopActive = true;
     function loop() {
       if (!mjGameLoopActive) return;
@@ -10108,6 +10114,7 @@
   }
 
   function startMinesweeperGameLoop() {
+    if (msGameLoopActive) return;
     msGameLoopActive = true;
     function loop() { if (!msGameLoopActive) return; msRender(); requestAnimationFrame(loop); }
     requestAnimationFrame(loop);
@@ -10294,6 +10301,7 @@
   }
 
   function startSIGameLoop() {
+    if (siGameLoopActive) return;
     siGameLoopActive = true;
     siLastTime = performance.now();
     function loop(now) { if (!siGameLoopActive) return; const dt = Math.min((now - siLastTime) / 16.667, 3); siLastTime = now; if (!siGameOver) siUpdate(dt); siRender(); requestAnimationFrame(loop); }
@@ -10472,6 +10480,7 @@
   }
 
   function startTetrisGameLoop() {
+    if (tetGameLoopActive) return;
     tetGameLoopActive = true;
     tetLastTime = performance.now();
     function loop(now) { if (!tetGameLoopActive) return; const dt = Math.min((now - tetLastTime) / 16.667, 3); tetLastTime = now; if (!tetGameOver) tetUpdate(dt); tetRender(); requestAnimationFrame(loop); }
@@ -10674,6 +10683,7 @@
   }
 
   function startColumnsGameLoop() {
+    if (colGameLoopActive) return;
     colGameLoopActive = true;
     colLastTime = performance.now();
     function loop(now) { if (!colGameLoopActive) return; const dt = Math.min((now - colLastTime) / 16.667, 3); colLastTime = now; if (!colGameOver) colUpdate(dt); colRender(); requestAnimationFrame(loop); }
@@ -10871,6 +10881,7 @@
   }
 
   function startLightsOutGameLoop() {
+    if (loGameLoopActive) return;
     loGameLoopActive = true;
     function loop() { if (!loGameLoopActive) return; loRender(); requestAnimationFrame(loop); }
     requestAnimationFrame(loop);
@@ -10985,6 +10996,7 @@
   }
 
   function startHelicopterGameLoop() {
+    if (hcGameLoopActive) return;
     hcGameLoopActive = true;
     hcLastTime = performance.now();
     function loop(now) { if (!hcGameLoopActive) return; const dt = Math.min((now - hcLastTime) / 16.667, 3); hcLastTime = now; hcUpdate(dt); hcRender(); requestAnimationFrame(loop); }
@@ -11192,6 +11204,7 @@
   }
 
   function startDopeWarsGameLoop() {
+    if (dwGameLoopActive) return;
     dwGameLoopActive = true;
     function loop() { if (!dwGameLoopActive) return; dwRender(); requestAnimationFrame(loop); }
     requestAnimationFrame(loop);
@@ -11415,6 +11428,7 @@
   }
 
   function startMissileCommandGameLoop() {
+    if (mcGameLoopActive) return;
     mcGameLoopActive = true;
     mcLastTime = performance.now();
     function loop(now) { if (!mcGameLoopActive) return; const dt = Math.min((now - mcLastTime) / 16.667, 3); mcLastTime = now; mcUpdate(dt); mcRender(); requestAnimationFrame(loop); }
