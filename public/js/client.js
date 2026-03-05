@@ -9093,6 +9093,7 @@
   }
 
   function startPinballGameLoop() {
+    if (pbGameLoopActive) return; // prevent duplicate loops stacking on Play Again
     pbGameLoopActive = true;
     pbLastTime = performance.now();
     function loop(now) {
@@ -9189,8 +9190,8 @@
         pbBall.x = b.x + nx * minDist;
         pbBall.y = b.y + ny * minDist;
         const dot = pbBall.vx * nx + pbBall.vy * ny;
-        pbBall.vx = (pbBall.vx - 2 * dot * nx) * PB_BUMPER_REST;
-        pbBall.vy = (pbBall.vy - 2 * dot * ny) * PB_BUMPER_REST;
+        pbBall.vx -= (1 + PB_BUMPER_REST) * dot * nx;
+        pbBall.vy -= (1 + PB_BUMPER_REST) * dot * ny;
         pbBumperFlash[i] = 15;
         pbAddScore(100);
       }
@@ -9226,23 +9227,25 @@
     const ex = w.x2 - w.x1, ey = w.y2 - w.y1;
     const len = Math.sqrt(ex * ex + ey * ey);
     if (len === 0) return;
-    const nx = -ey / len, ny = ex / len;
+    let nx = -ey / len, ny = ex / len;
     const dx = pbBall.x - w.x1, dy = pbBall.y - w.y1;
-    const dist = dx * nx + dy * ny;
-    if (Math.abs(dist) > PB_BALL_R) return;
+    let dist = dx * nx + dy * ny;
+    // Ensure normal faces toward the ball so collision works from either side
+    if (dist < 0) { nx = -nx; ny = -ny; dist = -dist; }
+    if (dist > PB_BALL_R) return;
     const t = (dx * ex + dy * ey) / (len * len);
     if (t < 0 || t > 1) return;
     const dot = pbBall.vx * nx + pbBall.vy * ny;
-    if (dot > 0) return;
-    pbBall.vx -= 2 * dot * nx * PB_WALL_REST;
-    pbBall.vy -= 2 * dot * ny * PB_WALL_REST;
+    if (dot > 0) return; // moving away from wall
+    pbBall.vx -= (1 + PB_WALL_REST) * dot * nx;
+    pbBall.vy -= (1 + PB_WALL_REST) * dot * ny;
     pbBall.x += nx * (PB_BALL_R - dist);
     pbBall.y += ny * (PB_BALL_R - dist);
   }
 
   function pbCollideWithFlipper(pivot, angle, dir, isActive) {
-    const tipX = pivot.x + Math.cos(angle * dir) * PB_FLIPPER_LEN * dir;
-    const tipY = pivot.y + Math.sin(angle * dir) * PB_FLIPPER_LEN;
+    const tipX = pivot.x + Math.cos(angle) * PB_FLIPPER_LEN * dir;
+    const tipY = pivot.y + Math.sin(angle) * PB_FLIPPER_LEN;
     const d = pbPointToSegmentDist(pbBall.x, pbBall.y, pivot.x, pivot.y, tipX, tipY);
     if (d < PB_BALL_R + PB_FLIPPER_HW) {
       // Push ball away from flipper
@@ -9454,8 +9457,8 @@
   }
 
   function pbDrawFlipper(ctx, pivot, angle, dir) {
-    const tipX = pivot.x + Math.cos(angle * dir) * PB_FLIPPER_LEN * dir;
-    const tipY = pivot.y + Math.sin(angle * dir) * PB_FLIPPER_LEN;
+    const tipX = pivot.x + Math.cos(angle) * PB_FLIPPER_LEN * dir;
+    const tipY = pivot.y + Math.sin(angle) * PB_FLIPPER_LEN;
     const perpX = -Math.sin(angle * dir) * dir;
     const perpY = Math.cos(angle * dir);
 
