@@ -2056,6 +2056,8 @@
     }
 
     $('gameOverOverlay').classList.remove('hidden');
+    const pa = $('btnPlayAgain');
+    if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); showScreen('lobby'); };
 
     if ((gameMode === 'local' || isWin) && gameMode !== 'local') {
       sfxWin();
@@ -3907,6 +3909,8 @@
     }
 
     $('gameOverOverlay').classList.remove('hidden');
+    const pa = $('btnPlayAgain');
+    if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); showScreen('lobby'); };
 
     if (isWin || troubleIsLocal) {
       sfxWin();
@@ -4767,6 +4771,8 @@
     }
 
     $('gameOverOverlay').classList.remove('hidden');
+    const pa = $('btnPlayAgain');
+    if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); showScreen('lobby'); };
     if (isWin && !scrabbleIsLocal) {
       sfxKing();
       startConfetti();
@@ -5407,11 +5413,7 @@
     $('btnPlayAgain').addEventListener('click', () => {
       $('gameOverOverlay').classList.add('hidden');
       confettiActive = false;
-      if (currentScreen === 'mahjong') {
-        startMahjongGame();
-      } else {
-        showScreen('lobby');
-      }
+      // Per-game .onclick handlers handle navigation (restart or lobby)
     });
 
     $('btnBackToLobby').addEventListener('click', () => {
@@ -5711,6 +5713,8 @@
     if (coinEl) coinEl.textContent = isWinner ? '+15 coins' : '+5 coins';
 
     $('gameOverOverlay').classList.remove('hidden');
+    const pa = $('btnPlayAgain');
+    if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); showScreen('lobby'); };
     if (isWinner) {
       confettiActive = true;
       spawnConfetti();
@@ -6220,6 +6224,8 @@
     }
 
     $('gameOverOverlay').classList.remove('hidden');
+    const pa = $('btnPlayAgain');
+    if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); showScreen('lobby'); };
     if (isWin || isLocal) { sfxWin(); startConfetti(); } else { sfxLose(); }
   }
 
@@ -8309,6 +8315,8 @@
     const coinEl = $('gameOverCoins');
     if (coinEl) coinEl.textContent = '';
     $('gameOverOverlay').classList.remove('hidden');
+    const pa = $('btnPlayAgain');
+    if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startMahjongGame(); };
     if (isWin) {
       if (typeof sfxWin === 'function') sfxWin();
       if (typeof startConfetti === 'function') startConfetti();
@@ -9894,6 +9902,7 @@
       jbCanvas.onclick = jbHandleClick;
       jbCanvas.oncontextmenu = (e) => { e.preventDefault(); jbHorizontal = !jbHorizontal; };
     }
+    document.removeEventListener('keydown', jbKeyHandler);
     document.addEventListener('keydown', jbKeyHandler);
     const newBtn = $('btnJbNewGame'); if (newBtn) newBtn.onclick = startJezzballGame;
     const quitBtn = $('btnJbQuit'); if (quitBtn) quitBtn.onclick = () => { jbGameLoopActive = false; document.removeEventListener('keydown', jbKeyHandler); showScreen('lobby'); };
