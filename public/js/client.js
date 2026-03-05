@@ -3069,6 +3069,7 @@
   let troubleSelectedToken = -1; // token index being hovered/selected
   let troubleGameLoopActive = false;
   let troubleLastFrame = 0;
+  let troubleStateVersion = 0;   // guards delayed rollResult callbacks from overwriting newer state
 
   /* ================================================
      TROUBLE — CANVAS SETUP & GAME LOOP
@@ -3785,7 +3786,10 @@
   function onTroubleRollResult(data) {
     troubleDiceAnim = { startTime: performance.now(), duration: 500, finalValue: data.diceResult };
 
+    const versionAtSchedule = ++troubleStateVersion;
     setTimeout(() => {
+      // If a trouble:update arrived while we waited, don't overwrite newer state
+      if (troubleStateVersion !== versionAtSchedule) return;
       troubleState.diceResult = data.diceResult;
       troubleState.phase = data.phase;
       troubleState.currentTurn = data.currentTurn;
@@ -3808,6 +3812,7 @@
   }
 
   function onTroubleUpdate(data) {
+    ++troubleStateVersion; // invalidate any pending delayed rollResult callbacks
     // Get pixel pos for particles
     const fromPt = data.fromPos === TROUBLE_HOME
       ? TROUBLE_HOMES[data.player]?.[data.tokenIdx]
@@ -4237,9 +4242,12 @@
         showScreen('lobby');
         return;
       }
-      if (confirm('Resign and let a bot take over?')) {
+      if (confirm('Resign and leave the game?')) {
         socket.emit('trouble:resign');
-        // Stay on the screen — a bot will replace us, game continues
+        troubleGameLoopActive = false;
+        troubleState = null;
+        troubleValidMoves = [];
+        showScreen('lobby');
       }
     });
 
