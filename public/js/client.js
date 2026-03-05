@@ -9035,9 +9035,8 @@
     // Right wall (above plunger lane)
     { x1: 420, y1: 60, x2: 420, y2: 700 },
     { x1: 420, y1: 700, x2: 380, y2: 740 },
-    // Plunger lane walls
+    // Plunger lane wall (right side only — top is open so ball exits into the arc)
     { x1: 460, y1: 60, x2: 460, y2: 760 },
-    { x1: 420, y1: 60, x2: 460, y2: 60 },
     // Top arc segments
     { x1: 40, y1: 60, x2: 100, y2: 25 },
     { x1: 100, y1: 25, x2: 200, y2: 10 },
