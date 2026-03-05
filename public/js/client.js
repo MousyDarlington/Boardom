@@ -9495,6 +9495,7 @@
   }
 
   function startJezzballGameLoop() {
+    if (jbGameLoopActive) return; // prevent duplicate loops stacking on Play Again
     jbGameLoopActive = true;
     jbLastTime = performance.now();
     function loop(now) {
