@@ -8992,6 +8992,7 @@
   /* ================================================
      PINBALL — Single Player Arcade
      ================================================ */
+  // --- Constants ---
   const PB_W = 500, PB_H = 800;
   const PB_BALL_R = 8;
   const PB_GRAVITY = 0.15;
@@ -9006,7 +9007,92 @@
   const PB_PLUNGER_MAX = 25;
   const PB_PLUNGER_RATE = 0.4;
   const PB_MAX_BALLS = 3;
+  const PB_MAX_PARTICLES = 200;
+  const PB_COMBO_WINDOW = 90;
+  const PB_COMBO_MULTS = [1, 1.2, 1.5, 2, 3, 5];
+  const PB_SLINGSHOT_KICK = 10;
+  const PB_KICKBACK_VY = -15;
+  const PB_DROP_RESET_DELAY = 180;
 
+  // --- Flipper pivots ---
+  const pbLeftFlipperPivot = { x: 170, y: 720 };
+  const pbRightFlipperPivot = { x: 330, y: 720 };
+
+  // --- 5 Bumpers (diamond + center) ---
+  const pbBumpers = [
+    { x: 230, y: 160, r: 22 },
+    { x: 150, y: 240, r: 25 },
+    { x: 310, y: 240, r: 25 },
+    { x: 230, y: 310, r: 20 },
+    { x: 230, y: 400, r: 22 }
+  ];
+
+  // --- Walls ---
+  const pbWalls = [
+    { x1: 40, y1: 60, x2: 40, y2: 700 },
+    { x1: 40, y1: 700, x2: 80, y2: 740 },
+    { x1: 120, y1: 690, x2: 120, y2: 740 },
+    { x1: 420, y1: 60, x2: 420, y2: 700 },
+    { x1: 420, y1: 700, x2: 380, y2: 740 },
+    { x1: 460, y1: 60, x2: 460, y2: 760 },
+    { x1: 40, y1: 60, x2: 100, y2: 25 },
+    { x1: 100, y1: 25, x2: 200, y2: 10 },
+    { x1: 200, y1: 10, x2: 300, y2: 10 },
+    { x1: 300, y1: 10, x2: 400, y2: 25 },
+    { x1: 400, y1: 25, x2: 460, y2: 60 },
+    { x1: 80, y1: 550, x2: 65, y2: 590 },
+    { x1: 420, y1: 550, x2: 395, y2: 590 }
+  ];
+
+  // --- Slingshots (triangular kicker pads near flippers) ---
+  const pbSlingshots = [
+    { walls: [
+      { x1: 65, y1: 590, x2: 120, y2: 700 },
+      { x1: 65, y1: 590, x2: 80, y2: 640 },
+      { x1: 80, y1: 640, x2: 120, y2: 700 }
+    ], kickNx: 0.7, kickNy: -0.7, flash: 0 },
+    { walls: [
+      { x1: 395, y1: 590, x2: 340, y2: 700 },
+      { x1: 395, y1: 590, x2: 380, y2: 640 },
+      { x1: 380, y1: 640, x2: 340, y2: 700 }
+    ], kickNx: -0.7, kickNy: -0.7, flash: 0 }
+  ];
+
+  // --- Side targets ---
+  const pbTargets = [
+    { x1: 55, y1: 280, x2: 55, y2: 350 },
+    { x1: 55, y1: 380, x2: 55, y2: 450 },
+    { x1: 405, y1: 280, x2: 405, y2: 350 },
+    { x1: 405, y1: 380, x2: 405, y2: 450 }
+  ];
+
+  // --- Drop target bank (left side) ---
+  const pbDropTargets = [
+    { x1: 100, y1: 440, x2: 100, y2: 465, active: true },
+    { x1: 100, y1: 470, x2: 100, y2: 495, active: true },
+    { x1: 100, y1: 500, x2: 100, y2: 525, active: true }
+  ];
+
+  // --- Spinner ---
+  const pbSpinner = { x: 350, y: 100, width: 40, angle: 0, spinSpeed: 0 };
+
+  // --- Rollover lanes ---
+  const pbRolloverLanes = [
+    { x: 115, y: 50, width: 50, label: 'L', lit: false },
+    { x: 195, y: 40, width: 50, label: 'M', lit: false },
+    { x: 275, y: 50, width: 50, label: 'R', lit: false }
+  ];
+
+  // --- Kickback zone (left outlane) ---
+  const pbKickbackZone = { x: 55, y: 725, width: 50, height: 20 };
+
+  // --- Decorative star positions ---
+  const pbStars = [
+    {x:100,y:100},{x:350,y:130},{x:200,y:480},{x:300,y:520},
+    {x:130,y:460},{x:360,y:360},{x:180,y:350},{x:280,y:170}
+  ];
+
+  // --- State variables ---
   let pbCanvas = null, pbCtx = null;
   let pbGameLoopActive = false, pbLastTime = 0;
   let pbKeysDown = {};
@@ -9015,54 +9101,23 @@
   let pbPlungerCharge = 0, pbPlungerCharging = false, pbBallInPlunger = true;
   let pbLeftFlipperAngle = PB_FLIPPER_REST;
   let pbRightFlipperAngle = PB_FLIPPER_REST;
-  let pbBumperFlash = [0, 0, 0];
+  let pbBumperFlash = [0, 0, 0, 0, 0];
   let pbTargetCooldown = [0, 0, 0, 0];
   let pbGameOver = false;
+  let pbParticles = [];
+  let pbAnimTime = 0;
+  let pbScreenShake = 0, pbScreenShakeIntensity = 0;
+  let pbSpinnerScoreAngle = 0;
+  let pbSkillShotAvailable = true;
+  let pbDropResetTimer = 0;
+  let pbKickbackActive = true;
+  let pbComboCount = 0, pbComboTimer = 0;
+  let pbSlingshotCooldown = [0, 0];
 
-  const pbLeftFlipperPivot = { x: 170, y: 720 };
-  const pbRightFlipperPivot = { x: 330, y: 720 };
-
-  const pbBumpers = [
-    { x: 170, y: 220, r: 25 },
-    { x: 330, y: 180, r: 25 },
-    { x: 250, y: 300, r: 25 }
-  ];
-
-  const pbWalls = [
-    // Left wall
-    { x1: 40, y1: 60, x2: 40, y2: 700 },
-    { x1: 40, y1: 700, x2: 120, y2: 740 },
-    // Right wall (above plunger lane)
-    { x1: 420, y1: 60, x2: 420, y2: 700 },
-    { x1: 420, y1: 700, x2: 380, y2: 740 },
-    // Plunger lane wall (right side only — top is open so ball exits into the arc)
-    { x1: 460, y1: 60, x2: 460, y2: 760 },
-    // Top arc segments
-    { x1: 40, y1: 60, x2: 100, y2: 25 },
-    { x1: 100, y1: 25, x2: 200, y2: 10 },
-    { x1: 200, y1: 10, x2: 300, y2: 10 },
-    { x1: 300, y1: 10, x2: 400, y2: 25 },
-    { x1: 400, y1: 25, x2: 460, y2: 60 },
-    // Slingshots near flippers
-    { x1: 80, y1: 620, x2: 120, y2: 700 },
-    { x1: 420, y1: 620, x2: 380, y2: 700 },
-    // Inner guide walls
-    { x1: 80, y1: 550, x2: 80, y2: 620 },
-    { x1: 420, y1: 550, x2: 420, y2: 620 }
-  ];
-
-  const pbTargets = [
-    { x1: 60, y1: 150, x2: 60, y2: 220 },
-    { x1: 60, y1: 350, x2: 60, y2: 420 },
-    { x1: 440, y1: 120, x2: 440, y2: 190 },
-    { x1: 440, y1: 320, x2: 440, y2: 390 }
-  ];
-
+  // --- Input ---
   function pbKeyDown(e) {
     pbKeysDown[e.key] = true;
-    if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      e.preventDefault();
-    }
+    if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') e.preventDefault();
     if ((e.key === ' ' || e.key === 'ArrowDown') && pbBallInPlunger && !pbPlungerCharging) {
       pbPlungerCharging = true;
       pbPlungerCharge = 0;
@@ -9077,22 +9132,20 @@
         pbBall.vy = -pbPlungerCharge;
         pbBall.vx = -1 + Math.random() * 2;
         pbBallInPlunger = false;
+        pbSkillShotAvailable = true;
       }
       pbPlungerCharge = 0;
     }
   }
 
+  // --- Setup ---
   function setupPinballCanvas() {
     pbCanvas = $('pinballCanvas');
-    if (pbCanvas) {
-      pbCanvas.width = PB_W;
-      pbCanvas.height = PB_H;
-      pbCtx = pbCanvas.getContext('2d');
-    }
+    if (pbCanvas) { pbCanvas.width = PB_W; pbCanvas.height = PB_H; pbCtx = pbCanvas.getContext('2d'); }
   }
 
   function startPinballGameLoop() {
-    if (pbGameLoopActive) return; // prevent duplicate loops stacking on Play Again
+    if (pbGameLoopActive) return;
     pbGameLoopActive = true;
     pbLastTime = performance.now();
     function loop(now) {
@@ -9107,20 +9160,27 @@
   }
 
   function startPinballGame() {
-    pbScore = 0;
-    pbBallNum = 1;
-    pbMultiplier = 1;
-    pbConsecutiveHits = 0;
-    pbGameOver = false;
-    pbBallInPlunger = true;
-    pbPlungerCharge = 0;
-    pbPlungerCharging = false;
+    pbScore = 0; pbBallNum = 1; pbMultiplier = 1; pbConsecutiveHits = 0;
+    pbGameOver = false; pbBallInPlunger = true;
+    pbPlungerCharge = 0; pbPlungerCharging = false;
     pbBall = { x: 440, y: 700, vx: 0, vy: 0 };
     pbLeftFlipperAngle = PB_FLIPPER_REST;
     pbRightFlipperAngle = PB_FLIPPER_REST;
-    pbBumperFlash = [0, 0, 0];
+    pbBumperFlash = [0, 0, 0, 0, 0];
     pbTargetCooldown = [0, 0, 0, 0];
     pbKeysDown = {};
+    pbParticles = [];
+    pbAnimTime = 0;
+    pbScreenShake = 0; pbScreenShakeIntensity = 0;
+    pbSpinner.angle = 0; pbSpinner.spinSpeed = 0; pbSpinnerScoreAngle = 0;
+    pbRolloverLanes.forEach(l => l.lit = false);
+    pbDropTargets.forEach(t => t.active = true);
+    pbDropResetTimer = 0;
+    pbKickbackActive = true;
+    pbSkillShotAvailable = true;
+    pbComboCount = 0; pbComboTimer = 0;
+    pbSlingshotCooldown = [0, 0];
+    pbSlingshots.forEach(s => s.flash = 0);
     $('pbScore').textContent = '0';
     $('pbBallNum').textContent = '1 / 3';
     $('pbMultiplier').textContent = '1x';
@@ -9132,96 +9192,109 @@
     document.addEventListener('keydown', pbKeyDown);
     document.addEventListener('keyup', pbKeyUp);
     showScreen('pinball');
-
-    // Bind buttons
     const newBtn = $('btnPbNewGame');
     if (newBtn) newBtn.onclick = startPinballGame;
     const quitBtn = $('btnPbQuit');
     if (quitBtn) quitBtn.onclick = () => { pbGameLoopActive = false; document.removeEventListener('keydown', pbKeyDown); document.removeEventListener('keyup', pbKeyUp); showScreen('lobby'); };
   }
 
-  function pbUpdate(dt) {
-    if (!dt || dt <= 0) dt = 1;
-    // Update flippers
-    const leftActive = pbKeysDown['ArrowLeft'] || pbKeysDown['a'] || pbKeysDown['A'] || pbKeysDown['z'] || pbKeysDown['Z'];
-    const rightActive = pbKeysDown['ArrowRight'] || pbKeysDown['d'] || pbKeysDown['D'] || pbKeysDown['/'];
-    const leftTarget = leftActive ? PB_FLIPPER_ACTIVE : PB_FLIPPER_REST;
-    const rightTarget = rightActive ? PB_FLIPPER_ACTIVE : PB_FLIPPER_REST;
-    if (pbLeftFlipperAngle < leftTarget) pbLeftFlipperAngle = Math.min(pbLeftFlipperAngle + PB_FLIPPER_SPEED * dt, leftTarget);
-    else if (pbLeftFlipperAngle > leftTarget) pbLeftFlipperAngle = Math.max(pbLeftFlipperAngle - PB_FLIPPER_SPEED * dt, leftTarget);
-    if (pbRightFlipperAngle < rightTarget) pbRightFlipperAngle = Math.min(pbRightFlipperAngle + PB_FLIPPER_SPEED * dt, rightTarget);
-    else if (pbRightFlipperAngle > rightTarget) pbRightFlipperAngle = Math.max(pbRightFlipperAngle - PB_FLIPPER_SPEED * dt, rightTarget);
-
-    // Plunger charge
-    if (pbPlungerCharging) {
-      pbPlungerCharge = Math.min(pbPlungerCharge + PB_PLUNGER_RATE * dt, PB_PLUNGER_MAX);
-    }
-
-    if (pbBallInPlunger) {
-      pbBall.x = 440;
-      pbBall.y = 700 + (pbPlungerCharging ? pbPlungerCharge * 1.5 : 0);
-      return;
-    }
-
-    // Physics
-    pbBall.vy += PB_GRAVITY * dt;
-    const frictionDt = Math.pow(PB_FRICTION, dt);
-    pbBall.vx *= frictionDt;
-    pbBall.vy *= frictionDt;
-    pbBall.x += pbBall.vx * dt;
-    pbBall.y += pbBall.vy * dt;
-
-    // Wall collisions
-    for (const w of pbWalls) {
-      pbCollideLineSegment(w);
-    }
-
-    // Bumper collisions
-    for (let i = 0; i < pbBumpers.length; i++) {
-      const b = pbBumpers[i];
-      const dx = pbBall.x - b.x;
-      const dy = pbBall.y - b.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const minDist = PB_BALL_R + b.r;
-      if (dist < minDist && dist > 0) {
-        const nx = dx / dist;
-        const ny = dy / dist;
-        pbBall.x = b.x + nx * minDist;
-        pbBall.y = b.y + ny * minDist;
-        const dot = pbBall.vx * nx + pbBall.vy * ny;
-        pbBall.vx -= (1 + PB_BUMPER_REST) * dot * nx;
-        pbBall.vy -= (1 + PB_BUMPER_REST) * dot * ny;
-        pbBumperFlash[i] = 15;
-        pbAddScore(100);
-      }
-    }
-
-    // Target collisions
-    for (let i = 0; i < pbTargets.length; i++) {
-      if (pbTargetCooldown[i] > 0) { pbTargetCooldown[i] -= dt; continue; }
-      const t = pbTargets[i];
-      const d = pbPointToSegmentDist(pbBall.x, pbBall.y, t.x1, t.y1, t.x2, t.y2);
-      if (d < PB_BALL_R + 5) {
-        pbTargetCooldown[i] = 120;
-        pbAddScore(50);
-      }
-    }
-
-    // Flipper collisions
-    pbCollideWithFlipper(pbLeftFlipperPivot, pbLeftFlipperAngle, 1, leftActive);
-    pbCollideWithFlipper(pbRightFlipperPivot, pbRightFlipperAngle, -1, rightActive);
-
-    // Decrement bumper flash timers
-    for (let i = 0; i < pbBumperFlash.length; i++) {
-      if (pbBumperFlash[i] > 0) pbBumperFlash[i] -= dt;
-    }
-
-    // Drain detection
-    if (pbBall.y > PB_H + 20) {
-      pbBallDrained();
+  // --- Particle system ---
+  function pbSpawnParticles(x, y, count, r, g, b, speedMin, speedMax, life, size) {
+    for (let i = 0; i < count && pbParticles.length < PB_MAX_PARTICLES; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = speedMin + Math.random() * (speedMax - speedMin);
+      pbParticles.push({ x, y, vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd, life, maxLife: life, r, g, b, size, type: 'circle' });
     }
   }
 
+  function pbSpawnRing(x, y, r, g, b, life) {
+    if (pbParticles.length < PB_MAX_PARTICLES) {
+      pbParticles.push({ x, y, vx: 0, vy: 0, life, maxLife: life, r, g, b, size: 10, type: 'ring' });
+    }
+  }
+
+  function pbSpawnText(x, y, text, r, g, b) {
+    if (pbParticles.length < PB_MAX_PARTICLES) {
+      pbParticles.push({ x, y, vx: 0, vy: -1.5, life: 50, maxLife: 50, r, g, b, size: 14, type: 'text', text });
+    }
+  }
+
+  function pbSpawnSparks(x, y, nx, ny, count) {
+    for (let i = 0; i < count && pbParticles.length < PB_MAX_PARTICLES; i++) {
+      const spread = (Math.random() - 0.5) * 2;
+      pbParticles.push({
+        x, y, vx: nx * (2 + Math.random() * 3) + spread, vy: ny * (2 + Math.random() * 3) + spread,
+        life: 15, maxLife: 15, r: 0, g: 200, b: 255, size: 2, type: 'circle'
+      });
+    }
+  }
+
+  function pbUpdateParticles(dt) {
+    for (let i = pbParticles.length - 1; i >= 0; i--) {
+      const p = pbParticles[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.life -= dt;
+      if (p.type === 'ring') p.size += 2 * dt;
+      if (p.life <= 0) pbParticles.splice(i, 1);
+    }
+  }
+
+  function pbRenderParticles(ctx) {
+    for (const p of pbParticles) {
+      const alpha = Math.max(0, p.life / p.maxLife);
+      if (p.type === 'text') {
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
+        ctx.font = `bold ${p.size}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(p.text, p.x, p.y);
+      } else if (p.type === 'ring') {
+        ctx.globalAlpha = alpha * 0.5;
+        ctx.strokeStyle = `rgb(${p.r},${p.g},${p.b})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // --- Screen shake ---
+  function pbTriggerShake(intensity, duration) {
+    pbScreenShakeIntensity = Math.max(pbScreenShakeIntensity, intensity);
+    pbScreenShake = Math.max(pbScreenShake, duration);
+  }
+
+  // --- Scoring with combo ---
+  function pbAddScore(base, x, y) {
+    if (pbComboTimer > 0) pbComboCount++;
+    else pbComboCount = 1;
+    pbComboTimer = PB_COMBO_WINDOW;
+    const comboMult = PB_COMBO_MULTS[Math.min(pbComboCount - 1, PB_COMBO_MULTS.length - 1)];
+    const points = Math.round(base * pbMultiplier * comboMult);
+    pbScore += points;
+    pbConsecutiveHits++;
+    if (pbConsecutiveHits % 5 === 0 && pbMultiplier < 10) {
+      pbMultiplier++;
+      $('pbMultiplier').textContent = pbMultiplier + 'x';
+    }
+    $('pbScore').textContent = pbScore;
+    if (x !== undefined && y !== undefined) {
+      pbSpawnText(x, y - 15, '+' + points, 255, 255, 255);
+    }
+    if (pbComboCount >= 3) {
+      pbSpawnText(pbBall.x, pbBall.y - 30, pbComboCount + 'x COMBO', 255, 68, 255);
+    }
+  }
+
+  // --- Physics helpers (unchanged) ---
   function pbCollideLineSegment(w) {
     const ex = w.x2 - w.x1, ey = w.y2 - w.y1;
     const len = Math.sqrt(ex * ex + ey * ey);
@@ -9229,17 +9302,17 @@
     let nx = -ey / len, ny = ex / len;
     const dx = pbBall.x - w.x1, dy = pbBall.y - w.y1;
     let dist = dx * nx + dy * ny;
-    // Ensure normal faces toward the ball so collision works from either side
     if (dist < 0) { nx = -nx; ny = -ny; dist = -dist; }
     if (dist > PB_BALL_R) return;
     const t = (dx * ex + dy * ey) / (len * len);
     if (t < 0 || t > 1) return;
     const dot = pbBall.vx * nx + pbBall.vy * ny;
-    if (dot > 0) return; // moving away from wall
+    if (dot > 0) return;
     pbBall.vx -= (1 + PB_WALL_REST) * dot * nx;
     pbBall.vy -= (1 + PB_WALL_REST) * dot * ny;
     pbBall.x += nx * (PB_BALL_R - dist);
     pbBall.y += ny * (PB_BALL_R - dist);
+    return { nx, ny, x: pbBall.x, y: pbBall.y };
   }
 
   function pbCollideWithFlipper(pivot, angle, dir, isActive) {
@@ -9247,19 +9320,18 @@
     const tipY = pivot.y + Math.sin(angle) * PB_FLIPPER_LEN;
     const d = pbPointToSegmentDist(pbBall.x, pbBall.y, pivot.x, pivot.y, tipX, tipY);
     if (d < PB_BALL_R + PB_FLIPPER_HW) {
-      // Push ball away from flipper
       const mx = (pivot.x + tipX) / 2, my = (pivot.y + tipY) / 2;
       const awayX = pbBall.x - mx, awayY = pbBall.y - my;
       const awayLen = Math.sqrt(awayX * awayX + awayY * awayY) || 1;
       pbBall.x += (awayX / awayLen) * 3;
       pbBall.y += (awayY / awayLen) * 3;
       if (isActive) {
-        // Calculate distance from pivot (0-1)
         const fx = pbBall.x - pivot.x, fy = pbBall.y - pivot.y;
         const fDist = Math.sqrt(fx * fx + fy * fy) / PB_FLIPPER_LEN;
         const kickStrength = 8 + fDist * 10;
         pbBall.vy = -kickStrength;
         pbBall.vx += dir * fDist * 5;
+        pbSpawnSparks(pbBall.x, pbBall.y, 0, -1, 4);
       } else {
         const dot = pbBall.vx * (awayX / awayLen) + pbBall.vy * (awayY / awayLen);
         if (dot < 0) {
@@ -9280,29 +9352,205 @@
     return Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
   }
 
-  function pbAddScore(base) {
-    pbScore += base * pbMultiplier;
-    pbConsecutiveHits++;
-    if (pbConsecutiveHits % 5 === 0 && pbMultiplier < 10) {
-      pbMultiplier++;
-      $('pbMultiplier').textContent = pbMultiplier + 'x';
-    }
-    $('pbScore').textContent = pbScore;
-  }
+  // --- Update ---
+  function pbUpdate(dt) {
+    if (!dt || dt <= 0) dt = 1;
+    pbAnimTime += dt;
 
-  function pbBallDrained() {
-    pbBallNum++;
-    if (pbBallNum > PB_MAX_BALLS) {
-      pbGameOver = true;
-      pbShowGameOver();
+    // Flippers
+    const leftActive = pbKeysDown['ArrowLeft'] || pbKeysDown['a'] || pbKeysDown['A'] || pbKeysDown['z'] || pbKeysDown['Z'];
+    const rightActive = pbKeysDown['ArrowRight'] || pbKeysDown['d'] || pbKeysDown['D'] || pbKeysDown['/'];
+    const leftTarget = leftActive ? PB_FLIPPER_ACTIVE : PB_FLIPPER_REST;
+    const rightTarget = rightActive ? PB_FLIPPER_ACTIVE : PB_FLIPPER_REST;
+    if (pbLeftFlipperAngle < leftTarget) pbLeftFlipperAngle = Math.min(pbLeftFlipperAngle + PB_FLIPPER_SPEED * dt, leftTarget);
+    else if (pbLeftFlipperAngle > leftTarget) pbLeftFlipperAngle = Math.max(pbLeftFlipperAngle - PB_FLIPPER_SPEED * dt, leftTarget);
+    if (pbRightFlipperAngle < rightTarget) pbRightFlipperAngle = Math.min(pbRightFlipperAngle + PB_FLIPPER_SPEED * dt, rightTarget);
+    else if (pbRightFlipperAngle > rightTarget) pbRightFlipperAngle = Math.max(pbRightFlipperAngle - PB_FLIPPER_SPEED * dt, rightTarget);
+
+    // Plunger
+    if (pbPlungerCharging) pbPlungerCharge = Math.min(pbPlungerCharge + PB_PLUNGER_RATE * dt, PB_PLUNGER_MAX);
+    if (pbBallInPlunger) {
+      pbBall.x = 440;
+      pbBall.y = 700 + (pbPlungerCharging ? pbPlungerCharge * 1.5 : 0);
+      pbUpdateParticles(dt);
+      if (pbComboTimer > 0) pbComboTimer -= dt;
       return;
     }
-    pbMultiplier = 1;
-    pbConsecutiveHits = 0;
-    pbBallInPlunger = true;
-    pbPlungerCharge = 0;
-    pbPlungerCharging = false;
+
+    // Ball physics
+    pbBall.vy += PB_GRAVITY * dt;
+    pbBall.vx *= Math.pow(PB_FRICTION, dt);
+    pbBall.vy *= Math.pow(PB_FRICTION, dt);
+    pbBall.x += pbBall.vx * dt;
+    pbBall.y += pbBall.vy * dt;
+
+    // Wall collisions (+ spark particles)
+    for (const w of pbWalls) {
+      const hit = pbCollideLineSegment(w);
+      if (hit) {
+        const spd = Math.sqrt(pbBall.vx * pbBall.vx + pbBall.vy * pbBall.vy);
+        if (spd > 4) pbSpawnSparks(hit.x, hit.y, hit.nx, hit.ny, 3);
+      }
+    }
+
+    // Slingshot collisions
+    for (let si = 0; si < pbSlingshots.length; si++) {
+      if (pbSlingshotCooldown[si] > 0) { pbSlingshotCooldown[si] -= dt; continue; }
+      const sl = pbSlingshots[si];
+      let slHit = false;
+      for (const w of sl.walls) {
+        const hit = pbCollideLineSegment(w);
+        if (hit) slHit = true;
+      }
+      if (slHit) {
+        const len = Math.sqrt(sl.kickNx * sl.kickNx + sl.kickNy * sl.kickNy) || 1;
+        pbBall.vx += (sl.kickNx / len) * PB_SLINGSHOT_KICK;
+        pbBall.vy += (sl.kickNy / len) * PB_SLINGSHOT_KICK;
+        sl.flash = 12;
+        pbSlingshotCooldown[si] = 10;
+        pbTriggerShake(3, 4);
+        pbAddScore(10, pbBall.x, pbBall.y);
+        pbSpawnParticles(pbBall.x, pbBall.y, 6, 0, 255, 150, 1, 3, 12, 2);
+      }
+    }
+
+    // Bumper collisions
+    for (let i = 0; i < pbBumpers.length; i++) {
+      const b = pbBumpers[i];
+      const dx = pbBall.x - b.x, dy = pbBall.y - b.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = PB_BALL_R + b.r;
+      if (dist < minDist && dist > 0) {
+        const nx = dx / dist, ny = dy / dist;
+        pbBall.x = b.x + nx * minDist;
+        pbBall.y = b.y + ny * minDist;
+        const dot = pbBall.vx * nx + pbBall.vy * ny;
+        pbBall.vx -= (1 + PB_BUMPER_REST) * dot * nx;
+        pbBall.vy -= (1 + PB_BUMPER_REST) * dot * ny;
+        pbBumperFlash[i] = 15;
+        pbTriggerShake(4, 6);
+        pbAddScore(100, b.x, b.y);
+        pbSpawnRing(b.x, b.y, 255, 68, 170, 20);
+        pbSpawnParticles(b.x, b.y, 8, 255, 68, 170, 1, 4, 15, 2);
+      }
+    }
+
+    // Side target collisions
+    for (let i = 0; i < pbTargets.length; i++) {
+      if (pbTargetCooldown[i] > 0) { pbTargetCooldown[i] -= dt; continue; }
+      const t = pbTargets[i];
+      const d = pbPointToSegmentDist(pbBall.x, pbBall.y, t.x1, t.y1, t.x2, t.y2);
+      if (d < PB_BALL_R + 5) {
+        pbTargetCooldown[i] = 120;
+        pbAddScore(50, (t.x1 + t.x2) / 2, (t.y1 + t.y2) / 2);
+      }
+    }
+
+    // Drop target collisions
+    for (let i = 0; i < pbDropTargets.length; i++) {
+      const dt_t = pbDropTargets[i];
+      if (!dt_t.active) continue;
+      const d = pbPointToSegmentDist(pbBall.x, pbBall.y, dt_t.x1, dt_t.y1, dt_t.x2, dt_t.y2);
+      if (d < PB_BALL_R + 5) {
+        dt_t.active = false;
+        pbBall.vx += 4;
+        pbAddScore(150, dt_t.x1 + 20, (dt_t.y1 + dt_t.y2) / 2);
+        pbSpawnParticles(dt_t.x1, (dt_t.y1 + dt_t.y2) / 2, 5, 0, 255, 136, 1, 3, 15, 2);
+        if (pbDropTargets.every(t => !t.active)) {
+          pbAddScore(2000, 130, 480);
+          pbSpawnText(130, 465, 'DROP BONUS!', 255, 255, 0);
+          pbTriggerShake(6, 10);
+          pbDropResetTimer = PB_DROP_RESET_DELAY;
+        }
+      }
+    }
+    if (pbDropResetTimer > 0) {
+      pbDropResetTimer -= dt;
+      if (pbDropResetTimer <= 0) pbDropTargets.forEach(t => t.active = true);
+    }
+
+    // Flipper collisions
+    pbCollideWithFlipper(pbLeftFlipperPivot, pbLeftFlipperAngle, 1, leftActive);
+    pbCollideWithFlipper(pbRightFlipperPivot, pbRightFlipperAngle, -1, rightActive);
+
+    // Spinner
+    const spinDx = pbBall.x - pbSpinner.x, spinDy = pbBall.y - pbSpinner.y;
+    if (Math.abs(spinDx) < 25 && Math.abs(spinDy) < 15 && Math.abs(pbBall.vy) > 3) {
+      pbSpinner.spinSpeed = Math.max(pbSpinner.spinSpeed, Math.abs(pbBall.vy) * 0.5);
+    }
+    if (pbSpinner.spinSpeed > 0.01) {
+      pbSpinner.angle += pbSpinner.spinSpeed * dt * 0.1;
+      pbSpinner.spinSpeed *= Math.pow(0.97, dt);
+      const newTick = Math.floor(pbSpinner.angle / Math.PI);
+      if (newTick > pbSpinnerScoreAngle) {
+        const ticks = newTick - pbSpinnerScoreAngle;
+        pbSpinnerScoreAngle = newTick;
+        pbAddScore(25 * ticks, pbSpinner.x, pbSpinner.y - 15);
+      }
+    }
+
+    // Rollover lanes
+    for (let i = 0; i < pbRolloverLanes.length; i++) {
+      const lane = pbRolloverLanes[i];
+      if (lane.lit) continue;
+      const cx = lane.x + lane.width / 2;
+      if (Math.abs(pbBall.x - cx) < lane.width / 2 && Math.abs(pbBall.y - lane.y) < 15) {
+        lane.lit = true;
+        pbAddScore(75, cx, lane.y);
+        if (pbSkillShotAvailable && i === 1) {
+          pbAddScore(1000, cx, lane.y - 20);
+          pbSpawnText(cx, lane.y - 35, 'SKILL SHOT!', 255, 255, 0);
+          pbTriggerShake(5, 8);
+        }
+        pbSkillShotAvailable = false;
+        if (pbRolloverLanes.every(l => l.lit)) {
+          pbAddScore(500, 220, 35);
+          pbSpawnText(220, 20, 'ALL LANES LIT!', 0, 255, 200);
+          pbTriggerShake(4, 6);
+          pbRolloverLanes.forEach(l => l.lit = false);
+        }
+      }
+    }
+
+    // Kickback (left outlane save)
+    if (pbKickbackActive && pbBall.x < 120 && pbBall.x > 40 && pbBall.y > pbKickbackZone.y && pbBall.y < pbKickbackZone.y + pbKickbackZone.height) {
+      pbBall.vy = PB_KICKBACK_VY;
+      pbBall.vx += 3;
+      pbKickbackActive = false;
+      pbSpawnText(80, 710, 'SAVED!', 0, 255, 100);
+      pbSpawnParticles(80, 730, 10, 0, 255, 100, 2, 5, 20, 3);
+      pbTriggerShake(3, 5);
+    }
+
+    // Ball trail
+    const spd = Math.sqrt(pbBall.vx * pbBall.vx + pbBall.vy * pbBall.vy);
+    if (spd > 2 && pbParticles.length < PB_MAX_PARTICLES) {
+      pbParticles.push({ x: pbBall.x, y: pbBall.y, vx: 0, vy: 0, life: 12, maxLife: 12, r: 180, g: 180, b: 220, size: 3, type: 'circle' });
+    }
+
+    // Timers
+    for (let i = 0; i < pbBumperFlash.length; i++) { if (pbBumperFlash[i] > 0) pbBumperFlash[i] -= dt; }
+    for (let i = 0; i < pbSlingshots.length; i++) { if (pbSlingshots[i].flash > 0) pbSlingshots[i].flash -= dt; }
+    if (pbComboTimer > 0) pbComboTimer -= dt;
+    if (pbScreenShake > 0) pbScreenShake -= dt;
+
+    pbUpdateParticles(dt);
+
+    // Drain
+    if (pbBall.y > PB_H + 20) pbBallDrained();
+  }
+
+  // --- Ball lifecycle ---
+  function pbBallDrained() {
+    pbBallNum++;
+    if (pbBallNum > PB_MAX_BALLS) { pbGameOver = true; pbShowGameOver(); return; }
+    pbMultiplier = 1; pbConsecutiveHits = 0;
+    pbBallInPlunger = true; pbPlungerCharge = 0; pbPlungerCharging = false;
     pbBall = { x: 440, y: 700, vx: 0, vy: 0 };
+    pbKickbackActive = true; pbSkillShotAvailable = true;
+    pbComboCount = 0; pbComboTimer = 0;
+    pbParticles = [];
+    pbSpinner.spinSpeed = 0;
     $('pbBallNum').textContent = pbBallNum + ' / 3';
     $('pbMultiplier').textContent = '1x';
     const info = $('pinballInfo');
@@ -9312,55 +9560,90 @@
   function pbShowGameOver() {
     $('gameOverTitle').textContent = 'Game Over';
     $('gameOverReason').textContent = 'Final Score: ' + pbScore;
-    const rc = $('gameOverRating');
-    if (rc) rc.innerHTML = '';
-    const coinEl = $('gameOverCoins');
-    if (coinEl) coinEl.textContent = '';
+    const rc = $('gameOverRating'); if (rc) rc.innerHTML = '';
+    const coinEl = $('gameOverCoins'); if (coinEl) coinEl.textContent = '';
     $('gameOverOverlay').classList.remove('hidden');
-    if (pbScore >= 5000) {
-      if (typeof startConfetti === 'function') startConfetti();
-    }
+    if (pbScore >= 5000 && typeof startConfetti === 'function') startConfetti();
     const btn = $('btnBackToLobby');
     if (btn) btn.onclick = () => { $('gameOverOverlay').classList.add('hidden'); pbGameLoopActive = false; document.removeEventListener('keydown', pbKeyDown); document.removeEventListener('keyup', pbKeyUp); showScreen('lobby'); };
     const pa = $('btnPlayAgain');
     if (pa) pa.onclick = () => { $('gameOverOverlay').classList.add('hidden'); startPinballGame(); };
   }
 
+  // --- Render ---
   function pbRender() {
     if (!pbCtx) return;
     const ctx = pbCtx;
 
-    // Dark background
     ctx.fillStyle = '#0a0a1a';
     ctx.fillRect(0, 0, PB_W, PB_H);
+
+    // Screen shake
+    let shaking = pbScreenShake > 0;
+    if (shaking) {
+      ctx.save();
+      ctx.translate((Math.random() - 0.5) * pbScreenShakeIntensity, (Math.random() - 0.5) * pbScreenShakeIntensity);
+      if (pbScreenShake <= 0) pbScreenShakeIntensity = 0;
+    }
 
     // Table surface
     ctx.fillStyle = '#1a1030';
     ctx.beginPath();
-    ctx.moveTo(40, 60);
-    ctx.lineTo(40, 700);
-    ctx.lineTo(120, 740);
-    ctx.lineTo(380, 740);
-    ctx.lineTo(420, 700);
-    ctx.lineTo(420, 60);
-    ctx.lineTo(460, 60);
-    ctx.lineTo(460, 10);
-    ctx.lineTo(40, 10);
+    ctx.moveTo(40, 60); ctx.lineTo(40, 700); ctx.lineTo(80, 740); ctx.lineTo(120, 740);
+    ctx.lineTo(380, 740); ctx.lineTo(420, 700); ctx.lineTo(420, 60);
+    ctx.lineTo(460, 60); ctx.lineTo(460, 10); ctx.lineTo(40, 10);
     ctx.closePath();
     ctx.fill();
 
-    // Walls — neon blue with glow
+    // Background grid
+    ctx.strokeStyle = 'rgba(100, 50, 200, 0.06)';
+    ctx.lineWidth = 1;
+    for (let gx = 60; gx < 420; gx += 40) { ctx.beginPath(); ctx.moveTo(gx, 20); ctx.lineTo(gx, 740); ctx.stroke(); }
+    for (let gy = 20; gy < 740; gy += 40) { ctx.beginPath(); ctx.moveTo(40, gy); ctx.lineTo(420, gy); ctx.stroke(); }
+
+    // Twinkling stars
+    for (let i = 0; i < pbStars.length; i++) {
+      const s = pbStars[i];
+      const tw = 0.2 + 0.3 * Math.sin(pbAnimTime * 0.08 + i * 1.2);
+      ctx.globalAlpha = tw;
+      ctx.fillStyle = '#b88cff';
+      ctx.beginPath(); ctx.arc(s.x, s.y, 1.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Table title
+    ctx.fillStyle = 'rgba(150, 100, 255, 0.12)';
+    ctx.font = 'bold 28px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('BOARDOM', 230, 770);
+
+    // Walls — neon cyan glow
     ctx.strokeStyle = '#00ccff';
     ctx.lineWidth = 3;
     ctx.shadowColor = '#00ccff';
     ctx.shadowBlur = 10;
-    for (const w of pbWalls) {
-      ctx.beginPath();
-      ctx.moveTo(w.x1, w.y1);
-      ctx.lineTo(w.x2, w.y2);
-      ctx.stroke();
-    }
+    for (const w of pbWalls) { ctx.beginPath(); ctx.moveTo(w.x1, w.y1); ctx.lineTo(w.x2, w.y2); ctx.stroke(); }
     ctx.shadowBlur = 0;
+
+    // Slingshots
+    for (let si = 0; si < pbSlingshots.length; si++) {
+      const sl = pbSlingshots[si];
+      const isFlash = sl.flash > 0;
+      ctx.strokeStyle = isFlash ? '#44ffaa' : '#00ccff';
+      ctx.lineWidth = isFlash ? 4 : 3;
+      if (isFlash) { ctx.shadowColor = '#44ffaa'; ctx.shadowBlur = 15; }
+      else { ctx.shadowColor = '#00ccff'; ctx.shadowBlur = 8; }
+      for (const w of sl.walls) { ctx.beginPath(); ctx.moveTo(w.x1, w.y1); ctx.lineTo(w.x2, w.y2); ctx.stroke(); }
+      // Fill triangle
+      ctx.fillStyle = isFlash ? 'rgba(68,255,170,0.3)' : 'rgba(0,204,255,0.08)';
+      ctx.beginPath();
+      ctx.moveTo(sl.walls[0].x1, sl.walls[0].y1);
+      ctx.lineTo(sl.walls[0].x2, sl.walls[0].y2);
+      ctx.lineTo(sl.walls[1].x2, sl.walls[1].y2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
 
     // Drain area
     ctx.fillStyle = 'rgba(200, 0, 0, 0.15)';
@@ -9369,38 +9652,101 @@
     // Bumpers
     for (let i = 0; i < pbBumpers.length; i++) {
       const b = pbBumpers[i];
+      const flash = pbBumperFlash[i] > 0;
+      const pulse = 0.8 + 0.2 * Math.sin(pbAnimTime * 0.15 + i);
       ctx.beginPath();
       ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      if (pbBumperFlash[i] > 0) {
-        ctx.fillStyle = '#ff44aa';
-        ctx.shadowColor = '#ff44aa';
-        ctx.shadowBlur = 20;
-      } else {
-        ctx.fillStyle = '#6633aa';
-        ctx.shadowColor = '#6633aa';
-        ctx.shadowBlur = 8;
-      }
+      if (flash) { ctx.fillStyle = '#ff44aa'; ctx.shadowColor = '#ff44aa'; ctx.shadowBlur = 25; }
+      else { ctx.fillStyle = `rgba(102,51,170,${pulse})`; ctx.shadowColor = '#6633aa'; ctx.shadowBlur = 8; }
       ctx.fill();
-      ctx.strokeStyle = '#cc88ff';
+      ctx.strokeStyle = flash ? '#ffaadd' : '#cc88ff';
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.shadowBlur = 0;
+      // Inner ring
+      ctx.strokeStyle = flash ? '#ffffff' : 'rgba(200,150,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.55, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // Targets
+    // Side targets
     for (let i = 0; i < pbTargets.length; i++) {
       const t = pbTargets[i];
-      ctx.strokeStyle = pbTargetCooldown[i] > 0 ? '#332200' : '#ff8800';
+      const onCooldown = pbTargetCooldown[i] > 0;
+      ctx.strokeStyle = onCooldown ? '#332200' : '#ff8800';
       ctx.lineWidth = 4;
-      if (pbTargetCooldown[i] === 0) {
-        ctx.shadowColor = '#ff8800';
-        ctx.shadowBlur = 8;
-      }
-      ctx.beginPath();
-      ctx.moveTo(t.x1, t.y1);
-      ctx.lineTo(t.x2, t.y2);
-      ctx.stroke();
+      if (!onCooldown) { ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 8; }
+      ctx.beginPath(); ctx.moveTo(t.x1, t.y1); ctx.lineTo(t.x2, t.y2); ctx.stroke();
       ctx.shadowBlur = 0;
+    }
+
+    // Drop targets
+    for (let i = 0; i < pbDropTargets.length; i++) {
+      const dt_t = pbDropTargets[i];
+      if (dt_t.active) {
+        const pulse = 0.7 + 0.3 * Math.sin(pbAnimTime * 0.15 + i * 1.5);
+        ctx.strokeStyle = `rgba(0,255,136,${pulse})`;
+        ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10;
+      } else {
+        ctx.strokeStyle = 'rgba(0,80,40,0.4)';
+        ctx.shadowBlur = 0;
+      }
+      ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(dt_t.x1, dt_t.y1); ctx.lineTo(dt_t.x2, dt_t.y2); ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    // Drop target label
+    ctx.fillStyle = 'rgba(0,255,136,0.3)';
+    ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('DROP', 100, 435);
+
+    // Spinner
+    ctx.save();
+    ctx.translate(pbSpinner.x, pbSpinner.y);
+    ctx.rotate(pbSpinner.angle);
+    const spinGlow = pbSpinner.spinSpeed > 0.1;
+    ctx.strokeStyle = spinGlow ? '#ffaa00' : '#885500';
+    ctx.lineWidth = spinGlow ? 4 : 3;
+    if (spinGlow) { ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 12; }
+    ctx.beginPath(); ctx.moveTo(-pbSpinner.width / 2, 0); ctx.lineTo(pbSpinner.width / 2, 0); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    // Spinner label
+    ctx.fillStyle = 'rgba(255,170,0,0.25)';
+    ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('SPINNER', pbSpinner.x, pbSpinner.y + 20);
+
+    // Rollover lane indicators
+    for (let i = 0; i < pbRolloverLanes.length; i++) {
+      const lane = pbRolloverLanes[i];
+      const cx = lane.x + lane.width / 2;
+      if (lane.lit) {
+        ctx.fillStyle = '#00ff88'; ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 12;
+      } else {
+        const p = 0.3 + 0.3 * Math.sin(pbAnimTime * 0.12 + i * 1.5);
+        ctx.fillStyle = `rgba(0,180,80,${p})`;
+        ctx.shadowBlur = 0;
+      }
+      ctx.beginPath(); ctx.arc(cx, lane.y - 12, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = lane.lit ? '#00ff88' : '#336644';
+      ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(lane.label, cx, lane.y + 5);
+    }
+
+    // Kickback indicator
+    if (pbKickbackActive) {
+      const kp = 0.5 + 0.5 * Math.sin(pbAnimTime * 0.2);
+      ctx.fillStyle = `rgba(0,255,100,${0.3 + kp * 0.7})`;
+      ctx.shadowColor = '#00ff64'; ctx.shadowBlur = 8;
+      ctx.fillRect(pbKickbackZone.x, pbKickbackZone.y, pbKickbackZone.width, pbKickbackZone.height);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(0,255,100,0.5)';
+      ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('SAVE', pbKickbackZone.x + pbKickbackZone.width / 2, pbKickbackZone.y - 3);
+    } else {
+      ctx.fillStyle = 'rgba(50,50,50,0.3)';
+      ctx.fillRect(pbKickbackZone.x, pbKickbackZone.y, pbKickbackZone.width, pbKickbackZone.height);
     }
 
     // Flippers
@@ -9408,76 +9754,98 @@
     pbDrawFlipper(ctx, pbRightFlipperPivot, pbRightFlipperAngle, -1);
 
     // Plunger
-    const plungerX = 440;
-    const plungerBaseY = 760;
+    const plungerX = 440, plungerBaseY = 760;
     const plungerHeadY = 700 + (pbPlungerCharging ? pbPlungerCharge * 1.5 : 0);
-    // Spring coils
-    ctx.strokeStyle = '#888';
-    ctx.lineWidth = 2;
-    const springSegs = 8;
-    const springH = plungerBaseY - plungerHeadY - 10;
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 2;
+    const springSegs = 8, springH = plungerBaseY - plungerHeadY - 10;
     for (let i = 0; i < springSegs; i++) {
       const sy = plungerHeadY + 10 + (springH / springSegs) * i;
       const sy2 = plungerHeadY + 10 + (springH / springSegs) * (i + 0.5);
-      ctx.beginPath();
-      ctx.moveTo(plungerX - 8, sy);
-      ctx.lineTo(plungerX + 8, sy2);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(plungerX - 8, sy); ctx.lineTo(plungerX + 8, sy2); ctx.stroke();
     }
-    // Plunger head
-    ctx.fillStyle = '#cc2222';
-    ctx.shadowColor = '#ff4444';
-    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#cc2222'; ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 6;
     ctx.fillRect(plungerX - 10, plungerHeadY - 5, 20, 10);
     ctx.shadowBlur = 0;
-    // Power bar
     if (pbPlungerCharging) {
       const pct = pbPlungerCharge / PB_PLUNGER_MAX;
-      ctx.fillStyle = '#333';
-      ctx.fillRect(470, 600, 15, 150);
+      ctx.fillStyle = '#333'; ctx.fillRect(470, 600, 15, 150);
       ctx.fillStyle = pct > 0.7 ? '#ff2222' : pct > 0.4 ? '#ffaa00' : '#00cc44';
       ctx.fillRect(470, 600 + 150 * (1 - pct), 15, 150 * pct);
     }
 
-    // Ball
+    // Ball with motion blur
     if (!pbGameOver) {
+      const spd = Math.sqrt(pbBall.vx * pbBall.vx + pbBall.vy * pbBall.vy);
+      if (spd > 2) {
+        const nx = pbBall.vx / spd, ny = pbBall.vy / spd;
+        for (let g = 3; g >= 1; g--) {
+          ctx.globalAlpha = 0.08 * (4 - g);
+          ctx.fillStyle = '#aaaacc';
+          ctx.beginPath(); ctx.arc(pbBall.x - nx * g * 5, pbBall.y - ny * g * 5, PB_BALL_R - 1, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
       const grad = ctx.createRadialGradient(pbBall.x - 2, pbBall.y - 2, 1, pbBall.x, pbBall.y, PB_BALL_R);
       grad.addColorStop(0, '#ffffff');
-      grad.addColorStop(0.5, '#cccccc');
-      grad.addColorStop(1, '#888888');
+      grad.addColorStop(0.4, '#ddddee');
+      grad.addColorStop(1, '#8888aa');
       ctx.fillStyle = grad;
       ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(pbBall.x, pbBall.y, PB_BALL_R, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.shadowBlur = 8 + Math.min(spd, 12);
+      ctx.beginPath(); ctx.arc(pbBall.x, pbBall.y, PB_BALL_R, 0, Math.PI * 2); ctx.fill();
       ctx.shadowBlur = 0;
+    }
+
+    // Particles
+    pbRenderParticles(ctx);
+
+    // Restore shake
+    if (shaking) ctx.restore();
+
+    // HUD overlays (don't shake)
+    if (pbComboCount >= 2 && pbComboTimer > 0) {
+      const ca = Math.min(1, pbComboTimer / 30);
+      ctx.globalAlpha = ca;
+      ctx.fillStyle = '#ff44ff'; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'right';
+      ctx.fillText(pbComboCount + 'x COMBO', 410, 770);
+      ctx.globalAlpha = 1;
+    }
+    if (pbBallInPlunger && pbSkillShotAvailable) {
+      const sf = 0.4 + 0.6 * Math.sin(pbAnimTime * 0.2);
+      ctx.globalAlpha = sf;
+      ctx.fillStyle = '#ffff00'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('AIM FOR CENTER LANE!', 230, 30);
+      ctx.globalAlpha = 1;
     }
   }
 
   function pbDrawFlipper(ctx, pivot, angle, dir) {
     const tipX = pivot.x + Math.cos(angle) * PB_FLIPPER_LEN * dir;
     const tipY = pivot.y + Math.sin(angle) * PB_FLIPPER_LEN;
-    const perpX = -Math.sin(angle * dir) * dir;
-    const perpY = Math.cos(angle * dir);
+    const perpX = -Math.sin(angle);
+    const perpY = Math.cos(angle);
 
-    ctx.fillStyle = '#cc3333';
-    ctx.shadowColor = '#ff4444';
-    ctx.shadowBlur = 6;
+    const grad = ctx.createLinearGradient(pivot.x, pivot.y, tipX, tipY);
+    grad.addColorStop(0, '#ff4444');
+    grad.addColorStop(1, '#991111');
+    ctx.fillStyle = grad;
+    ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 8;
     ctx.beginPath();
     ctx.moveTo(pivot.x + perpX * PB_FLIPPER_HW, pivot.y + perpY * PB_FLIPPER_HW);
     ctx.lineTo(pivot.x - perpX * PB_FLIPPER_HW, pivot.y - perpY * PB_FLIPPER_HW);
-    ctx.lineTo(tipX - perpX * 4, tipY - perpY * 4);
-    ctx.lineTo(tipX + perpX * 4, tipY + perpY * 4);
+    ctx.lineTo(tipX - perpX * 3, tipY - perpY * 3);
+    ctx.arc(tipX, tipY, 3, Math.atan2(-perpY, -perpX), Math.atan2(perpY, perpX));
     ctx.closePath();
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Pivot dot
-    ctx.fillStyle = '#ff6666';
-    ctx.beginPath();
-    ctx.arc(pivot.x, pivot.y, 5, 0, Math.PI * 2);
-    ctx.fill();
+    // Chrome pivot
+    const pg = ctx.createRadialGradient(pivot.x - 1, pivot.y - 1, 1, pivot.x, pivot.y, 6);
+    pg.addColorStop(0, '#ffffff');
+    pg.addColorStop(0.5, '#ff6666');
+    pg.addColorStop(1, '#880000');
+    ctx.fillStyle = pg;
+    ctx.beginPath(); ctx.arc(pivot.x, pivot.y, 6, 0, Math.PI * 2); ctx.fill();
   }
 
   /* ================================================
